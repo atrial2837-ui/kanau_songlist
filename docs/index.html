@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>夢川かなう Database v2 [Dev Edition]</title>
+<meta name="description" content="夢川かなう 新ch 歌った曲データベース 開発版・グラフ・分析機能つき">
+<link rel="preconnect" href="https://docs.google.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/views.css">
+</head>
+<body>
+
+<aside class="bubbles" aria-hidden="true">
+  <span class="bubble b1"></span>
+  <span class="bubble b2"></span>
+  <span class="bubble b3"></span>
+  <span class="bubble b4"></span>
+</aside>
+
+<header class="topbar">
+  <div class="topbar-inner container">
+    <a href="../" class="brand" aria-label="シンプル版へ戻る">
+      <span class="brand-icon">🐟</span>
+      <span class="brand-text">
+        <span class="brand-title">夢川かなう <span class="brand-dim">Database</span></span>
+        <span class="brand-sub">v2 · Dev Edition</span>
+      </span>
+    </a>
+    <div class="topbar-actions">
+      <div class="channel-switch" id="channel-switch" role="group" aria-label="チャンネル切替">
+        <button class="ch-btn active" data-channel="new" type="button">新ch</button>
+        <button class="ch-btn"        data-channel="old" type="button">旧ch</button>
+        <button class="ch-btn"        data-channel="all" type="button">全期間</button>
+      </div>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="テーマ切替">
+        <span class="theme-icon" id="theme-icon">🌗</span>
+        <span class="theme-label" id="theme-label">auto</span>
+      </button>
+      <button class="icon-btn" id="reload-btn" type="button" title="データを再取得" aria-label="再取得">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <h1 class="hero-title">🐟 夢川かなう 新ch 歌唱データベース</h1>
+    <p class="hero-sub">~ Singing Stream Analytics ~</p>
+    <p class="hero-updated" id="updated-info">読み込み中…</p>
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card placeholder"></div>
+      <div class="stat-card placeholder"></div>
+      <div class="stat-card placeholder"></div>
+      <div class="stat-card placeholder"></div>
+      <div class="stat-card placeholder"></div>
+      <div class="stat-card placeholder"></div>
+    </div>
+  </section>
+
+  <!-- Tabs -->
+  <nav class="tabs" role="tablist" aria-label="セクション">
+    <button class="tab-btn active" data-tab="dashboard" role="tab">📊 ダッシュボード</button>
+    <button class="tab-btn" data-tab="ranking"   role="tab">🏆 ランキング</button>
+    <button class="tab-btn" data-tab="songs"     role="tab">🎵 全曲リスト</button>
+    <button class="tab-btn" data-tab="timeline"  role="tab">📅 タイムライン</button>
+    <button class="tab-btn" data-tab="analytics" role="tab">📈 アナリティクス</button>
+  </nav>
+
+  <!-- Panels -->
+  <div class="panels">
+    <section class="panel active" id="panel-dashboard" role="tabpanel"></section>
+    <section class="panel"        id="panel-ranking"   role="tabpanel"></section>
+    <section class="panel"        id="panel-songs"     role="tabpanel"></section>
+    <section class="panel"        id="panel-timeline"  role="tabpanel"></section>
+    <section class="panel"        id="panel-analytics" role="tabpanel"></section>
+  </div>
+
+  <div id="loading" class="state-card" hidden>
+    <div class="spinner"></div>
+    <div class="msg">スプレッドシートからデータを取得中…</div>
+  </div>
+  <div id="error" class="state-card" hidden>
+    <div class="msg">⚠️ データの取得に失敗しました</div>
+    <div class="err-detail" id="err-detail"></div>
+    <button class="btn primary" id="retry-btn" type="button">再試行</button>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>
+    Made with <span class="heart">♡</span> for 夢川かなう ファン &nbsp;·&nbsp;
+    <a href="https://docs.google.com/spreadsheets/d/1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o/edit" target="_blank" rel="noopener">データソース</a> &nbsp;·&nbsp;
+    <a href="../" rel="noopener">シンプル版</a>
+  </p>
+</footer>
+
+<!-- Dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "fuse": "https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.mjs"
+  }
+}
+</script>
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>
