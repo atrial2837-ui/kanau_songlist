@@ -40,6 +40,7 @@ function switchChannel(channelId) {
   const ds = getDataset(channelId);
   if (!ds) return;
   state.channel = channelId;
+  updatePageTitle(channelId);
   state.data = ds;
   state.timelineFilter = null;
   state.timelineLimit = 12;
