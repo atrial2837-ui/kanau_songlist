@@ -131,6 +131,22 @@ function showError(err) {
   $('#err-detail').textContent = err && err.message ? err.message : String(err);
 }
 
+function updatePageTitle(mode) {
+  const el = document.getElementById('page-title');
+  if (!el) return;
+
+  if (mode === 'new') {
+    el.textContent = '🐟 夢川かなう 新ch 歌唱データベース';
+    document.title = '夢川かなう 新ch 歌唱データベース';
+  } else if (mode === 'old') {
+    el.textContent = '🐟 夢川かなう 旧ch 歌唱データベース';
+    document.title = '夢川かなう 旧ch 歌唱データベース';
+  } else {
+    el.textContent = '🐟 夢川かなう 歌唱データベース';
+    document.title = '夢川かなう 歌唱データベース';
+  }
+}
+
 async function init() {
   showLoading();
   try {
