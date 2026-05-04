@@ -1,11 +1,12 @@
 const PAGE_SIZE = 1000;
+const CACHE_SECONDS = 60;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'public, max-age=300',
+      'cache-control': `public, max-age=${CACHE_SECONDS}`,
     },
   });
 }

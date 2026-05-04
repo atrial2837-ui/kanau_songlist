@@ -1,3 +1,4 @@
+import argparse
 import csv
 import json
 import os
@@ -104,6 +105,14 @@ class Supabase:
         query = {key: f"eq.{value}" for key, value in filters.items()}
         return self.request("DELETE", table, query=query, prefer="return=minimal")
 
+    def delete_all(self, table):
+        return self.request(
+            "DELETE",
+            table,
+            query={"created_at": "not.is.null"},
+            prefer="return=minimal",
+        )
+
 
 def load_channels(db):
     rows = db.request("GET", "channels", query={"select": "id,code"})
@@ -208,8 +217,24 @@ def import_streams(db, channel_code, channel_id, rows, song_id_by_key):
         db.upsert("stream_songs", stream_song_rows, "stream_id,position")
 
 
+def reset_import_tables(db):
+    for table in ("stream_songs", "song_channel_stats", "streams", "songs", "artists"):
+        db.delete_all(table)
+        print(f"reset: deleted {table}")
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Import song data from Google Sheets to Supabase.")
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Delete imported data before importing. Channels are kept.",
+    )
+    args = parser.parse_args()
+
     db = Supabase()
+    if args.reset:
+        reset_import_tables(db)
     channels = load_channels(db)
     for code, config in CHANNELS.items():
         if code not in channels:

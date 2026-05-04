@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>運用管理｜夢川かなう 歌唱データベース</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="assets/site-icon.svg">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/views.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner container">
+    <a class="brand" href="./" aria-label="夢川かなう 歌唱データベース ホーム">
+      <img class="brand-icon" src="assets/site-icon.svg" alt="" width="28" height="28">
+      <span class="brand-text">
+        <span class="brand-title">運用管理</span>
+        <span class="brand-sub">Supabase / Cloudflare</span>
+      </span>
+    </a>
+    <div class="topbar-actions">
+      <a class="btn ghost" href="./">サイトへ戻る</a>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="テーマ切替">
+        <span class="theme-icon" id="theme-icon">🌗</span>
+        <span class="theme-label" id="theme-label">auto</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="container admin-main">
+  <section class="admin-hero">
+    <div>
+      <h1>運用管理</h1>
+      <p>公開APIの状態と、データ更新手順を確認できます。</p>
+    </div>
+    <button class="btn primary" id="refresh-status" type="button">再チェック</button>
+  </section>
+
+  <section class="admin-grid">
+    <article class="admin-panel">
+      <div class="section-header">
+        <h2>APIステータス</h2>
+        <span class="badge" id="api-badge">確認中</span>
+      </div>
+      <div class="admin-stats" id="api-stats">
+        <div class="stat-card placeholder"></div>
+        <div class="stat-card placeholder"></div>
+        <div class="stat-card placeholder"></div>
+      </div>
+      <p class="admin-note" id="api-detail">/api/data を読み込んでいます。</p>
+    </article>
+
+    <article class="admin-panel">
+      <div class="section-header">
+        <h2>チャンネル別</h2>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>チャンネル</th>
+              <th>曲</th>
+              <th>歌枠</th>
+              <th>総歌唱</th>
+              <th>最新</th>
+            </tr>
+          </thead>
+          <tbody id="channel-rows">
+            <tr><td colspan="5">読み込み中</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="admin-panel">
+    <div class="section-header">
+      <h2>更新手順</h2>
+    </div>
+    <ol class="admin-steps">
+      <li>Google Sheetsを編集する。</li>
+      <li>ローカルでSupabaseの環境変数を設定する。</li>
+      <li>追加・修正だけなら通常インポート、削除も反映するなら完全再インポートを実行する。</li>
+      <li>反映後、このページで件数と最新日付を確認する。</li>
+    </ol>
+    <div class="command-grid">
+      <div>
+        <h3>通常インポート</h3>
+        <pre><code>$env:SUPABASE_URL="https://ptlbobhebwjaebrdgvpl.supabase.co"
+$env:SUPABASE_SECRET_KEY="sb_secret_..."
+python tools\import_supabase.py</code></pre>
+      </div>
+      <div>
+        <h3>完全再インポート</h3>
+        <pre><code>$env:SUPABASE_URL="https://ptlbobhebwjaebrdgvpl.supabase.co"
+$env:SUPABASE_SECRET_KEY="sb_secret_..."
+python tools\import_supabase.py --reset</code></pre>
+      </div>
+    </div>
+    <p class="admin-note">Secret keyはこのページやGitHubには保存しません。CloudflareではVariables and SecretsにSecretとして保存します。</p>
+  </section>
+</main>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>
