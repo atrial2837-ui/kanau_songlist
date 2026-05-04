@@ -1,7 +1,3 @@
-import { state } from '../state.js';
-import { daysSince, fmtDate } from '../utils.js';
-import { $ } from '../utils.js';
-
 export function renderRecency() {
   const root = $('#panel-recency');
   if (!state.data) return;
@@ -9,8 +5,8 @@ export function renderRecency() {
   const songs = state.data.songs;
 
   const rows = songs.map(song => {
-    const last = song.lastDate || song.lastPlayed;
-    const days = daysSince(last);
+    const last = song.lastSung;
+    const days = song.daysSinceLast;
 
     let badge = '';
     if (song.count === 1) {
@@ -24,9 +20,16 @@ export function renderRecency() {
     return `
       <div class="song-row">
         <div class="song-title">${song.title}</div>
+
         <div class="song-meta">
-          最終歌唱：${fmtDate(last) || '—'}
-          ${days != null ? `（${days}日前）` : ''}
+          <span class="a-date">
+            ${last ? fmtDate(last) : '—'}
+          </span>
+
+          <span class="a-meta">
+            ${days != null ? days + '日前' : '—'}
+          </span>
+
           ${badge}
         </div>
       </div>
