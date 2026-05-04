@@ -21,6 +21,7 @@ const RENDERERS = {
   songs:     renderSongs,
   timeline:  renderTimeline,
   analytics: renderAnalytics,
+  recency:   renderRecency, 
 };
 
 function activateTab(tab) {
