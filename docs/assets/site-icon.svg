@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">夢川かなう 歌唱データベース アイコン</title>
+  <desc id="desc">水色とピンクの丸の中に音符と波をあしらったアイコン</desc>
+  <defs>
+    <linearGradient id="bg" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9bdcf7"/>
+      <stop offset="0.58" stop-color="#4ab2dc"/>
+      <stop offset="1" stop-color="#ff9eb5"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="18" y1="12" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".92"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".32"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="29" fill="url(#bg)"/>
+  <circle cx="24" cy="21" r="11" fill="url(#shine)" opacity=".42"/>
+  <path fill="#fff" d="M38.5 14.5c1.6 0 2.8 1.2 2.8 2.8v21.2c0 5-4.1 9-9.2 9-4.1 0-7.4-2.4-7.4-5.5 0-3.2 3.3-5.8 7.4-5.8 1.3 0 2.6.3 3.7.8V17.3c0-1.6 1.2-2.8 2.7-2.8Zm-6.4 26.8c-1.7 0-3 .8-3 1.6 0 .7 1.3 1.5 3 1.5 2 0 3.7-1.2 3.7-2.7-.8-.3-2.1-.4-3.7-.4Z"/>
+  <path fill="#e9f9ff" d="M17.2 42.4c4.7-3.1 9.4-3.1 14.1 0 4.1 2.7 8.2 2.7 12.4 0 1.2-.8 2.6-.4 3.4.7.7 1.1.4 2.6-.8 3.4-5.7 3.7-11.5 3.7-17.6 0-3.1-2-6.1-2-9.2 0-1.2.8-2.6.4-3.4-.8-.7-1.1-.3-2.6 1.1-3.3Z"/>
+  <circle cx="48" cy="18" r="3.2" fill="#fff" opacity=".82"/>
+  <circle cx="14" cy="30" r="2.2" fill="#fff" opacity=".55"/>
+</svg>

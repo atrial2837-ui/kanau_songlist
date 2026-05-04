@@ -206,8 +206,11 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 }
 .brand:hover { text-decoration: none; opacity: 0.85; }
 .brand-icon {
-  font-size: 22px;
-  line-height: 1;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
 }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
 .brand-title { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
