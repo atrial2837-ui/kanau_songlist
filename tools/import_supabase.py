@@ -1,0 +1,225 @@
+import csv
+import json
+import os
+import sys
+import unicodedata
+import urllib.parse
+import urllib.request
+import urllib.error
+from datetime import datetime
+
+
+SPREADSHEET_ID = "1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o"
+CHANNELS = {
+    "new": {"list_gid": "0", "setlist_gid": "684306666"},
+    "old": {"list_gid": "959470167", "setlist_gid": "254288043"},
+}
+
+
+def normalize(value):
+    return unicodedata.normalize("NFKC", str(value or "")).strip()
+
+
+def normalized_key(value):
+    return " ".join(normalize(value).split()).lower()
+
+
+def song_key(title, artist):
+    return f"{normalized_key(title)}__{normalized_key(artist)}"
+
+
+def split_song_cell(raw):
+    raw = str(raw or "").strip()
+    for sep in (" / ", "／", "/"):
+        idx = raw.rfind(sep)
+        if idx >= 0:
+            return raw[:idx].strip(), raw[idx + len(sep):].strip()
+    return raw, ""
+
+
+def parse_date(value):
+    value = str(value or "").strip()
+    for fmt in ("%Y/%m/%d", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(value[:10], fmt).date().isoformat()
+        except ValueError:
+            pass
+    return None
+
+
+def fetch_sheet(gid):
+    query = urllib.parse.urlencode({"tqx": "out:csv", "gid": gid})
+    url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?{query}"
+    with urllib.request.urlopen(url, timeout=30) as response:
+        text = response.read().decode("utf-8-sig")
+    return list(csv.reader(text.splitlines()))
+
+
+class Supabase:
+    def __init__(self):
+        self.url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+        self.key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+        if not self.url or not self.key:
+            raise RuntimeError("SUPABASE_URL and SUPABASE_SECRET_KEY are required")
+
+    def request(self, method, path, payload=None, query=None, prefer=None):
+        params = urllib.parse.urlencode(query or {}, doseq=True)
+        url = f"{self.url}/rest/v1/{path}"
+        if params:
+            url += f"?{params}"
+        body = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        req = urllib.request.Request(url, data=body, method=method)
+        req.add_header("apikey", self.key)
+        req.add_header("Authorization", f"Bearer {self.key}")
+        req.add_header("Content-Type", "application/json")
+        req.add_header("Accept", "application/json")
+        if prefer:
+            req.add_header("Prefer", prefer)
+        try:
+            with urllib.request.urlopen(req, timeout=60) as response:
+                raw = response.read().decode("utf-8")
+                return json.loads(raw) if raw else None
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"{method} {path} failed: HTTP {exc.code} {detail}") from exc
+
+    def select_one(self, table, **filters):
+        query = {"select": "*", "limit": "1"}
+        query.update({key: f"eq.{value}" for key, value in filters.items()})
+        rows = self.request("GET", table, query=query)
+        return rows[0] if rows else None
+
+    def upsert(self, table, rows, conflict):
+        if not rows:
+            return []
+        return self.request(
+            "POST",
+            table,
+            payload=rows,
+            query={"on_conflict": conflict},
+            prefer="resolution=merge-duplicates,return=representation",
+        )
+
+    def delete(self, table, **filters):
+        query = {key: f"eq.{value}" for key, value in filters.items()}
+        return self.request("DELETE", table, query=query, prefer="return=minimal")
+
+
+def load_channels(db):
+    rows = db.request("GET", "channels", query={"select": "id,code"})
+    return {row["code"]: row["id"] for row in rows}
+
+
+def import_channel(db, channel_code, channel_id, config):
+    list_rows = fetch_sheet(config["list_gid"])
+    setlist_rows = fetch_sheet(config["setlist_gid"])
+
+    songs_by_key = {}
+    stats_rows = []
+    artist_rows = {}
+
+    for index, row in enumerate(list_rows[2:], start=1):
+        title = normalize(row[1] if len(row) > 1 else "")
+        if not title:
+            continue
+        artist = normalize(row[2] if len(row) > 2 else "")
+        count = int(row[3]) if len(row) > 3 and str(row[3]).isdigit() else 0
+        key = song_key(title, artist)
+        artist_norm = normalized_key(artist or "(不明)")
+        artist_rows[artist_norm] = {"name": artist or "(不明)", "normalized_name": artist_norm}
+        songs_by_key[key] = {
+            "title": title,
+            "artist": artist,
+            "normalized_title": normalized_key(title),
+            "song_key": key,
+            "source_index": int(row[0]) if row and str(row[0]).isdigit() else index,
+            "count": count,
+        }
+
+    artists = db.upsert("artists", list(artist_rows.values()), "normalized_name")
+    artist_id_by_norm = {row["normalized_name"]: row["id"] for row in artists}
+
+    song_rows = []
+    for song in songs_by_key.values():
+        artist_norm = normalized_key(song["artist"] or "(不明)")
+        song_rows.append({
+            "title": song["title"],
+            "normalized_title": song["normalized_title"],
+            "artist_id": artist_id_by_norm.get(artist_norm),
+            "song_key": song["song_key"],
+        })
+    songs = db.upsert("songs", song_rows, "song_key")
+    song_id_by_key = {row["song_key"]: row["id"] for row in songs}
+
+    for key, song in songs_by_key.items():
+        stats_rows.append({
+            "song_id": song_id_by_key[key],
+            "channel_id": channel_id,
+            "sing_count": song["count"],
+            "source_index": song["source_index"],
+        })
+    db.upsert("song_channel_stats", stats_rows, "song_id,channel_id")
+
+    import_streams(db, channel_code, channel_id, setlist_rows, song_id_by_key)
+    print(f"{channel_code}: imported {len(song_rows)} songs")
+
+
+def import_streams(db, channel_code, channel_id, rows, song_id_by_key):
+    if len(rows) < 5:
+        return
+    index_row, date_row, title_row, url_row, count_row = rows[:5]
+    col_count = max(len(index_row), len(date_row))
+
+    for col in range(1, col_count):
+        streamed_on = parse_date(date_row[col] if col < len(date_row) else "")
+        if not streamed_on:
+            continue
+        url = normalize(url_row[col] if col < len(url_row) else "")
+        stream_payload = [{
+            "channel_id": channel_id,
+            "source_index": int(index_row[col]) if col < len(index_row) and str(index_row[col]).isdigit() else col,
+            "streamed_on": streamed_on,
+            "title": normalize(title_row[col] if col < len(title_row) else ""),
+            "url": url,
+            "url_key": url,
+            "song_count": int(count_row[col]) if col < len(count_row) and str(count_row[col]).isdigit() else 0,
+        }]
+        stream = db.upsert("streams", stream_payload, "channel_id,streamed_on,url_key")[0]
+        db.delete("stream_songs", stream_id=stream["id"])
+
+        stream_song_rows = []
+        position = 1
+        for row in rows[5:]:
+            if col >= len(row) or not str(row[col]).strip():
+                continue
+            raw = str(row[col]).strip()
+            title, artist = split_song_cell(raw)
+            key = song_key(title, artist)
+            stream_song_rows.append({
+                "stream_id": stream["id"],
+                "song_id": song_id_by_key.get(key),
+                "position": position,
+                "raw_text": raw,
+                "title_snapshot": normalize(title),
+                "artist_snapshot": normalize(artist),
+                "song_key_snapshot": key,
+            })
+            position += 1
+        db.upsert("stream_songs", stream_song_rows, "stream_id,position")
+
+
+def main():
+    db = Supabase()
+    channels = load_channels(db)
+    for code, config in CHANNELS.items():
+        if code not in channels:
+            raise RuntimeError(f"channels.code={code} is missing")
+        import_channel(db, code, channels[code], config)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        print(f"import failed: {exc}", file=sys.stderr)
+        sys.exit(1)
