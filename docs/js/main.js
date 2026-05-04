@@ -11,7 +11,6 @@ import { renderRanking }   from './views/ranking.js';
 import { renderSongs }     from './views/songs.js';
 import { renderTimeline }  from './views/timeline.js';
 import { renderAnalytics } from './views/analytics.js';
-import { renderRecency } from './views/recency.js';
 
 initTheme();
 
@@ -21,7 +20,6 @@ const RENDERERS = {
   songs:     renderSongs,
   timeline:  renderTimeline,
   analytics: renderAnalytics,
-  recency:   renderRecency, 
 };
 
 function activateTab(tab) {
