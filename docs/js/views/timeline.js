@@ -64,7 +64,8 @@ function renderItem(s, idx, filter) {
   const recentClass = !filter && idx < 3 ? 'recent' : '';
   const setlistHtml = s.songs.map((song, i) => {
     const hit = filter && song.key === filter.key ? ' hit' : '';
-    return `<span class="setlist-song${hit}" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="クリックで絞り込み"><span class="sl-num">${i + 1}</span>${escapeHtml(song.title)}<span style="color:var(--ink-mute);"> / ${escapeHtml(song.artist)}</span></span>`;
+    const title = hit ? 'クリックで絞り込み解除' : 'クリックで絞り込み';
+    return `<span class="setlist-song${hit}" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="${title}"><span class="sl-num">${i + 1}</span>${escapeHtml(song.title)}<span style="color:var(--ink-mute);"> / ${escapeHtml(song.artist)}</span></span>`;
   }).join('');
   const titleHtml = s.url
     ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || '配信')}</a>`

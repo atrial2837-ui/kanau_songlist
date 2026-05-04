@@ -72,7 +72,12 @@ function refreshChannelButtons() {
 }
 
 function filterTimelineBySong({ key, title, artist }) {
-  state.timelineFilter = { key, title, artist };
+  const sameFilter = state.timelineFilter && state.timelineFilter.key === key;
+  if (sameFilter && state.activeTab === 'timeline') {
+    state.timelineFilter = null;
+  } else {
+    state.timelineFilter = { key, title, artist };
+  }
   state.timelineLimit = 12;
   activateTab('timeline');
   $('#panel-timeline').scrollIntoView({ behavior: 'smooth', block: 'start' });
