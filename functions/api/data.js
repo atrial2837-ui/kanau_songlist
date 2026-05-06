@@ -5,6 +5,7 @@ const INTEGRATED_GID = '1012689826';
 const KEY_TITLE_COL = 19;
 const KEY_ARTIST_COL = 20;
 const KEY_VALUE_COL = 21;
+const KEY_PUBLISH_COL = 22;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -79,6 +80,8 @@ async function fetchDisplayKeys() {
   const res = await fetch(url);
   if (!res.ok) return new Map();
   const rows = parseCsv(await res.text());
+  const publishFlag = normalize(rows[0]?.[KEY_PUBLISH_COL] || '');
+  if (publishFlag !== '公開') return new Map();
   const keys = new Map();
   for (const row of rows) {
     const title = normalize(row[KEY_TITLE_COL] || '');
