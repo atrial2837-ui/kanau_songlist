@@ -3,7 +3,8 @@ const CACHE_SECONDS = 60;
 const SPREADSHEET_ID = '1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o';
 const INTEGRATED_GID = '1012689826';
 const KEY_TITLE_COL = 19;
-const KEY_VALUE_COL = 20;
+const KEY_ARTIST_COL = 20;
+const KEY_VALUE_COL = 21;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -32,8 +33,8 @@ function daysSince(dateText) {
   return Math.floor((today - date) / 86400000);
 }
 
-function lookupKey(value) {
-  return normalize(value).toLowerCase();
+function lookupKey(title, artist) {
+  return `${normalize(title).toLowerCase()}__${normalize(artist).toLowerCase()}`;
 }
 
 function parseCsv(text) {
@@ -81,8 +82,9 @@ async function fetchDisplayKeys() {
   const keys = new Map();
   for (const row of rows) {
     const title = normalize(row[KEY_TITLE_COL] || '');
+    const artist = normalize(row[KEY_ARTIST_COL] || '');
     const key = normalize(row[KEY_VALUE_COL] || '');
-    if (title && key) keys.set(lookupKey(title), key);
+    if (title && artist && key) keys.set(lookupKey(title, artist), key);
   }
   return keys;
 }
@@ -199,7 +201,7 @@ function buildDataset(channel, tables, displayKeys) {
     const artist = artistsById.get(song?.artist_id);
     const refs = streamRefsBySongKey.get(song?.song_key) || [];
     const dates = refs.map((stream) => stream.date).filter(Boolean).sort().reverse();
-    const displayKey = displayKeys.get(lookupKey(song?.title)) || '';
+    const displayKey = displayKeys.get(lookupKey(song?.title, artist?.name)) || '';
     return {
       sourceIndex: stat.source_index || 0,
       title: normalize(song?.title),
