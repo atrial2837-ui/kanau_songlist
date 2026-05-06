@@ -5,6 +5,7 @@ const fuseOptions = {
   keys: [
     { name: 'title', weight: 0.65 },
     { name: 'artist', weight: 0.35 },
+    { name: 'keyText', weight: 0.1 },
   ],
   threshold: 0.38,
   ignoreLocation: true,
@@ -20,7 +21,7 @@ export function buildIndex(songs) {
   fuse = new Fuse(songs, fuseOptions);
 }
 
-const FIELD_RE = /(?<key>title|artist|count|last|days)\s*(?<op>:|<=|>=|=|<|>)\s*(?<val>"[^"]*"|\S+)/gi;
+const FIELD_RE = /(?<key>title|artist|key|count|last|days)\s*(?<op>:|<=|>=|=|<|>)\s*(?<val>"[^"]*"|\S+)/gi;
 
 function parseQuery(raw) {
   const filters = [];
@@ -47,6 +48,10 @@ function applyFieldFilters(songs, filters) {
         }
         case 'artist': {
           if (!normalize(song.artist).toLowerCase().includes(normalize(v).toLowerCase())) return false;
+          break;
+        }
+        case 'key': {
+          if (!normalize(song.keyText).toLowerCase().split(/\s+/).includes(normalize(v).toLowerCase())) return false;
           break;
         }
         case 'count': {

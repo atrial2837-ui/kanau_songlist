@@ -26,6 +26,7 @@ export function renderSongs() {
       <strong>field検索：</strong>
       <code>artist:ヨルシカ</code>
       <code>title:深海</code>
+      <code>key:-2</code>
       <code>count:&gt;5</code>
       <code>days:&lt;30</code>
       <code>last:fresh</code>（30日以内）
@@ -152,9 +153,24 @@ function rowHtml(song, tokens) {
       <div class="info">
         <div class="title">${titleHtml}</div>
         <div class="artist">${artistHtml}</div>
+        ${keyHtml(song)}
       </div>
       <div class="count">${song.count}<small>回</small></div>
       <div class="last">${lastHtml}</div>
+    </div>
+  `;
+}
+
+function keyHtml(song) {
+  const key = String(song.displayKey || '').trim();
+  if (!key) {
+    return `<div class="song-key-line"><span class="song-key-empty">キー未登録</span></div>`;
+  }
+  return `
+    <div class="song-key-line">
+      <button type="button" class="song-key-badge" title="統合集計 T/U列のキー">
+        <span>キー</span><strong>${escapeHtml(key)}</strong>
+      </button>
     </div>
   `;
 }

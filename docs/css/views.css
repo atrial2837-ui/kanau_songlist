@@ -194,6 +194,41 @@
   margin-top: 2px;
   word-break: break-word;
 }
+.song-key-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  min-height: 24px;
+}
+.song-key-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.2;
+  cursor: default;
+}
+.song-key-badge span {
+  color: var(--ink-mute);
+  font-weight: 600;
+}
+.song-key-badge strong {
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-feature-settings: var(--tnum);
+}
+.song-key-empty {
+  color: var(--ink-mute);
+  font-size: 11px;
+}
 .song-row .count {
   font-size: 14px;
   font-weight: 700;

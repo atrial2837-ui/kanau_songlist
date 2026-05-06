@@ -1,5 +1,9 @@
 const PAGE_SIZE = 1000;
 const CACHE_SECONDS = 60;
+const SPREADSHEET_ID = '1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o';
+const INTEGRATED_GID = '1012689826';
+const KEY_TITLE_COL = 19;
+const KEY_VALUE_COL = 20;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -26,6 +30,61 @@ function daysSince(dateText) {
   const date = new Date(`${dateText}T00:00:00`);
   if (Number.isNaN(date.getTime())) return null;
   return Math.floor((today - date) / 86400000);
+}
+
+function lookupKey(value) {
+  return normalize(value).toLowerCase();
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const next = text[i + 1];
+    if (quoted) {
+      if (ch === '"' && next === '"') {
+        cell += '"';
+        i += 1;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (ch === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else if (ch !== '\r') {
+      cell += ch;
+    }
+  }
+  row.push(cell);
+  if (row.length > 1 || row[0]) rows.push(row);
+  return rows;
+}
+
+async function fetchDisplayKeys() {
+  const query = new URLSearchParams({ tqx: 'out:csv', gid: INTEGRATED_GID });
+  const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?${query}`;
+  const res = await fetch(url);
+  if (!res.ok) return new Map();
+  const rows = parseCsv(await res.text());
+  const keys = new Map();
+  for (const row of rows) {
+    const title = normalize(row[KEY_TITLE_COL] || '');
+    const key = normalize(row[KEY_VALUE_COL] || '');
+    if (title && key) keys.set(lookupKey(title), key);
+  }
+  return keys;
 }
 
 async function supabaseSelect(env, table, query = {}) {
@@ -85,7 +144,7 @@ function deriveArtists(songs) {
   return Array.from(byArtist.values()).sort((a, b) => b.totalCount - a.totalCount);
 }
 
-function buildDataset(channel, tables) {
+function buildDataset(channel, tables, displayKeys) {
   const statsBySong = new Map(
     tables.song_channel_stats
       .filter((row) => row.channel_id === channel.id)
@@ -140,12 +199,15 @@ function buildDataset(channel, tables) {
     const artist = artistsById.get(song?.artist_id);
     const refs = streamRefsBySongKey.get(song?.song_key) || [];
     const dates = refs.map((stream) => stream.date).filter(Boolean).sort().reverse();
+    const displayKey = displayKeys.get(lookupKey(song?.title)) || '';
     return {
       sourceIndex: stat.source_index || 0,
       title: normalize(song?.title),
       artist: normalize(artist?.name),
       count: stat.sing_count || 0,
       key: song?.song_key || '',
+      displayKey,
+      keyText: displayKey,
       channels: [channel.code],
       dates,
       streamRefs: refs,
@@ -235,6 +297,7 @@ export async function onRequestGet({ env }) {
       supabaseSelect(env, 'stream_songs', { order: 'position.asc' }),
       supabaseSelect(env, 'song_channel_stats'),
     ]);
+    const displayKeys = await fetchDisplayKeys();
     const tables = {
       artists,
       songs,
@@ -244,7 +307,7 @@ export async function onRequestGet({ env }) {
     };
     const channelDatasets = {};
     for (const channel of channels) {
-      channelDatasets[channel.code] = buildDataset(channel, tables);
+      channelDatasets[channel.code] = buildDataset(channel, tables, displayKeys);
     }
     return json({
       channels: channelDatasets,

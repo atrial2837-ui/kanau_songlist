@@ -63,6 +63,8 @@ function hydrateDataset(dataset) {
   for (const song of dataset.songs) {
     const refs = refsBySongKey.get(song.key) || [];
     const dates = refs.map((stream) => stream.date).filter(Boolean).sort((a, b) => b - a);
+    song.displayKey = song.displayKey || '';
+    song.keyText = song.keyText || song.displayKey;
     song.channels = Array.isArray(song.channels) ? song.channels : Array.from(song.channels || []);
     song.streamRefs = refs;
     song.dates = dates;
