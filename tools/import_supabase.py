@@ -119,9 +119,17 @@ def load_channels(db):
     return {row["code"]: row["id"] for row in rows}
 
 
+def clear_channel_import(db, channel_code, channel_id):
+    db.delete("song_channel_stats", channel_id=channel_id)
+    db.delete("streams", channel_id=channel_id)
+    print(f"{channel_code}: cleared previous channel streams and stats", flush=True)
+
+
 def import_channel(db, channel_code, channel_id, config):
+    print(f"{channel_code}: fetching sheets", flush=True)
     list_rows = fetch_sheet(config["list_gid"])
     setlist_rows = fetch_sheet(config["setlist_gid"])
+    clear_channel_import(db, channel_code, channel_id)
 
     songs_by_key = {}
     stats_rows = []
@@ -169,15 +177,21 @@ def import_channel(db, channel_code, channel_id, config):
         })
     db.upsert("song_channel_stats", stats_rows, "song_id,channel_id")
 
-    import_streams(db, channel_code, channel_id, setlist_rows, song_id_by_key)
-    print(f"{channel_code}: imported {len(song_rows)} songs")
+    print(f"{channel_code}: importing streams", flush=True)
+    stream_count, stream_song_count = import_streams(db, channel_code, channel_id, setlist_rows, song_id_by_key)
+    print(
+        f"{channel_code}: imported {len(song_rows)} songs, {stream_count} streams, {stream_song_count} stream songs",
+        flush=True,
+    )
 
 
 def import_streams(db, channel_code, channel_id, rows, song_id_by_key):
     if len(rows) < 5:
-        return
+        return 0, 0
     index_row, date_row, title_row, url_row, count_row = rows[:5]
     col_count = max(len(index_row), len(date_row))
+    imported_streams = 0
+    imported_stream_songs = 0
 
     for col in range(1, col_count):
         streamed_on = parse_date(date_row[col] if col < len(date_row) else "")
@@ -215,12 +229,22 @@ def import_streams(db, channel_code, channel_id, rows, song_id_by_key):
             })
             position += 1
         db.upsert("stream_songs", stream_song_rows, "stream_id,position")
+        imported_streams += 1
+        imported_stream_songs += len(stream_song_rows)
+        if imported_streams == 1 or imported_streams % 10 == 0:
+            print(
+                f"{channel_code}: imported {imported_streams} streams "
+                f"({imported_stream_songs} stream songs)",
+                flush=True,
+            )
+
+    return imported_streams, imported_stream_songs
 
 
 def reset_import_tables(db):
     for table in ("stream_songs", "song_channel_stats", "streams", "songs", "artists"):
         db.delete_all(table)
-        print(f"reset: deleted {table}")
+        print(f"reset: deleted {table}", flush=True)
 
 
 def main():
