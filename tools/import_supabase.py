@@ -8,6 +8,7 @@ import urllib.parse
 import urllib.request
 import urllib.error
 from datetime import datetime
+from collections import defaultdict
 
 
 SPREADSHEET_ID = "1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o"
@@ -167,6 +168,7 @@ def import_channel(db, channel_code, channel_id, config):
         })
     songs = db.upsert("songs", song_rows, "song_key")
     song_id_by_key = {row["song_key"]: row["id"] for row in songs}
+    unique_song_id_by_title = unique_title_song_map(songs_by_key, song_id_by_key)
 
     for key, song in songs_by_key.items():
         stats_rows.append({
@@ -178,20 +180,59 @@ def import_channel(db, channel_code, channel_id, config):
     db.upsert("song_channel_stats", stats_rows, "song_id,channel_id")
 
     print(f"{channel_code}: importing streams", flush=True)
-    stream_count, stream_song_count = import_streams(db, channel_code, channel_id, setlist_rows, song_id_by_key)
+    stream_count, stream_song_count, unmatched_count, linked_counts = import_streams(
+        db,
+        channel_code,
+        channel_id,
+        setlist_rows,
+        song_id_by_key,
+        unique_song_id_by_title,
+    )
+    no_history = [
+        song
+        for key, song in songs_by_key.items()
+        if song["count"] > 0 and linked_counts.get(song_id_by_key.get(key), 0) == 0
+    ]
     print(
-        f"{channel_code}: imported {len(song_rows)} songs, {stream_count} streams, {stream_song_count} stream songs",
+        f"{channel_code}: imported {len(song_rows)} songs, {stream_count} streams, "
+        f"{stream_song_count} stream songs, {unmatched_count} unmatched",
         flush=True,
     )
+    if no_history:
+        print(f"{channel_code}: {len(no_history)} listed songs have no linked stream history", flush=True)
+        for song in no_history[:20]:
+            print(f"  - {song['title']} / {song['artist']} ({song['count']})", flush=True)
+        if len(no_history) > 20:
+            print(f"  ... and {len(no_history) - 20} more", flush=True)
 
 
-def import_streams(db, channel_code, channel_id, rows, song_id_by_key):
+def unique_title_song_map(songs_by_key, song_id_by_key):
+    by_title = defaultdict(list)
+    for key, song in songs_by_key.items():
+        by_title[song["normalized_title"]].append(key)
+    return {
+        title_key: song_id_by_key[keys[0]]
+        for title_key, keys in by_title.items()
+        if len(keys) == 1 and keys[0] in song_id_by_key
+    }
+
+
+def resolve_song_id(title, key, song_id_by_key, unique_song_id_by_title):
+    exact = song_id_by_key.get(key)
+    if exact:
+        return exact
+    return unique_song_id_by_title.get(normalized_key(title))
+
+
+def import_streams(db, channel_code, channel_id, rows, song_id_by_key, unique_song_id_by_title):
     if len(rows) < 5:
-        return 0, 0
+        return 0, 0, 0, {}
     index_row, date_row, title_row, url_row, count_row = rows[:5]
     col_count = max(len(index_row), len(date_row))
     imported_streams = 0
     imported_stream_songs = 0
+    unmatched_count = 0
+    linked_counts = defaultdict(int)
 
     for col in range(1, col_count):
         streamed_on = parse_date(date_row[col] if col < len(date_row) else "")
@@ -218,9 +259,14 @@ def import_streams(db, channel_code, channel_id, rows, song_id_by_key):
             raw = str(row[col]).strip()
             title, artist = split_song_cell(raw)
             key = song_key(title, artist)
+            song_id = resolve_song_id(title, key, song_id_by_key, unique_song_id_by_title)
+            if not song_id:
+                unmatched_count += 1
+            else:
+                linked_counts[song_id] += 1
             stream_song_rows.append({
                 "stream_id": stream["id"],
-                "song_id": song_id_by_key.get(key),
+                "song_id": song_id,
                 "position": position,
                 "raw_text": raw,
                 "title_snapshot": normalize(title),
@@ -238,7 +284,7 @@ def import_streams(db, channel_code, channel_id, rows, song_id_by_key):
                 flush=True,
             )
 
-    return imported_streams, imported_stream_songs
+    return imported_streams, imported_stream_songs, unmatched_count, linked_counts
 
 
 def reset_import_tables(db):

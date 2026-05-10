@@ -35,14 +35,14 @@ export function renderSongs() {
       <code>days:&lt;30</code>
       <code>last:fresh</code>（30日以内）
       <code>last:stale</code>（180日以上）
-      <code>last:never</code>（未披露）
+      <code>last:never</code>（履歴未確認）
       ・複数組合せ可
     </p>
     <div class="controls" id="songs-filters" style="margin-top:-8px;">
       <button class="btn ghost active" data-filter="all">すべて</button>
       <button class="btn ghost" data-filter="fresh">🟢 最近 (30日以内)</button>
       <button class="btn ghost" data-filter="stale">🟠 久しぶり (180日以上)</button>
-      <button class="btn ghost" data-filter="never">⚪ 未披露</button>
+      <button class="btn ghost" data-filter="never">⚪ 履歴未確認</button>
     </div>
     <div class="genre-strip" id="songs-genre-chips">${genreChipsHtml()}</div>
     <div id="songs-list" class="song-list"></div>
@@ -218,7 +218,7 @@ function rowHtml(song, tokens) {
   const rankClass = song.rank === 1 ? 'r1' : song.rank === 2 ? 'r2' : song.rank === 3 ? 'r3' : '';
   const lastHtml = song.lastSung
     ? `<div>${fmtDate(song.lastSung)}</div><span class="badge ${daysClass(song.daysSinceLast)}">${song.daysSinceLast}日前</span>`
-    : `<div>未披露</div><span class="badge never">—</span>`;
+    : `<div>履歴未確認</div><span class="badge never">要確認</span>`;
   const titleHtml = highlightText(song.title, tokens);
   const artistHtml = highlightText(song.artist, tokens);
   return `
