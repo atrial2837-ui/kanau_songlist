@@ -121,9 +121,19 @@ def load_channels(db):
 
 
 def clear_channel_import(db, channel_code, channel_id):
+    streams = db.request(
+        "GET",
+        "streams",
+        query={"select": "id", "channel_id": f"eq.{channel_id}"},
+    )
+    for stream in streams:
+        db.delete("stream_songs", stream_id=stream["id"])
     db.delete("song_channel_stats", channel_id=channel_id)
     db.delete("streams", channel_id=channel_id)
-    print(f"{channel_code}: cleared previous channel streams and stats", flush=True)
+    print(
+        f"{channel_code}: cleared previous channel stream songs, streams and stats",
+        flush=True,
+    )
 
 
 def import_channel(db, channel_code, channel_id, config):

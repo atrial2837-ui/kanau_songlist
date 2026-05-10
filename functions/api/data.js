@@ -169,6 +169,17 @@ function deriveArtists(songs) {
   return Array.from(byArtist.values()).sort((a, b) => b.totalCount - a.totalCount);
 }
 
+function dedupeStreamSongs(songs) {
+  const seen = new Set();
+  return songs.filter((song) => {
+    const key = song.key || lookupKey(song.title, song.artist);
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function buildDataset(channel, tables, metadata) {
   const statsBySong = new Map(
     tables.song_channel_stats
@@ -181,7 +192,7 @@ function buildDataset(channel, tables, metadata) {
     .filter((row) => row.channel_id === channel.id)
     .map((stream) => {
       const date = stream.streamed_on;
-      const songs = tables.stream_songs
+      const songs = dedupeStreamSongs(tables.stream_songs
         .filter((row) => row.stream_id === stream.id)
         .sort((a, b) => a.position - b.position)
         .map((row) => {
@@ -192,7 +203,7 @@ function buildDataset(channel, tables, metadata) {
             key: song?.song_key || row.song_key_snapshot,
             raw: row.raw_text || '',
           };
-        });
+        }));
       const jsDate = new Date(`${date}T00:00:00`);
       return {
         index: stream.source_index || 0,
