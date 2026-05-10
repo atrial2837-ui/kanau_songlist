@@ -325,12 +325,12 @@ export async function onRequestGet({ env }) {
       return json({ error: 'Supabase environment variables are missing' }, 500);
     }
     const [channels, artists, songs, streams, streamSongs, songChannelStats] = await Promise.all([
-      supabaseSelect(env, 'channels', { order: 'sort_order.asc' }),
-      supabaseSelect(env, 'artists'),
-      supabaseSelect(env, 'songs'),
-      supabaseSelect(env, 'streams', { order: 'streamed_on.desc' }),
-      supabaseSelect(env, 'stream_songs', { order: 'position.asc' }),
-      supabaseSelect(env, 'song_channel_stats'),
+      supabaseSelect(env, 'channels', { order: 'sort_order.asc,id.asc' }),
+      supabaseSelect(env, 'artists', { order: 'id.asc' }),
+      supabaseSelect(env, 'songs', { order: 'id.asc' }),
+      supabaseSelect(env, 'streams', { order: 'channel_id.asc,streamed_on.desc,id.asc' }),
+      supabaseSelect(env, 'stream_songs', { order: 'stream_id.asc,position.asc,id.asc' }),
+      supabaseSelect(env, 'song_channel_stats', { order: 'channel_id.asc,song_id.asc' }),
     ]);
     const metadata = await fetchSongMetadata();
     const tables = {
