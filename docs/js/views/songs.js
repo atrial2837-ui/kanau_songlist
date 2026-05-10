@@ -2,7 +2,7 @@ import { state } from '../state.js';
 import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText } from '../utils.js';
 import { search } from '../search.js';
 
-let searchInputEl, sortSelectEl, filterButtonsEl, listEl, countEl, moreBtnWrap;
+let searchInputEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
 
 export function renderSongs() {
   const panel = $('#panel-songs');
@@ -21,11 +21,15 @@ export function renderSongs() {
         <option value="title">曲名（あ→ん）</option>
         <option value="artist">アーティスト</option>
       </select>
+      <select id="songs-genre" class="select-input genre-select" title="ジャンルで絞り込み">
+        ${genreOptionsHtml()}
+      </select>
     </div>
     <p class="search-help">
       <strong>field検索：</strong>
       <code>artist:ヨルシカ</code>
       <code>title:深海</code>
+      <code>genre:ボカロ</code>
       <code>key:-2</code>
       <code>count:&gt;5</code>
       <code>days:&lt;30</code>
@@ -40,23 +44,35 @@ export function renderSongs() {
       <button class="btn ghost" data-filter="stale">🟠 久しぶり (180日以上)</button>
       <button class="btn ghost" data-filter="never">⚪ 未披露</button>
     </div>
+    <div class="genre-strip" id="songs-genre-chips">${genreChipsHtml()}</div>
     <div id="songs-list" class="song-list"></div>
     <div class="timeline-controls" id="songs-more-wrap"></div>
   `;
 
   searchInputEl = $('#songs-search');
   sortSelectEl = $('#songs-sort');
+  genreSelectEl = $('#songs-genre');
   filterButtonsEl = $('#songs-filters');
+  genreChipsEl = $('#songs-genre-chips');
   listEl = $('#songs-list');
   countEl = $('#songs-count');
   moreBtnWrap = $('#songs-more-wrap');
 
   sortSelectEl.value = state.songsSort;
+  genreSelectEl.value = genreExists(state.songsGenre) ? state.songsGenre : 'all';
+  state.songsGenre = genreSelectEl.value;
   refreshFilterButtons();
+  refreshGenreChips();
 
   const debounced = debounce(() => { state.songsQuery = searchInputEl.value; state.songsLimit = 100; refresh(); }, 120);
   searchInputEl.addEventListener('input', debounced);
   sortSelectEl.addEventListener('change', () => { state.songsSort = sortSelectEl.value; refresh(); });
+  genreSelectEl.addEventListener('change', () => {
+    state.songsGenre = genreSelectEl.value;
+    state.songsLimit = 100;
+    refreshGenreChips();
+    refresh();
+  });
   filterButtonsEl.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-filter]');
     if (!btn) return;
@@ -65,8 +81,60 @@ export function renderSongs() {
     refreshFilterButtons();
     refresh();
   });
+  genreChipsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-genre]');
+    if (!btn) return;
+    state.songsGenre = btn.dataset.genre;
+    genreSelectEl.value = state.songsGenre;
+    state.songsLimit = 100;
+    refreshGenreChips();
+    refresh();
+  });
 
   refresh();
+}
+
+function genreLabel(song) {
+  return String(song.genre || '未分類').trim() || '未分類';
+}
+
+function genreCounts() {
+  const counts = new Map();
+  for (const song of state.data.songs || []) {
+    const genre = genreLabel(song);
+    counts.set(genre, (counts.get(genre) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja'));
+}
+
+function genreExists(genre) {
+  return genre === 'all' || genreCounts().some(([name]) => name === genre);
+}
+
+function genreOptionsHtml() {
+  const options = [`<option value="all">全ジャンル</option>`];
+  for (const [genre, count] of genreCounts()) {
+    options.push(`<option value="${escapeHtml(genre)}">${escapeHtml(genre)} (${count})</option>`);
+  }
+  return options.join('');
+}
+
+function genreChipsHtml() {
+  const chips = [`<button class="genre-chip" type="button" data-genre="all">全ジャンル</button>`];
+  for (const [genre, count] of genreCounts()) {
+    chips.push(`
+      <button class="genre-chip" type="button" data-genre="${escapeHtml(genre)}">
+        <span>${escapeHtml(genre)}</span><small>${count}</small>
+      </button>
+    `);
+  }
+  return chips.join('');
+}
+
+function refreshGenreChips() {
+  for (const btn of genreChipsEl.querySelectorAll('[data-genre]')) {
+    btn.classList.toggle('active', btn.dataset.genre === state.songsGenre);
+  }
 }
 
 function refreshFilterButtons() {
@@ -74,6 +142,11 @@ function refreshFilterButtons() {
     btn.classList.toggle('primary', btn.dataset.filter === state.songsFilter);
     btn.classList.toggle('ghost', btn.dataset.filter !== state.songsFilter);
   }
+}
+
+function applyGenreFilter(songs) {
+  if (!state.songsGenre || state.songsGenre === 'all') return songs;
+  return songs.filter(s => genreLabel(s) === state.songsGenre);
 }
 
 function applyTagFilter(songs) {
@@ -91,7 +164,8 @@ function applyTagFilter(songs) {
 
 function refresh() {
   const { songs } = state.data;
-  const tagFiltered = applyTagFilter(songs);
+  const genreFiltered = applyGenreFilter(songs);
+  const tagFiltered = applyTagFilter(genreFiltered);
   const { results, tokens } = search(state.songsQuery, tagFiltered);
   let filtered = state.songsQuery.trim()
     ? results.filter(s => tagFiltered.includes(s))
@@ -153,6 +227,7 @@ function rowHtml(song, tokens) {
       <div class="info">
         <div class="title">${titleHtml}</div>
         <div class="artist">${artistHtml}</div>
+        <div class="song-meta-line"><span class="genre-badge">${escapeHtml(genreLabel(song))}</span></div>
         ${keyHtml(song)}
       </div>
       <div class="count">${song.count}<small>回</small></div>
@@ -162,6 +237,7 @@ function rowHtml(song, tokens) {
 }
 
 function keyHtml(song) {
+  if (!state.data?.stats?.keyPublished) return '';
   const key = String(song.displayKey || '').trim();
   if (!key) {
     return `<div class="song-key-line"><span class="song-key-empty">キー未登録</span></div>`;

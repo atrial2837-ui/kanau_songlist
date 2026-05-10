@@ -6,6 +6,7 @@ const KEY_TITLE_COL = 19;
 const KEY_ARTIST_COL = 20;
 const KEY_VALUE_COL = 21;
 const KEY_PUBLISH_COL = 22;
+const GENRE_COL = 23;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -74,22 +75,41 @@ function parseCsv(text) {
   return rows;
 }
 
-async function fetchDisplayKeys() {
+function inferGenre(title, artist) {
+  const text = `${normalize(title)} ${normalize(artist)}`.toLowerCase();
+  if (!text.trim()) return '未分類';
+
+  if (/(夢川かなう|re:a project|react)/i.test(text)) return 'オリジナル';
+  if (/(ディズニー|アナ|エルサ|ベル&ビースト|アラジン|ジャスミン|神田沙也加|松たか子|石井一孝|麻生かほ里|山寺宏一|伊東恵里|すずきまゆみ|レット・イット・ゴー|let it go|ホール・ニュー・ワールド|美女と野獣|パート・オブ・ユア・ワールド|生まれてはじめて)/i.test(text)) return 'ディズニー';
+  if (/(童謡|ドリーミング|ハムちゃんず|白鳥英美子|藤岡藤巻|大橋のぞみ|合唱団|cosmos|うれしいひなまつり|たなばたさま|およげ！たいやきくん|アンパンマンのマーチ|ハム太郎|崖の上のポニョ|勇気100%)/i.test(text)) return '童謡・唱歌';
+  if (/(newjeans|iz\*one|yena|kara|少女時代)/i.test(text)) return 'K-POP';
+  if (/(=love|fruits zipper|cutie street|神宿|戦慄かなの|松田聖子|松浦亜弥|国生さゆり|星街すいせい|b小町|femme fatale|buono|aiscream|新しい学校|超ときめき|ilife|サインはb|初恋サイダー|桃色片想い|バレンタイン・キッス|スマイルあげない|オトナブルー)/i.test(text)) return 'アイドル';
+  if (/(初音ミク|鏡音|巡音|gumi|可不|flower|v flower|deco\*27|みきとp|n-buna|orangestar|かいりきベア|ナユタン星人|ピノキオピー|柊マグネタイト|kemu|じん|れるりり|wowaka|ハチ|neru|40mp|syudou|バルーン|ぬゆり|r sound design|aqu3ra|junky|電ポルp|koyori|香椎モイミ|すりぃ|kanaria|ayase|いよわ|ゆこぴ|稲葉曇|wotaku|164|sasakure|ツミキ|dateken|mitchie m|halyosy|doriko|niki|梅とら|chinozo|日向電工|iroha|samfree|とあ|一二三|mothy|蝶々p|nem|獅子志司|有機酸|傘村トータ|otetsu|黒うさp|のりp|ヤスオ|minato)/i.test(text)) return 'ボカロ';
+  if (/(internet overdose|internet yamero|aiobahn|yunomi|picco|psyqui|tofubeats|nyankobrq|yuigot|garnidelia|極楽浄土|ready steady|g4l|ch4nge)/i.test(text)) return 'ゲーム・キャラソン';
+  if (/(名前のない怪物|残響散歌|優しい彗星|星間飛行|watch me|catch you catch me|祝福|スピラーレ|春擬き|おジャ魔女|青春コンプレックス|snow halation|残酷な天使|白金ディスコ|恋愛サーキュレーション|ムーンライト伝説|鏡面の波|i beg you|asphyxia|brave shine|炎|コネクト|不可思議のカルテ|少年よ我に帰れ|もうそう|ユーフォリア|love & roll|god knows|花ハ踊レヤ|sincerely|ライオン|ユメヲカケル|unravel|legend of mermaid|give it back|angelic angel|awakening harmony|sweets parade|this game|トライアングラー|stone ocean|オトメロディー|創聖のアクエリオン|花の唄|ダイアモンドクレバス|タッチ|don't say|サマータイムレコード|secret base|ninelie|bravely you|魂のルフラン|渡月橋|ぼなぺてぃーと|catch the moment|いけないボーダーライン|お願い!シンデレラ|うまぴょい|オリオンをなぞる|only my railgun|紅蓮の弓矢|プリキュア|ノーザンクロス|ミックスナッツ|光るなら|black shout|ようこそジャパリパーク|daydream café|回レ！雪月花|los! los! los!|ジョジョ|五等分の気持ち|crossing field|悪魔の子|勇者|アイドル \/ yoasobi|怪物|青のすみか)/i.test(text)) return 'アニソン';
+  return 'J-POP';
+}
+
+async function fetchSongMetadata() {
   const query = new URLSearchParams({ tqx: 'out:csv', gid: INTEGRATED_GID });
   const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?${query}`;
   const res = await fetch(url);
-  if (!res.ok) return new Map();
+  if (!res.ok) return { displayKeys: new Map(), genres: new Map(), keyPublished: false };
   const rows = parseCsv(await res.text());
   const publishFlag = normalize(rows[0]?.[KEY_PUBLISH_COL] || '');
-  if (publishFlag !== '公開') return new Map();
-  const keys = new Map();
+  const keyPublished = publishFlag === '公開';
+  const displayKeys = new Map();
+  const genres = new Map();
   for (const row of rows) {
     const title = normalize(row[KEY_TITLE_COL] || '');
     const artist = normalize(row[KEY_ARTIST_COL] || '');
     const key = normalize(row[KEY_VALUE_COL] || '');
-    if (title && artist && key) keys.set(lookupKey(title, artist), key);
+    const genre = normalize(row[GENRE_COL] || '');
+    const songLookupKey = lookupKey(title, artist);
+    if (title && artist && key && keyPublished) displayKeys.set(songLookupKey, key);
+    if (title && artist && genre) genres.set(songLookupKey, genre);
   }
-  return keys;
+  return { displayKeys, genres, keyPublished };
 }
 
 async function supabaseSelect(env, table, query = {}) {
@@ -149,7 +169,7 @@ function deriveArtists(songs) {
   return Array.from(byArtist.values()).sort((a, b) => b.totalCount - a.totalCount);
 }
 
-function buildDataset(channel, tables, displayKeys) {
+function buildDataset(channel, tables, metadata) {
   const statsBySong = new Map(
     tables.song_channel_stats
       .filter((row) => row.channel_id === channel.id)
@@ -204,7 +224,9 @@ function buildDataset(channel, tables, displayKeys) {
     const artist = artistsById.get(song?.artist_id);
     const refs = streamRefsBySongKey.get(song?.song_key) || [];
     const dates = refs.map((stream) => stream.date).filter(Boolean).sort().reverse();
-    const displayKey = displayKeys.get(lookupKey(song?.title, artist?.name)) || '';
+    const songLookupKey = lookupKey(song?.title, artist?.name);
+    const displayKey = metadata.displayKeys.get(songLookupKey) || '';
+    const genre = metadata.genres.get(songLookupKey) || inferGenre(song?.title, artist?.name);
     return {
       sourceIndex: stat.source_index || 0,
       title: normalize(song?.title),
@@ -213,6 +235,8 @@ function buildDataset(channel, tables, displayKeys) {
       key: song?.song_key || '',
       displayKey,
       keyText: displayKey,
+      genre,
+      genreText: genre,
       channels: [channel.code],
       dates,
       streamRefs: refs,
@@ -236,6 +260,7 @@ function buildDataset(channel, tables, displayKeys) {
     avgPerStream: streams.length ? Math.round((total / streams.length) * 10) / 10 : 0,
     channelId: channel.code,
     channelLabel: channel.name,
+    keyPublished: metadata.keyPublished,
   };
 
   return { stats, songs, streams, orphans: [], artists: deriveArtists(songs) };
@@ -250,6 +275,10 @@ function mergeChannels(datasets) {
       if (existing) {
         existing.count += song.count;
         existing.channels = Array.from(new Set([...existing.channels, ...song.channels]));
+        if (!existing.genre || existing.genre === '未分類') {
+          existing.genre = song.genre || existing.genre;
+          existing.genreText = existing.genre;
+        }
       } else {
         songMap.set(song.key, { ...song, channels: [...song.channels], dates: [], streamRefs: [] });
       }
@@ -281,6 +310,7 @@ function mergeChannels(datasets) {
       avgPerStream: streams.length ? Math.round((total / streams.length) * 10) / 10 : 0,
       channelId: 'all',
       channelLabel: '全期間',
+      keyPublished: datasets.some((dataset) => dataset.stats.keyPublished),
     },
     songs,
     streams,
@@ -302,7 +332,7 @@ export async function onRequestGet({ env }) {
       supabaseSelect(env, 'stream_songs', { order: 'position.asc' }),
       supabaseSelect(env, 'song_channel_stats'),
     ]);
-    const displayKeys = await fetchDisplayKeys();
+    const metadata = await fetchSongMetadata();
     const tables = {
       artists,
       songs,
@@ -312,7 +342,7 @@ export async function onRequestGet({ env }) {
     };
     const channelDatasets = {};
     for (const channel of channels) {
-      channelDatasets[channel.code] = buildDataset(channel, tables, displayKeys);
+      channelDatasets[channel.code] = buildDataset(channel, tables, metadata);
     }
     return json({
       channels: channelDatasets,

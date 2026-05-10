@@ -46,6 +46,7 @@ function switchChannel(channelId) {
   state.timelineLimit = 12;
   state.songsLimit = 100;
   state.songsQuery = '';
+  state.songsGenre = 'all';
   buildIndex(ds.songs);
   destroyAllCharts();
   $$('.ch-btn').forEach(b => b.classList.toggle('active', b.dataset.channel === channelId));

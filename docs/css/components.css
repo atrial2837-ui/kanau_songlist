@@ -528,6 +528,47 @@
 }
 .controls .text-input { flex: 1 1 280px; min-width: 220px; }
 .controls .select-input { flex: 0 0 auto; }
+.controls .genre-select { min-width: 170px; }
+
+.genre-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -4px 0 16px;
+}
+.genre-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.genre-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary-strong);
+  transform: translateY(-1px);
+}
+.genre-chip.active {
+  border-color: var(--primary-strong);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.genre-chip small {
+  color: var(--ink-mute);
+  font-size: 10px;
+  font-weight: 700;
+  font-feature-settings: var(--tnum);
+}
 
 .search-help {
   color: var(--ink-mute);

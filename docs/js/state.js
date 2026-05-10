@@ -15,6 +15,7 @@ export const state = {
   songsSort: 'count-desc',
   songsLimit: 100,
   songsFilter: 'all',
+  songsGenre: 'all',
 
   // ranking
   rankingLimit: 50,

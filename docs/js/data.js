@@ -33,6 +33,7 @@ function hydrateDataset(dataset) {
 
   dataset.stats = dataset.stats || {};
   dataset.stats.updateDate = parseApiDate(dataset.stats.updateDate);
+  dataset.stats.keyPublished = !!dataset.stats.keyPublished;
   dataset.songs = dataset.songs || [];
   dataset.streams = dataset.streams || [];
   dataset.orphans = dataset.orphans || [];
@@ -65,6 +66,8 @@ function hydrateDataset(dataset) {
     const dates = refs.map((stream) => stream.date).filter(Boolean).sort((a, b) => b - a);
     song.displayKey = song.displayKey || '';
     song.keyText = song.keyText || song.displayKey;
+    song.genre = song.genre || '未分類';
+    song.genreText = song.genreText || song.genre;
     song.channels = Array.isArray(song.channels) ? song.channels : Array.from(song.channels || []);
     song.streamRefs = refs;
     song.dates = dates;
