@@ -242,6 +242,7 @@ def import_streams(db, channel_code, channel_id, rows, song_id_by_key, unique_so
     imported_streams = 0
     imported_stream_songs = 0
     unmatched_count = 0
+    count_mismatch_count = 0
     linked_counts = defaultdict(int)
 
     for col in range(1, col_count):
@@ -249,6 +250,7 @@ def import_streams(db, channel_code, channel_id, rows, song_id_by_key, unique_so
         if not streamed_on:
             continue
         url = normalize(url_row[col] if col < len(url_row) else "")
+        expected_count = int(count_row[col]) if col < len(count_row) and str(count_row[col]).isdigit() else 0
         stream_payload = [{
             "channel_id": channel_id,
             "source_index": int(index_row[col]) if col < len(index_row) and str(index_row[col]).isdigit() else col,
@@ -256,7 +258,7 @@ def import_streams(db, channel_code, channel_id, rows, song_id_by_key, unique_so
             "title": normalize(title_row[col] if col < len(title_row) else ""),
             "url": url,
             "url_key": url,
-            "song_count": int(count_row[col]) if col < len(count_row) and str(count_row[col]).isdigit() else 0,
+            "song_count": expected_count,
         }]
         stream = db.upsert("streams", stream_payload, "channel_id,streamed_on,url_key")[0]
         db.delete("stream_songs", stream_id=stream["id"])
@@ -285,6 +287,13 @@ def import_streams(db, channel_code, channel_id, rows, song_id_by_key, unique_so
             })
             position += 1
         db.upsert("stream_songs", stream_song_rows, "stream_id,position")
+        if expected_count and expected_count != len(stream_song_rows):
+            count_mismatch_count += 1
+            print(
+                f"{channel_code}: count mismatch index={stream_payload[0]['source_index']} "
+                f"date={streamed_on} expected={expected_count} imported={len(stream_song_rows)}",
+                flush=True,
+            )
         imported_streams += 1
         imported_stream_songs += len(stream_song_rows)
         if imported_streams == 1 or imported_streams % 10 == 0:
@@ -293,6 +302,9 @@ def import_streams(db, channel_code, channel_id, rows, song_id_by_key, unique_so
                 f"({imported_stream_songs} stream songs)",
                 flush=True,
             )
+
+    if count_mismatch_count:
+        print(f"{channel_code}: {count_mismatch_count} streams have song count mismatches", flush=True)
 
     return imported_streams, imported_stream_songs, unmatched_count, linked_counts
 
