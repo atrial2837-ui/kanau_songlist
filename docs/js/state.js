@@ -16,6 +16,9 @@ export const state = {
   songsLimit: 100,
   songsFilter: 'all',
   songsGenre: 'all',
+  songsSeason: 'all',
+  songsView: 'comfortable',
+  singerMode: false,
 
   // ranking
   rankingLimit: 50,

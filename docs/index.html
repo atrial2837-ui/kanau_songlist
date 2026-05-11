@@ -132,14 +132,14 @@
         <span class="help-mark">2</span>
         <div>
           <h3>曲検索</h3>
-          <p>全曲リストでは曲名・アーティスト・ジャンル・キー・回数などで絞り込めます。</p>
+          <p>全曲リストでは曲名・アーティスト・ジャンル・タグ・キー・回数などで絞り込めます。</p>
         </div>
       </div>
       <div class="help-item">
         <span class="help-mark">3</span>
         <div>
           <h3>歌枠確認</h3>
-          <p>曲をクリックすると、その曲を歌った歌枠だけに絞り込んでタイムラインを表示します。</p>
+          <p>曲をクリックすると詳細を表示します。詳細内のボタンから歌った歌枠を確認できます。</p>
         </div>
       </div>
       <div class="help-item">
@@ -149,7 +149,34 @@
           <p>右上の更新ボタンで最新データを再取得できます。反映直後はハードリロードも有効です。</p>
         </div>
       </div>
+      <div class="help-item">
+        <span class="help-mark">5</span>
+        <div>
+          <h3>配信者向け</h3>
+          <p>全曲リストの配信者向けボタンで、キー確認済み・定番・久しぶり候補を探しやすくできます。</p>
+        </div>
+      </div>
+      <div class="help-item">
+        <span class="help-mark">6</span>
+        <div>
+          <h3>おすすめ選曲</h3>
+          <p>条件に合う曲から候補をランダム表示します。歌枠テーマ決めのたたき台に使えます。</p>
+        </div>
+      </div>
     </div>
+  </section>
+</div>
+
+<div class="modal-backdrop" id="song-modal" hidden>
+  <section class="help-dialog song-dialog" role="dialog" aria-modal="true" aria-labelledby="song-modal-title">
+    <div class="help-head">
+      <div>
+        <p class="help-kicker">Song Detail</p>
+        <h2 id="song-modal-title">曲詳細</h2>
+      </div>
+      <button class="icon-btn help-close" id="song-modal-close" type="button" aria-label="閉じる">×</button>
+    </div>
+    <div id="song-modal-body"></div>
   </section>
 </div>
 

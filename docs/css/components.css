@@ -112,6 +112,25 @@
   .ch-btn { padding: 0 8px; font-size: 10.5px; }
 }
 
+@media (max-width: 700px) {
+  .tabs {
+    position: sticky;
+    bottom: 8px;
+    z-index: 45;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    padding: 6px;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+  .tab-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;

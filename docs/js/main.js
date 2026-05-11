@@ -82,6 +82,77 @@ function filterTimelineBySong({ key, title, artist }) {
   $('#panel-timeline').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function findSong(key) {
+  return (state.data?.songs || []).find(song => song.key === key) || null;
+}
+
+function openSongDetail(key) {
+  const song = findSong(key);
+  const modal = $('#song-modal');
+  const body = $('#song-modal-body');
+  const title = $('#song-modal-title');
+  if (!song || !modal || !body || !title) return;
+
+  title.textContent = song.title;
+  const refs = (song.streamRefs || []).slice(0, 8);
+  const tags = [
+    song.genre,
+    ...(song.seasonTags || []),
+    ...(song.moodTags || []),
+    ...(song.singerTags || []),
+  ].filter(Boolean);
+  body.innerHTML = `
+    <div class="song-detail-main">
+      <div>
+        <div class="song-detail-artist">${escapeHtml(song.artist)}</div>
+        <div class="song-detail-tags">${tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('')}</div>
+      </div>
+      <div class="song-detail-stats">
+        <div><strong>${song.count}</strong><span>歌唱回数</span></div>
+        <div><strong>${song.displayKey || '—'}</strong><span>キー</span></div>
+        <div><strong>${song.daysSinceLast ?? '—'}</strong><span>日前</span></div>
+      </div>
+    </div>
+    <div class="song-detail-actions">
+      <button class="btn primary" type="button" data-detail-action="timeline" data-songkey="${escapeHtml(song.key)}">歌枠を見る</button>
+      <button class="btn ghost" type="button" data-detail-action="close">閉じる</button>
+    </div>
+    <div class="song-detail-history">
+      <h3>歌った歌枠</h3>
+      ${refs.length ? refs.map(ref => `
+        <a class="song-detail-stream" href="${escapeHtml(ref.url || '#')}" target="_blank" rel="noopener">
+          <span>${fmtDate(ref.date)}</span>
+          <strong>${escapeHtml(ref.title || '配信')}</strong>
+        </a>
+      `).join('') : '<p class="song-detail-empty">履歴未確認</p>'}
+    </div>
+  `;
+  modal.hidden = false;
+  $('#song-modal-close')?.focus();
+}
+
+function initSongModal() {
+  const modal = $('#song-modal');
+  const closeBtn = $('#song-modal-close');
+  if (!modal || !closeBtn) return;
+  const close = () => { modal.hidden = true; };
+  closeBtn.addEventListener('click', close);
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) close();
+    const action = event.target.closest('[data-detail-action]');
+    if (!action) return;
+    if (action.dataset.detailAction === 'close') close();
+    if (action.dataset.detailAction === 'timeline') {
+      const song = findSong(action.dataset.songkey);
+      close();
+      if (song) filterTimelineBySong(song);
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !modal.hidden) close();
+  });
+}
+
 function renderHero() {
   const { stats, streams } = state.data;
   const latest = streams[0]?.date || null;
@@ -223,16 +294,13 @@ document.body.addEventListener('click', (e) => {
   if (isLink(e.target)) return;
   const target = e.target.closest('[data-songkey]');
   if (!target) return;
-  filterTimelineBySong({
-    key: target.dataset.songkey,
-    title: target.dataset.songtitle || '',
-    artist: target.dataset.songartist || '',
-  });
+  openSongDetail(target.dataset.songkey);
 });
 
 $('#retry-btn').addEventListener('click', init);
 $('#reload-btn').addEventListener('click', init);
 initHelpModal();
+initSongModal();
 
 // Re-render charts on theme change
 onRerenderNeeded(() => {

@@ -6,6 +6,7 @@ const fuseOptions = {
     { name: 'title', weight: 0.65 },
     { name: 'artist', weight: 0.35 },
     { name: 'genreText', weight: 0.18 },
+    { name: 'tagText', weight: 0.14 },
     { name: 'keyText', weight: 0.1 },
   ],
   threshold: 0.38,
@@ -22,7 +23,7 @@ export function buildIndex(songs) {
   fuse = new Fuse(songs, fuseOptions);
 }
 
-const FIELD_RE = /(?<key>title|artist|genre|key|count|last|days)\s*(?<op>:|<=|>=|=|<|>)\s*(?<val>"[^"]*"|\S+)/gi;
+const FIELD_RE = /(?<key>title|artist|genre|tag|mood|season|key|count|last|days)\s*(?<op>:|<=|>=|=|<|>)\s*(?<val>"[^"]*"|\S+)/gi;
 
 function parseQuery(raw) {
   const filters = [];
@@ -57,6 +58,18 @@ function applyFieldFilters(songs, filters) {
         }
         case 'key': {
           if (!normalize(song.keyText).toLowerCase().split(/\s+/).includes(normalize(v).toLowerCase())) return false;
+          break;
+        }
+        case 'tag': {
+          if (!normalize(song.tagText).toLowerCase().includes(normalize(v).toLowerCase())) return false;
+          break;
+        }
+        case 'mood': {
+          if (!normalize(song.moodText).toLowerCase().includes(normalize(v).toLowerCase())) return false;
+          break;
+        }
+        case 'season': {
+          if (!normalize(song.seasonText).toLowerCase().includes(normalize(v).toLowerCase())) return false;
           break;
         }
         case 'count': {
@@ -119,4 +132,24 @@ export function search(rawQuery, fallbackSongs) {
     : new Fuse(pool, fuseOptions);
   const fuseResults = fuseLocal.search(phrase);
   return { results: fuseResults.map(r => r.item), tokens };
+}
+
+export function matchReasons(song, query) {
+  const q = normalize(query).toLowerCase();
+  if (!q) return [];
+  const { tokens, filters } = parseQuery(q);
+  const reasons = [];
+  for (const f of filters) {
+    if (!reasons.includes(f.key)) reasons.push(f.key);
+  }
+  const phrase = tokens.join(' ');
+  if (phrase) {
+    const contains = (value) => normalize(value).toLowerCase().includes(phrase);
+    if (contains(song.title)) reasons.push('曲名');
+    if (contains(song.artist)) reasons.push('アーティスト');
+    if (contains(song.genreText || song.genre)) reasons.push('ジャンル');
+    if (contains(song.tagText)) reasons.push('タグ');
+    if (contains(song.keyText)) reasons.push('キー');
+  }
+  return Array.from(new Set(reasons)).slice(0, 4);
 }

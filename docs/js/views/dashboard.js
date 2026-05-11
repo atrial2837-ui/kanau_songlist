@@ -11,6 +11,8 @@ export function renderDashboard() {
   const heatmap = buildHeatmap(streams);
   const monthly = buildMonthly(streams);
   const newSongs = countNewSongsThisMonth(songs);
+  const stalePicks = songs.filter(s => s.daysSinceLast >= 180).sort((a, b) => b.count - a.count).slice(0, 5);
+  const recentPicks = songs.filter(s => s.daysSinceLast != null && s.daysSinceLast <= 30).sort((a, b) => b.count - a.count).slice(0, 5);
 
   const panel = $('#panel-dashboard');
   panel.innerHTML = `
@@ -56,6 +58,20 @@ export function renderDashboard() {
         <div class="card-title">🏆 TOP5 楽曲</div>
         <div class="bar-list">
           ${top5.map((s, i) => topBarRow(s, i, top5[0].count)).join('')}
+        </div>
+      </div>
+
+      <div class="card col-6">
+        <div class="card-title">💤 久しぶり候補 <span class="pill">180日以上</span></div>
+        <div class="bar-list">
+          ${stalePicks.length ? stalePicks.map((s, i) => topBarRow(s, i, stalePicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
+        </div>
+      </div>
+
+      <div class="card col-6">
+        <div class="card-title">✨ 最近歌った定番 <span class="pill">30日以内</span></div>
+        <div class="bar-list">
+          ${recentPicks.length ? recentPicks.map((s, i) => topBarRow(s, i, recentPicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
         </div>
       </div>
 

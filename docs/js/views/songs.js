@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText } from '../utils.js';
-import { search } from '../search.js';
+import { search, matchReasons } from '../search.js';
 
 let searchInputEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
 
@@ -30,6 +30,9 @@ export function renderSongs() {
       <code>artist:ヨルシカ</code>
       <code>title:深海</code>
       <code>genre:ボカロ</code>
+      <code>season:夏</code>
+      <code>mood:しっとり</code>
+      <code>tag:定番</code>
       <code>key:-2</code>
       <code>count:&gt;5</code>
       <code>days:&lt;30</code>
@@ -44,6 +47,12 @@ export function renderSongs() {
       <button class="btn ghost" data-filter="stale">🟠 久しぶり (180日以上)</button>
       <button class="btn ghost" data-filter="never">⚪ 履歴未確認</button>
     </div>
+    <div class="songs-tools">
+      <button class="btn ghost" id="singer-mode-btn" type="button">🎙 配信者向け</button>
+      <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
+      <button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button>
+    </div>
+    <div id="recommend-box" class="recommend-box" hidden></div>
     <div class="genre-strip" id="songs-genre-chips">${genreChipsHtml()}</div>
     <div id="songs-list" class="song-list"></div>
     <div class="timeline-controls" id="songs-more-wrap"></div>
@@ -90,6 +99,16 @@ export function renderSongs() {
     refreshGenreChips();
     refresh();
   });
+  $('#singer-mode-btn').addEventListener('click', () => {
+    state.singerMode = !state.singerMode;
+    state.songsLimit = 100;
+    refresh();
+  });
+  $('#compact-btn').addEventListener('click', () => {
+    state.songsView = state.songsView === 'compact' ? 'comfortable' : 'compact';
+    refresh();
+  });
+  $('#recommend-btn').addEventListener('click', () => showRecommendation());
 
   refresh();
 }
@@ -162,10 +181,19 @@ function applyTagFilter(songs) {
   }
 }
 
+function applySingerMode(songs) {
+  if (!state.singerMode) return songs;
+  return songs.filter(s =>
+    s.lastSung &&
+    (s.displayKey || !state.data.stats.keyPublished || s.count >= 5 || s.daysSinceLast >= 120)
+  );
+}
+
 function refresh() {
   const { songs } = state.data;
   const genreFiltered = applyGenreFilter(songs);
-  const tagFiltered = applyTagFilter(genreFiltered);
+  const modeFiltered = applySingerMode(genreFiltered);
+  const tagFiltered = applyTagFilter(modeFiltered);
   const { results, tokens } = search(state.songsQuery, tagFiltered);
   let filtered = state.songsQuery.trim()
     ? results.filter(s => tagFiltered.includes(s))
@@ -182,6 +210,10 @@ function refresh() {
   }
 
   const limited = filtered.slice(0, state.songsLimit);
+  listEl.classList.toggle('compact', state.songsView === 'compact');
+  $('#singer-mode-btn').classList.toggle('primary', state.singerMode);
+  $('#singer-mode-btn').classList.toggle('ghost', !state.singerMode);
+  $('#compact-btn').textContent = `表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}`;
   listEl.innerHTML = limited.map(s => rowHtml(s, tokens)).join('');
 
   if (state.songsLimit < filtered.length) {
@@ -193,6 +225,38 @@ function refresh() {
   } else {
     moreBtnWrap.innerHTML = '';
   }
+}
+
+function showRecommendation() {
+  const box = $('#recommend-box');
+  const pool = sortSongs(
+    applySingerMode(applyTagFilter(applyGenreFilter(state.data.songs)))
+      .filter(song => song.lastSung && (song.displayKey || !state.data.stats.keyPublished)),
+    'oldest',
+    false
+  );
+  if (!pool.length) {
+    box.hidden = false;
+    box.innerHTML = `<div class="empty-state">条件に合うおすすめ候補がありません</div>`;
+    return;
+  }
+  const candidates = pool.slice(0, Math.min(80, pool.length));
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="recommend-card" data-songkey="${escapeHtml(pick.key)}" data-songtitle="${escapeHtml(pick.title)}" data-songartist="${escapeHtml(pick.artist)}">
+      <div>
+        <div class="recommend-label">今日の候補</div>
+        <strong>${escapeHtml(pick.title)}</strong>
+        <span>/ ${escapeHtml(pick.artist)}</span>
+      </div>
+      <div class="recommend-meta">
+        <span>${pick.count}回</span>
+        <span>${pick.daysSinceLast ?? '—'}日前</span>
+        ${pick.displayKey ? `<span>キー ${escapeHtml(pick.displayKey)}</span>` : ''}
+      </div>
+    </div>
+  `;
 }
 
 function sortSongs(songs, sort, isFuzzy) {
@@ -221,19 +285,33 @@ function rowHtml(song, tokens) {
     : `<div>履歴未確認</div><span class="badge never">要確認</span>`;
   const titleHtml = highlightText(song.title, tokens);
   const artistHtml = highlightText(song.artist, tokens);
+  const reasons = matchReasons(song, state.songsQuery);
   return `
-    <div class="song-row" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="クリックで配信タイムラインに絞り込み">
+    <div class="song-row" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="クリックで曲詳細を表示">
       <div class="rank ${rankClass}">${song.rank}</div>
       <div class="info">
         <div class="title">${titleHtml}</div>
         <div class="artist">${artistHtml}</div>
-        <div class="song-meta-line"><span class="genre-badge">${escapeHtml(genreLabel(song))}</span></div>
+        <div class="song-meta-line">
+          <span class="genre-badge">${escapeHtml(genreLabel(song))}</span>
+          ${tagBadges(song)}
+          ${reasons.map(reason => `<span class="match-badge">${escapeHtml(reason)}一致</span>`).join('')}
+        </div>
         ${keyHtml(song)}
       </div>
       <div class="count">${song.count}<small>回</small></div>
       <div class="last">${lastHtml}</div>
     </div>
   `;
+}
+
+function tagBadges(song) {
+  const tags = [
+    ...(song.seasonTags || []),
+    ...(song.moodTags || []),
+    ...(state.singerMode ? (song.singerTags || []) : []),
+  ].slice(0, state.songsView === 'compact' ? 2 : 5);
+  return tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('');
 }
 
 function keyHtml(song) {

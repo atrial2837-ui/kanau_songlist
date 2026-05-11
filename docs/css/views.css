@@ -159,6 +159,53 @@
   box-shadow: var(--shadow-sm);
   border: 2px solid var(--border-soft);
 }
+.songs-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+.recommend-box {
+  margin: 8px 0 12px;
+}
+.recommend-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  background: linear-gradient(135deg, var(--primary-soft), var(--surface));
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.recommend-label {
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.recommend-card strong {
+  color: var(--ink);
+  margin-right: 4px;
+}
+.recommend-card span {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+.recommend-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.recommend-meta span {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
 .song-row {
   display: grid;
   grid-template-columns: 52px 1fr 90px 120px;
@@ -268,6 +315,41 @@
   line-height: 1.4;
 }
 .song-row .last .badge { margin-top: 2px; }
+.tag-badge,
+.match-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.match-badge {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: var(--accent);
+}
+.song-list.compact .song-row {
+  grid-template-columns: 44px 1fr 70px;
+  padding: 9px 14px;
+}
+.song-list.compact .song-row .last,
+.song-list.compact .song-key-line {
+  display: none;
+}
+.song-list.compact .song-row .title {
+  font-size: 13px;
+}
+.song-list.compact .song-row .artist,
+.song-list.compact .tag-badge,
+.song-list.compact .match-badge {
+  font-size: 10.5px;
+}
 
 @media (max-width: 600px) {
   .song-row {
@@ -279,6 +361,16 @@
   .song-row .info { grid-column: 2; }
   .song-row .count { grid-column: 2; text-align: left; font-size: 13px; }
   .song-row .last { grid-column: 2; text-align: left; }
+  .song-list.compact .song-row {
+    grid-template-columns: 34px 1fr;
+  }
+  .recommend-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .recommend-meta {
+    justify-content: flex-start;
+  }
 }
 
 /* === Timeline === */
