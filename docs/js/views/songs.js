@@ -112,7 +112,7 @@ export function renderSongs() {
     refresh();
   });
   $('#recommend-btn')?.addEventListener('click', () => showRecommendation());
-  panel.addEventListener('click', (e) => {
+  panel.onclick = (e) => {
     const action = e.target.closest('[data-setlist-action]');
     if (action) {
       e.stopPropagation();
@@ -127,17 +127,17 @@ export function renderSongs() {
     searchInputEl.value = state.songsQuery;
     state.songsLimit = 100;
     refresh();
-  });
-  panel.addEventListener('input', (e) => {
+  };
+  panel.oninput = (e) => {
     if (e.target.id !== 'setlist-theme') return;
     state.setlist.theme = e.target.value;
     saveSetlist();
-  });
-  panel.addEventListener('change', (e) => {
+  };
+  panel.onchange = (e) => {
     if (e.target.id !== 'setlist-copy-format') return;
     state.setlist.copyFormat = e.target.value;
     saveSetlist();
-  });
+  };
 
   refresh();
 }
