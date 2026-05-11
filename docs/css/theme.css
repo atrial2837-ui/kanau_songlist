@@ -398,8 +398,18 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   .brand-dim,
   .brand-sub,
   .theme-label { display: none; }
+  .topbar-inner {
+    height: auto;
+    min-height: 56px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
   .topbar-inner { gap: 8px; }
-  .topbar-actions { gap: 5px; }
+  .topbar-actions {
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
   .theme-toggle { width: 36px; padding: 0; justify-content: center; }
   .help-grid { grid-template-columns: 1fr; }
   .help-dialog { padding: 18px; }

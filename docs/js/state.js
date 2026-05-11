@@ -5,6 +5,7 @@ export const state = {
   data: null,         // currently active channel's dataset (set by main.js on switch)
 
   activeTab: 'dashboard',
+  audience: 'listener',
 
   // timeline
   timelineLimit: 12,

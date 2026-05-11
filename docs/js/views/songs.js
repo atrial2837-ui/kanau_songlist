@@ -11,7 +11,7 @@ export function renderSongs() {
   const panel = $('#panel-songs');
   panel.innerHTML = `
     <div class="section-header">
-      <h2>🎵 全曲リスト</h2>
+      <h2>${state.singerMode ? '🎙 選曲ボード' : '🎵 全曲リスト'}</h2>
       <span class="count-pill" id="songs-count">—</span>
     </div>
     <div class="controls">
@@ -43,8 +43,7 @@ export function renderSongs() {
       <button class="btn ghost" data-filter="stale">🟠 久しぶり (180日以上)</button>
       <button class="btn ghost" data-filter="never">⚪ 履歴未確認</button>
     </div>
-    <div class="songs-tools">
-      <button class="btn ghost" id="singer-mode-btn" type="button">🎙 配信者向け</button>
+    <div class="songs-tools"${state.singerMode ? '' : ' hidden'}>
       <button class="btn ghost" data-singer-preset="keyed" type="button">キー確認済み</button>
       <button class="btn ghost" data-singer-preset="classic" type="button">定番</button>
       <button class="btn ghost" data-singer-preset="stale" type="button">久しぶり</button>
@@ -100,12 +99,6 @@ export function renderSongs() {
     refreshGenreChips();
     refresh();
   });
-  $('#singer-mode-btn').addEventListener('click', () => {
-    state.singerMode = !state.singerMode;
-    if (!state.singerMode) state.singerPreset = 'all';
-    state.songsLimit = 100;
-    refresh();
-  });
   for (const btn of panel.querySelectorAll('[data-singer-preset]')) {
     btn.addEventListener('click', () => {
       state.singerMode = true;
@@ -114,11 +107,11 @@ export function renderSongs() {
       refresh();
     });
   }
-  $('#compact-btn').addEventListener('click', () => {
+  $('#compact-btn')?.addEventListener('click', () => {
     state.songsView = state.songsView === 'compact' ? 'comfortable' : 'compact';
     refresh();
   });
-  $('#recommend-btn').addEventListener('click', () => showRecommendation());
+  $('#recommend-btn')?.addEventListener('click', () => showRecommendation());
   panel.addEventListener('click', (e) => {
     const action = e.target.closest('[data-setlist-action]');
     if (action) {
@@ -259,14 +252,12 @@ function refresh() {
 
   const limited = filtered.slice(0, state.songsLimit);
   listEl.classList.toggle('compact', state.songsView === 'compact');
-  $('#singer-mode-btn').classList.toggle('primary', state.singerMode);
-  $('#singer-mode-btn').classList.toggle('ghost', !state.singerMode);
   for (const btn of document.querySelectorAll('[data-singer-preset]')) {
     const active = state.singerMode && state.singerPreset === btn.dataset.singerPreset;
     btn.classList.toggle('primary', active);
     btn.classList.toggle('ghost', !active);
   }
-  $('#compact-btn').textContent = `表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}`;
+  if ($('#compact-btn')) $('#compact-btn').textContent = `表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}`;
   listEl.innerHTML = limited.map(s => rowHtml(s, tokens)).join('');
   renderSetlistPlanner();
 

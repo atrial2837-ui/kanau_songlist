@@ -49,14 +49,30 @@ function switchChannel(channelId) {
   state.songsGenre = 'all';
   buildIndex(ds.songs);
   destroyAllCharts();
-  $$('.ch-btn').forEach(b => b.classList.toggle('active', b.dataset.channel === channelId));
+  $$('#channel-switch [data-channel]').forEach(b => b.classList.toggle('active', b.dataset.channel === channelId));
   renderHero();
   if (state.data) RENDERERS[state.activeTab]();
 }
 
+function switchAudience(audience) {
+  state.audience = audience === 'singer' ? 'singer' : 'listener';
+  state.singerMode = state.audience === 'singer';
+  if (!state.singerMode) state.singerPreset = 'all';
+  $$('.audience-switch [data-audience]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.audience === state.audience);
+  });
+  document.body.dataset.audience = state.audience;
+  if (state.audience === 'singer') {
+    state.songsLimit = 100;
+    activateTab('songs');
+  } else if (state.data) {
+    RENDERERS[state.activeTab]();
+  }
+}
+
 function refreshChannelButtons() {
   if (!state.channelData) return;
-  for (const btn of $$('.ch-btn')) {
+  for (const btn of $$('#channel-switch [data-channel]')) {
     const ch = btn.dataset.channel;
     const available = ch === 'all'
       ? !!state.channelData.combined
@@ -265,6 +281,7 @@ async function init() {
     refreshChannelButtons();
     hideLoading();
     switchChannel(initialChannel);
+    switchAudience(state.audience);
     for (const ch of Object.values(channelData.channels)) {
       if (ch.orphans.length) {
         console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
@@ -284,9 +301,15 @@ $$('.tab-btn').forEach(btn => {
 // Channel switch
 $$('.ch-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (!btn.dataset.channel) return;
     if (btn.disabled) return;
     switchChannel(btn.dataset.channel);
   });
+});
+
+// Audience switch
+$$('[data-audience]').forEach(btn => {
+  btn.addEventListener('click', () => switchAudience(btn.dataset.audience));
 });
 
 // Global click → filter timeline by song
