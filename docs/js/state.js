@@ -23,7 +23,7 @@ export const state = {
   singerPreset: 'all',
   setlist: {
     theme: '',
-    copyFormat: 'withKey',
+    copyFormat: 'simple',
     items: [],
   },
 

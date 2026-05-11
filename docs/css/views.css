@@ -619,6 +619,26 @@
   box-shadow: 0 4px 12px rgba(226, 57, 57, 0.35);
   text-decoration: none !important;
 }
+.timeline-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--primary-strong);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.timeline-copy-btn:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
 
 .setlist {
   display: flex;

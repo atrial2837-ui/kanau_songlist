@@ -49,6 +49,21 @@ export function renderTimeline() {
 
   const limited = visible.slice(0, state.timelineLimit);
   $('#timeline').innerHTML = limited.map((s, idx) => renderItem(s, idx, filter)).join('');
+  $('#timeline').onclick = async (event) => {
+    const btn = event.target.closest('[data-copy-stream]');
+    if (!btn) return;
+    event.stopPropagation();
+    const stream = limited[Number(btn.dataset.copyStream)];
+    if (!stream) return;
+    try {
+      await navigator.clipboard.writeText(formatStreamSetlist(stream));
+      btn.textContent = 'コピー済み';
+      setTimeout(() => { btn.textContent = 'セトリコピー'; }, 1200);
+    } catch (_) {
+      btn.textContent = '失敗';
+      setTimeout(() => { btn.textContent = 'セトリコピー'; }, 1200);
+    }
+  };
 
   const ctrl = $('#timeline-controls');
   if (state.timelineLimit < visible.length) {
@@ -73,16 +88,26 @@ function renderItem(s, idx, filter) {
   const watchHtml = s.url
     ? `<a class="watch-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener">▶ YouTube</a>`
     : '';
+  const copyHtml = state.singerMode
+    ? `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}">セトリコピー</button>`
+    : '';
   return `
     <article class="timeline-item ${recentClass}">
       <header class="timeline-head">
         <span class="timeline-date">${fmtDate(s.date)}</span>
         <span class="timeline-stream-no">第${s.index}枠</span>
         <span class="timeline-songcount">🎤 ${s.songs.length}曲</span>
+        ${copyHtml}
         ${watchHtml}
       </header>
       <div class="timeline-title">${titleHtml}</div>
       <div class="setlist">${setlistHtml}</div>
     </article>
   `;
+}
+
+function formatStreamSetlist(stream) {
+  return (stream.songs || [])
+    .map((song, index) => `${index + 1}. ${song.title} / ${song.artist}`)
+    .join('\n');
 }

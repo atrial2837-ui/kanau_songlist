@@ -310,7 +310,7 @@ function loadSetlist() {
     if (!raw) return;
     const saved = JSON.parse(raw);
     state.setlist.theme = String(saved.theme || '');
-    state.setlist.copyFormat = saved.copyFormat || 'withKey';
+    state.setlist.copyFormat = saved.copyFormat === 'timestamp' ? 'timestamp' : 'simple';
     state.setlist.items = Array.isArray(saved.items) ? saved.items : [];
   } catch (_) {
     state.setlist.items = [];
@@ -430,7 +430,6 @@ function renderSetlistPlanner(message = '') {
     </div>
     <div class="setlist-actions">
       <select id="setlist-copy-format" class="select-input">
-        <option value="withKey"${state.setlist.copyFormat === 'withKey' ? ' selected' : ''}>曲名 / アーティスト + key</option>
         <option value="simple"${state.setlist.copyFormat === 'simple' ? ' selected' : ''}>曲名 / アーティスト</option>
         <option value="timestamp"${state.setlist.copyFormat === 'timestamp' ? ' selected' : ''}>タイムスタンプ入力用</option>
       </select>
@@ -471,10 +470,8 @@ function formatSetlistText() {
   items.forEach((item, i) => {
     if (state.setlist.copyFormat === 'timestamp') {
       lines.push(`00:00 ${item.title} / ${item.artist}`);
-    } else if (state.setlist.copyFormat === 'simple') {
-      lines.push(`${i + 1}. ${item.title} / ${item.artist}`);
     } else {
-      lines.push(`${i + 1}. ${item.title} / ${item.artist}${item.displayKey ? ` key ${item.displayKey}` : ''}`);
+      lines.push(`${i + 1}. ${item.title} / ${item.artist}`);
     }
   });
   return lines.join('\n');
