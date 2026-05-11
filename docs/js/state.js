@@ -20,6 +20,11 @@ export const state = {
   songsView: 'comfortable',
   singerMode: false,
   singerPreset: 'all',
+  setlist: {
+    theme: '',
+    copyFormat: 'withKey',
+    items: [],
+  },
 
   // ranking
   rankingLimit: 50,
