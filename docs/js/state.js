@@ -19,6 +19,7 @@ export const state = {
   songsSeason: 'all',
   songsView: 'comfortable',
   singerMode: false,
+  singerPreset: 'all',
 
   // ranking
   rankingLimit: 50,

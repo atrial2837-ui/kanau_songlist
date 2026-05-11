@@ -329,6 +329,16 @@
   font-weight: 700;
   line-height: 1.2;
 }
+.tag-click {
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.tag-click:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
 .match-badge {
   background: var(--accent-soft);
   color: var(--accent-strong);

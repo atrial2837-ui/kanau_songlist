@@ -13,6 +13,8 @@ export function renderDashboard() {
   const newSongs = countNewSongsThisMonth(songs);
   const stalePicks = songs.filter(s => s.daysSinceLast >= 180).sort((a, b) => b.count - a.count).slice(0, 5);
   const recentPicks = songs.filter(s => s.daysSinceLast != null && s.daysSinceLast <= 30).sort((a, b) => b.count - a.count).slice(0, 5);
+  const monthlyHits = periodHits(streams, 'month');
+  const yearlyHits = periodHits(streams, 'year');
 
   const panel = $('#panel-dashboard');
   panel.innerHTML = `
@@ -62,6 +64,20 @@ export function renderDashboard() {
       </div>
 
       <div class="card col-6">
+        <div class="card-title">🗳 今月のよく歌われた曲 <span class="pill">軽量版</span></div>
+        <div class="bar-list">
+          ${monthlyHits.length ? monthlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, monthlyHits[0].count)).join('') : '<div class="empty-state">今月の歌唱履歴なし</div>'}
+        </div>
+      </div>
+
+      <div class="card col-6">
+        <div class="card-title">🗳 今年のよく歌われた曲 <span class="pill">軽量版</span></div>
+        <div class="bar-list">
+          ${yearlyHits.length ? yearlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, yearlyHits[0].count)).join('') : '<div class="empty-state">今年の歌唱履歴なし</div>'}
+        </div>
+      </div>
+
+      <div class="card col-6">
         <div class="card-title">💤 久しぶり候補 <span class="pill">180日以上</span></div>
         <div class="bar-list">
           ${stalePicks.length ? stalePicks.map((s, i) => topBarRow(s, i, stalePicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
@@ -90,6 +106,26 @@ export function renderDashboard() {
   `;
 
   drawMonthlyChart(monthly);
+}
+
+function periodHits(streams, period) {
+  const now = new Date();
+  const month = monthKey(now);
+  const year = now.getFullYear();
+  const counts = new Map();
+  for (const stream of streams) {
+    const inPeriod = period === 'month'
+      ? stream.monthKey === month
+      : stream.date && stream.date.getFullYear() === year;
+    if (!inPeriod) continue;
+    for (const song of stream.songs || []) {
+      if (!counts.has(song.key)) {
+        counts.set(song.key, { ...song, count: 0 });
+      }
+      counts.get(song.key).count += 1;
+    }
+  }
+  return Array.from(counts.values()).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, 'ja'));
 }
 
 function topBarRow(s, i, max) {

@@ -26,20 +26,13 @@ export function renderSongs() {
       </select>
     </div>
     <p class="search-help">
-      <strong>field検索：</strong>
+      <strong>検索例：</strong>
       <code>artist:ヨルシカ</code>
-      <code>title:深海</code>
       <code>genre:ボカロ</code>
       <code>season:夏</code>
-      <code>mood:しっとり</code>
       <code>tag:定番</code>
-      <code>key:-2</code>
       <code>count:&gt;5</code>
-      <code>days:&lt;30</code>
-      <code>last:fresh</code>（30日以内）
-      <code>last:stale</code>（180日以上）
-      <code>last:never</code>（履歴未確認）
-      ・複数組合せ可
+      <code>last:stale</code>
     </p>
     <div class="controls" id="songs-filters" style="margin-top:-8px;">
       <button class="btn ghost active" data-filter="all">すべて</button>
@@ -49,6 +42,10 @@ export function renderSongs() {
     </div>
     <div class="songs-tools">
       <button class="btn ghost" id="singer-mode-btn" type="button">🎙 配信者向け</button>
+      <button class="btn ghost" data-singer-preset="keyed" type="button">キー確認済み</button>
+      <button class="btn ghost" data-singer-preset="classic" type="button">定番</button>
+      <button class="btn ghost" data-singer-preset="stale" type="button">久しぶり</button>
+      <button class="btn ghost" data-singer-preset="rare" type="button">レア</button>
       <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
       <button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button>
     </div>
@@ -101,14 +98,33 @@ export function renderSongs() {
   });
   $('#singer-mode-btn').addEventListener('click', () => {
     state.singerMode = !state.singerMode;
+    if (!state.singerMode) state.singerPreset = 'all';
     state.songsLimit = 100;
     refresh();
   });
+  for (const btn of panel.querySelectorAll('[data-singer-preset]')) {
+    btn.addEventListener('click', () => {
+      state.singerMode = true;
+      state.singerPreset = state.singerPreset === btn.dataset.singerPreset ? 'all' : btn.dataset.singerPreset;
+      state.songsLimit = 100;
+      refresh();
+    });
+  }
   $('#compact-btn').addEventListener('click', () => {
     state.songsView = state.songsView === 'compact' ? 'comfortable' : 'compact';
     refresh();
   });
   $('#recommend-btn').addEventListener('click', () => showRecommendation());
+  panel.addEventListener('click', (e) => {
+    const tag = e.target.closest('[data-tag-search]');
+    if (!tag) return;
+    e.stopPropagation();
+    const type = tag.dataset.tagType || 'tag';
+    state.songsQuery = `${type}:${tag.dataset.tagSearch}`;
+    searchInputEl.value = state.songsQuery;
+    state.songsLimit = 100;
+    refresh();
+  });
 
   refresh();
 }
@@ -183,10 +199,21 @@ function applyTagFilter(songs) {
 
 function applySingerMode(songs) {
   if (!state.singerMode) return songs;
-  return songs.filter(s =>
-    s.lastSung &&
-    (s.displayKey || !state.data.stats.keyPublished || s.count >= 5 || s.daysSinceLast >= 120)
-  );
+  const base = songs.filter(s => s.lastSung);
+  switch (state.singerPreset) {
+    case 'keyed':
+      return base.filter(s => s.displayKey);
+    case 'classic':
+      return base.filter(s => s.count >= 8);
+    case 'stale':
+      return base.filter(s => s.daysSinceLast >= 180);
+    case 'rare':
+      return base.filter(s => s.count <= 2);
+    default:
+      return base.filter(s =>
+        s.displayKey || !state.data.stats.keyPublished || s.count >= 5 || s.daysSinceLast >= 120
+      );
+  }
 }
 
 function refresh() {
@@ -213,6 +240,11 @@ function refresh() {
   listEl.classList.toggle('compact', state.songsView === 'compact');
   $('#singer-mode-btn').classList.toggle('primary', state.singerMode);
   $('#singer-mode-btn').classList.toggle('ghost', !state.singerMode);
+  for (const btn of document.querySelectorAll('[data-singer-preset]')) {
+    const active = state.singerMode && state.singerPreset === btn.dataset.singerPreset;
+    btn.classList.toggle('primary', active);
+    btn.classList.toggle('ghost', !active);
+  }
   $('#compact-btn').textContent = `表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}`;
   listEl.innerHTML = limited.map(s => rowHtml(s, tokens)).join('');
 
@@ -307,11 +339,13 @@ function rowHtml(song, tokens) {
 
 function tagBadges(song) {
   const tags = [
-    ...(song.seasonTags || []),
-    ...(song.moodTags || []),
-    ...(state.singerMode ? (song.singerTags || []) : []),
+    ...(song.seasonTags || []).map(tag => ({ tag, type: 'season' })),
+    ...(song.moodTags || []).map(tag => ({ tag, type: 'mood' })),
+    ...(state.singerMode ? (song.singerTags || []).map(tag => ({ tag, type: 'tag' })) : []),
   ].slice(0, state.songsView === 'compact' ? 2 : 5);
-  return tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('');
+  return tags.map(({ tag, type }) => `
+    <button class="tag-badge tag-click" type="button" data-tag-type="${type}" data-tag-search="${escapeHtml(tag)}">${escapeHtml(tag)}</button>
+  `).join('');
 }
 
 function keyHtml(song) {
