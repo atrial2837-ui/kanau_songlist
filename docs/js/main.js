@@ -154,6 +154,31 @@ function updatePageTitle(mode) {
   }
 }
 
+function initHelpModal() {
+  const modal = $('#help-modal');
+  const openBtn = $('#help-btn');
+  const closeBtn = $('#help-close');
+  if (!modal || !openBtn || !closeBtn) return;
+
+  const open = () => {
+    modal.hidden = false;
+    closeBtn.focus();
+  };
+  const close = () => {
+    modal.hidden = true;
+    openBtn.focus();
+  };
+
+  openBtn.addEventListener('click', open);
+  closeBtn.addEventListener('click', close);
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) close();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !modal.hidden) close();
+  });
+}
+
 async function init() {
   showLoading();
   try {
@@ -207,6 +232,7 @@ document.body.addEventListener('click', (e) => {
 
 $('#retry-btn').addEventListener('click', init);
 $('#reload-btn').addEventListener('click', init);
+initHelpModal();
 
 // Re-render charts on theme change
 onRerenderNeeded(() => {

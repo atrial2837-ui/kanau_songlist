@@ -56,6 +56,16 @@
   color: var(--primary-strong);
   transform: rotate(40deg);
 }
+.help-btn,
+.help-close {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+}
+.help-btn:hover,
+.help-close:hover {
+  transform: translateY(-1px);
+}
 
 .channel-switch {
   display: inline-flex;
