@@ -108,6 +108,6 @@ function renderItem(s, idx, filter) {
 
 function formatStreamSetlist(stream) {
   return (stream.songs || [])
-    .map((song, index) => `${index + 1}. ${song.title} / ${song.artist}`)
+    .map((song) => `00:00 ${song.title} / ${song.artist}`)
     .join('\n');
 }
