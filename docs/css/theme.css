@@ -287,6 +287,28 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+.guide-sections {
+  display: grid;
+  gap: 12px;
+}
+.guide-section {
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.guide-section h3 {
+  color: var(--ink);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.guide-section ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  line-height: 1.8;
+}
 .help-item {
   display: grid;
   grid-template-columns: 34px 1fr;
@@ -393,6 +415,36 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   color: var(--ink-mute);
   font-size: 13px;
 }
+.welcome-tip {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(420px, calc(100vw - 36px));
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 14px;
+}
+.welcome-tip[hidden] { display: none; }
+.welcome-tip strong,
+.welcome-tip span {
+  display: block;
+}
+.welcome-tip strong {
+  color: var(--ink);
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.welcome-tip span {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
 
 @media (max-width: 700px) {
   .brand-dim,
@@ -413,6 +465,11 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   .theme-toggle { width: 36px; padding: 0; justify-content: center; }
   .help-grid { grid-template-columns: 1fr; }
   .help-dialog { padding: 18px; }
+  .welcome-tip {
+    right: 12px;
+    bottom: 78px;
+    width: calc(100vw - 24px);
+  }
   .song-detail-main,
   .song-detail-stats {
     grid-template-columns: 1fr;

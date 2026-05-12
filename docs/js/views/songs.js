@@ -29,13 +29,9 @@ export function renderSongs() {
       </select>
     </div>
     <p class="search-help">
-      <strong>検索例：</strong>
-      <code>artist:ヨルシカ</code>
-      <code>genre:ボカロ</code>
-      <code>season:夏</code>
-      <code>tag:定番</code>
-      <code>count:&gt;5</code>
-      <code>last:stale</code>
+      ${state.singerMode
+        ? '曲の＋セトリから追加できます。ランダム追加は現在の検索・絞り込み条件から選びます。'
+        : 'タグを押すと、その条件で絞り込めます。曲を押すと詳細を開きます。'}
     </p>
     <div class="controls" id="songs-filters" style="margin-top:-8px;">
       <button class="btn ghost active" data-filter="all">すべて</button>

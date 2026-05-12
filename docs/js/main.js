@@ -266,6 +266,18 @@ function initHelpModal() {
   });
 }
 
+function initWelcomeTip() {
+  const tip = $('#welcome-tip');
+  const close = $('#welcome-close');
+  if (!tip || !close) return;
+  if (localStorage.getItem('kanau-welcome-tip-dismissed') === '1') return;
+  tip.hidden = false;
+  close.addEventListener('click', () => {
+    tip.hidden = true;
+    localStorage.setItem('kanau-welcome-tip-dismissed', '1');
+  });
+}
+
 async function init() {
   showLoading();
   try {
@@ -324,6 +336,7 @@ $('#retry-btn').addEventListener('click', init);
 $('#reload-btn').addEventListener('click', init);
 initHelpModal();
 initSongModal();
+initWelcomeTip();
 
 // Re-render charts on theme change
 onRerenderNeeded(() => {

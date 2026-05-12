@@ -124,72 +124,47 @@
       </div>
       <button class="icon-btn help-close" id="help-close" type="button" aria-label="閉じる">×</button>
     </div>
-    <div class="help-grid">
-      <div class="help-item">
-        <span class="help-mark">1</span>
-        <div>
-          <h3>見る範囲</h3>
-          <p>新ch・旧ch・全期間でデータの範囲を切り替えます。</p>
-        </div>
-      </div>
-      <div class="help-item">
-        <span class="help-mark">2</span>
-        <div>
-          <h3>使うモード</h3>
-          <p>リスナーは閲覧用、配信者は選曲とセトリ作成用です。</p>
-        </div>
-      </div>
-      <div class="help-item">
-        <span class="help-mark">3</span>
-        <div>
-          <h3>曲を探す</h3>
-          <p>曲名・アーティスト・ジャンル・タグで検索できます。</p>
-        </div>
-      </div>
-      <div class="help-item">
-        <span class="help-mark">4</span>
-        <div>
-          <h3>タグで絞る</h3>
-          <p>曲のタグを押すと、そのタグで全曲リストを絞り込みます。</p>
-        </div>
-      </div>
-      <div class="help-item">
-        <span class="help-mark">5</span>
-        <div>
-          <h3>曲の詳細</h3>
-          <p>曲を押すと、回数・キー・歌った歌枠を確認できます。</p>
-        </div>
-      </div>
-      <div class="help-item">
-        <span class="help-mark">6</span>
-        <div>
-          <h3>歌枠を見る</h3>
-          <p>曲詳細から、その曲を歌ったタイムラインへ移動できます。</p>
-        </div>
-      </div>
-      <div class="help-item">
-        <span class="help-mark">7</span>
-        <div>
-          <h3>選曲ボード</h3>
-          <p>配信者モードではキー確認済み・定番・久しぶりで探せます。</p>
-        </div>
-      </div>
-      <div class="help-item">
-        <span class="help-mark">8</span>
-        <div>
-          <h3>セトリ作成</h3>
-          <p>配信者モードで曲をセトリに追加し、コピーできます。</p>
-        </div>
-      </div>
-      <div class="help-item">
-        <span class="help-mark">9</span>
-        <div>
-          <h3>再取得</h3>
-          <p>右上の更新ボタンで最新データを読み直します。</p>
-        </div>
-      </div>
+    <div class="guide-sections">
+      <section class="guide-section">
+        <h3>見たい・探したい</h3>
+        <ul>
+          <li>新ch・旧ch・全期間で範囲を選びます。</li>
+          <li>全曲リストで曲名、アーティスト、ジャンル、タグを検索できます。</li>
+          <li>曲を押すと詳細と歌った歌枠を確認できます。</li>
+        </ul>
+      </section>
+      <section class="guide-section">
+        <h3>配信で使いたい</h3>
+        <ul>
+          <li>ヘッダーで配信者モードに切り替えます。</li>
+          <li>キー確認済み、定番、久しぶり、レアから選曲できます。</li>
+          <li>＋セトリで曲を追加し、並び替えてコピーできます。</li>
+        </ul>
+      </section>
+      <section class="guide-section">
+        <h3>タイムラインを使いたい</h3>
+        <ul>
+          <li>歌枠ごとのセトリとYouTubeリンクを確認できます。</li>
+          <li>配信者モードでは歌枠のセトリをタイムスタンプ用にコピーできます。</li>
+        </ul>
+      </section>
+      <section class="guide-section">
+        <h3>困ったとき</h3>
+        <ul>
+          <li>右上の更新ボタンで最新データを読み直します。</li>
+          <li>反映直後に古く見える場合はハードリロードします。</li>
+        </ul>
+      </section>
     </div>
   </section>
+</div>
+
+<div class="welcome-tip" id="welcome-tip" hidden>
+  <div>
+    <strong>リスナー/配信者を切り替えて使えます</strong>
+    <span>閲覧はリスナー、選曲やセトリ作成は配信者モードが便利です。</span>
+  </div>
+  <button class="icon-btn help-close" id="welcome-close" type="button" aria-label="閉じる">×</button>
 </div>
 
 <div class="modal-backdrop" id="song-modal" hidden>
