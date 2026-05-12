@@ -67,6 +67,36 @@
   font-weight: 700;
 }
 
+.admin-status-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.admin-status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.admin-status-row span {
+  color: var(--ink-mute);
+  font-size: 12px;
+}
+
+.admin-status-row strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.admin-status-row.ok strong { color: var(--green-text); }
+.admin-status-row.warn strong { color: var(--orange-text); }
+
 .admin-steps {
   margin: 8px 0 18px;
   padding-left: 22px;

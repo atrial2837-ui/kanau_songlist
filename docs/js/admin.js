@@ -28,10 +28,109 @@ function stat(label, value, unit = '') {
   `;
 }
 
+function statusRow(label, value, tone = '') {
+  return `<div class="admin-status-row ${tone}"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+function songKey(song) {
+  return `${song.title || ''} / ${song.artist || ''}`;
+}
+
+function collectIssues(data) {
+  const issues = [];
+  const datasets = [
+    ['new', data.channels?.new],
+    ['old', data.channels?.old],
+    ['combined', data.combined],
+  ].filter(([, dataset]) => dataset);
+
+  for (const [scope, dataset] of datasets) {
+    for (const song of dataset.songs || []) {
+      if (song.count > 0 && (!song.streamRefs || !song.streamRefs.length)) {
+        issues.push({ type: '履歴未確認', place: scope, detail: songKey(song) });
+      }
+      if (!song.genre || song.genre === '未分類') {
+        issues.push({ type: 'ジャンル未分類', place: scope, detail: songKey(song) });
+      }
+      if (dataset.stats?.keyPublished && !song.displayKey) {
+        issues.push({ type: 'キー未登録', place: scope, detail: songKey(song) });
+      }
+    }
+    for (const stream of dataset.streams || []) {
+      if (stream.songCount && stream.songs && stream.songCount !== stream.songs.length) {
+        issues.push({
+          type: '曲数不一致',
+          place: `${scope} 第${stream.index}枠`,
+          detail: `${fmtDate(parseDate(stream.date))}: 表示${stream.songs.length} / 記録${stream.songCount}`,
+        });
+      }
+      const seen = new Map();
+      for (const song of stream.songs || []) {
+        const key = song.key || songKey(song);
+        seen.set(key, (seen.get(key) || 0) + 1);
+      }
+      for (const [key, count] of seen.entries()) {
+        if (count > 1) {
+          issues.push({
+            type: '同一枠内重複',
+            place: `${scope} 第${stream.index}枠`,
+            detail: `${key} x${count}`,
+          });
+        }
+      }
+    }
+  }
+  return issues;
+}
+
+function renderSync(data, elapsed) {
+  const stats = data.combined?.stats || {};
+  const update = parseDate(stats.updateDate);
+  const now = new Date();
+  const ageDays = update ? Math.floor((now - update) / 86400000) : null;
+  const newestStream = parseDate(stats.newestStream || stats.updateDate);
+  const rows = [
+    statusRow('API応答', `${formatNumber(elapsed)}ms`, elapsed < 3000 ? 'ok' : 'warn'),
+    statusRow('スプシ更新日', fmtDate(update), ageDays != null && ageDays <= 3 ? 'ok' : 'warn'),
+    statusRow('更新から', ageDays == null ? '—' : `${ageDays}日`, ageDays != null && ageDays <= 3 ? 'ok' : 'warn'),
+    statusRow('最新歌枠日', fmtDate(newestStream), 'ok'),
+  ];
+  $('#sync-status').innerHTML = rows.join('');
+  const ok = elapsed < 3000 && (ageDays == null || ageDays <= 3);
+  $('#sync-badge').textContent = ok ? '良好' : '要確認';
+  $('#sync-badge').classList.toggle('accent', ok);
+}
+
+function renderQuality(data) {
+  const issues = collectIssues(data);
+  const severe = issues.filter(issue => ['履歴未確認', '曲数不一致'].includes(issue.type)).length;
+  const summary = new Map();
+  for (const issue of issues) summary.set(issue.type, (summary.get(issue.type) || 0) + 1);
+  $('#quality-summary').innerHTML = [
+    statusRow('履歴未確認', formatNumber(summary.get('履歴未確認') || 0), (summary.get('履歴未確認') || 0) ? 'warn' : 'ok'),
+    statusRow('曲数不一致', formatNumber(summary.get('曲数不一致') || 0), (summary.get('曲数不一致') || 0) ? 'warn' : 'ok'),
+    statusRow('ジャンル未分類', formatNumber(summary.get('ジャンル未分類') || 0), (summary.get('ジャンル未分類') || 0) ? 'warn' : 'ok'),
+    statusRow('同一枠内重複', formatNumber(summary.get('同一枠内重複') || 0), 'ok'),
+  ].join('');
+  $('#quality-badge').textContent = severe ? '要確認' : '良好';
+  $('#quality-badge').classList.toggle('accent', !severe);
+  $('#issue-count').textContent = `${issues.length}件`;
+  $('#quality-rows').innerHTML = issues.slice(0, 100).map(issue => `
+    <tr>
+      <td>${issue.type}</td>
+      <td>${issue.place}</td>
+      <td>${issue.detail}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="3">大きな問題は見つかりませんでした</td></tr>';
+}
+
 async function loadStatus() {
   setBadge(false, '確認中');
   $('#api-detail').textContent = '/api/data を読み込んでいます。';
   $('#channel-rows').innerHTML = '<tr><td colspan="5">読み込み中</td></tr>';
+  $('#sync-status').innerHTML = '<div class="admin-note">確認中</div>';
+  $('#quality-summary').innerHTML = '<div class="admin-note">確認中</div>';
+  $('#quality-rows').innerHTML = '<tr><td colspan="3">読み込み中</td></tr>';
 
   const started = performance.now();
   try {
@@ -49,6 +148,8 @@ async function loadStatus() {
       stat('応答', formatNumber(elapsed), 'ms'),
     ].join('');
     $('#api-detail').textContent = `最新データ: ${fmtDate(parseDate(stats.updateDate))} / APIキャッシュは最大約1分です。`;
+    renderSync(data, elapsed);
+    renderQuality(data);
 
     const channels = Object.values(data.channels || {});
     $('#channel-rows').innerHTML = channels.map((channel) => {
@@ -72,6 +173,9 @@ async function loadStatus() {
     ].join('');
     $('#api-detail').textContent = `API確認に失敗しました: ${error.message || String(error)}`;
     $('#channel-rows').innerHTML = '<tr><td colspan="5">取得できませんでした</td></tr>';
+    $('#sync-status').innerHTML = '<div class="admin-note">取得できませんでした</div>';
+    $('#quality-summary').innerHTML = '<div class="admin-note">取得できませんでした</div>';
+    $('#quality-rows').innerHTML = '<tr><td colspan="3">取得できませんでした</td></tr>';
   }
 }
 
