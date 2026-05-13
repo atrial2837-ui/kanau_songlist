@@ -244,6 +244,16 @@ async function addStream(input) {
     [channel.id, streamedOn, urlKey],
   );
   if (stream) {
+    const oldRows = await select('SELECT song_id FROM stream_songs WHERE stream_id = ? AND song_id IS NOT NULL', [stream.id]);
+    for (const oldRow of oldRows) {
+      await execute(
+        `UPDATE song_channel_stats
+         SET sing_count = CASE WHEN sing_count > 0 THEN sing_count - 1 ELSE 0 END,
+             updated_at = ?
+         WHERE song_id = ? AND channel_id = ?`,
+        [now, oldRow.song_id, channel.id],
+      );
+    }
     await execute(
       'UPDATE streams SET source_index = ?, title = ?, url = ?, song_count = ? WHERE id = ?',
       [sourceIndex, title, url, lines.length, stream.id],
