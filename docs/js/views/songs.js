@@ -463,11 +463,11 @@ function formatSetlistText() {
   const items = setlistItems();
   const lines = [];
   if (state.setlist.theme) lines.push(`# ${state.setlist.theme}`, '');
-  items.forEach((item, i) => {
+  items.forEach((item) => {
     if (state.setlist.copyFormat === 'timestamp') {
       lines.push(`00:00 ${item.title} / ${item.artist}`);
     } else {
-      lines.push(`${i + 1}. ${item.title} / ${item.artist}`);
+      lines.push(`${item.title} / ${item.artist}`);
     }
   });
   return lines.join('\n');
