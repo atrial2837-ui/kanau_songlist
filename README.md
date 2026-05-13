@@ -118,6 +118,17 @@ https://サイトURL/admin.html
 
 キャッシュ時間は [functions/api/data.js](functions/api/data.js) の `CACHE_SECONDS` で調整できます。
 
+## Tailscale管理画面
+
+Tailscale内だけで歌枠を追加するローカル管理画面は [admin-server](admin-server) にあります。
+
+```powershell
+node admin-server\server.js
+tailscale serve http://127.0.0.1:8788
+```
+
+設定値は [admin-server/env.example](admin-server/env.example) をコピーして `.env` に保存します。Cloudflare API tokenはGitHubへcommitしません。
+
 ## SQL管理
 
 Supabaseの初期テーブル定義は [supabase/schema.sql](supabase/schema.sql) に保存しています。
