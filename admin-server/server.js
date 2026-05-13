@@ -507,9 +507,19 @@ function renderPage() {
       return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     }
 
-    api('/api/channels').then(({ channels }) => {
-      $('channel').innerHTML = channels.map(ch => '<option value="' + ch.code + '">' + ch.name + '</option>').join('');
-    }).catch(error => $('status').textContent = error.message);
+    async function loadChannels() {
+      try {
+        const data = await api('/api/channels');
+        $('channel').innerHTML = data.channels.map(ch => '<option value="' + ch.code + '">' + ch.name + '</option>').join('');
+        $('status').textContent = '';
+      } catch (error) {
+        $('channel').innerHTML = '';
+        $('status').textContent = error.message;
+      }
+    }
+
+    token.addEventListener('change', loadChannels);
+    loadChannels();
 
     $('preview').addEventListener('click', async () => {
       $('status').textContent = 'プレビュー中...';
