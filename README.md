@@ -129,6 +129,8 @@ tailscale serve http://127.0.0.1:8788
 
 設定値は [admin-server/env.example](admin-server/env.example) をコピーして `.env` に保存します。Cloudflare API tokenはGitHubへcommitしません。
 
+キーとジャンルはD1の `songs.display_key` / `songs.genre` に保存します。初回だけ [d1/add_song_metadata.sql](d1/add_song_metadata.sql) をD1 Consoleで実行してください。
+
 ## SQL管理
 
 Supabaseの初期テーブル定義は [supabase/schema.sql](supabase/schema.sql) に保存しています。

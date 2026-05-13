@@ -41,17 +41,27 @@ function songKey(title, artist) {
 
 function splitSongLine(raw) {
   const text = String(raw || '').trim();
+  const parts = text.split('|').map((part) => part.trim());
+  const songText = parts[0] || '';
   for (const sep of [' / ', '／', '/']) {
-    const index = text.lastIndexOf(sep);
+    const index = songText.lastIndexOf(sep);
     if (index >= 0) {
       return {
-        title: normalize(text.slice(0, index)),
-        artist: normalize(text.slice(index + sep.length)),
+        title: normalize(songText.slice(0, index)),
+        artist: normalize(songText.slice(index + sep.length)),
+        displayKey: normalize(parts[1] || ''),
+        genre: normalize(parts[2] || ''),
         raw: text,
       };
     }
   }
-  return { title: normalize(text), artist: '', raw: text };
+  return {
+    title: normalize(songText),
+    artist: '',
+    displayKey: normalize(parts[1] || ''),
+    genre: normalize(parts[2] || ''),
+    raw: text,
+  };
 }
 
 function todayIso() {
@@ -145,7 +155,7 @@ async function getChannels() {
 
 async function buildSongMaps() {
   const rows = await select(`
-    SELECT songs.id, songs.title, songs.normalized_title, songs.song_key, artists.name AS artist
+    SELECT songs.id, songs.title, songs.normalized_title, songs.song_key, songs.display_key, songs.genre, artists.name AS artist
     FROM songs
     LEFT JOIN artists ON artists.id = songs.artist_id
     ORDER BY songs.id ASC
@@ -189,6 +199,8 @@ async function previewStream(input) {
       songId: resolved.song?.id || null,
       existingTitle: resolved.song?.title || '',
       existingArtist: resolved.song?.artist || '',
+      displayKey: parsed.displayKey || resolved.song?.display_key || '',
+      genre: parsed.genre || resolved.song?.genre || '',
     };
   });
 }
@@ -206,17 +218,30 @@ async function upsertArtist(name) {
   return meta.last_row_id;
 }
 
-async function upsertSong(title, artist) {
+async function updateSongMetadata(songId, displayKey, genre) {
+  await execute(
+    `UPDATE songs
+     SET display_key = COALESCE(NULLIF(?, ''), display_key),
+         genre = COALESCE(NULLIF(?, ''), genre)
+     WHERE id = ?`,
+    [normalize(displayKey), normalize(genre), songId],
+  );
+}
+
+async function upsertSong(title, artist, metadata = {}) {
   const cleanTitle = normalize(title);
   const cleanArtist = normalize(artist || '(不明)') || '(不明)';
   const key = songKey(cleanTitle, cleanArtist === '(不明)' ? '' : cleanArtist);
   const existing = await selectOne('SELECT id FROM songs WHERE song_key = ?', [key]);
-  if (existing) return { id: existing.id, key, created: false };
+  if (existing) {
+    await updateSongMetadata(existing.id, metadata.displayKey, metadata.genre);
+    return { id: existing.id, key, created: false };
+  }
   const artistId = await upsertArtist(cleanArtist);
   const now = todayIso();
   const meta = await execute(
-    'INSERT INTO songs (title, normalized_title, artist_id, song_key, created_at) VALUES (?, ?, ?, ?, ?)',
-    [cleanTitle, normalizedKey(cleanTitle), artistId, key, now],
+    'INSERT INTO songs (title, normalized_title, artist_id, song_key, display_key, genre, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [cleanTitle, normalizedKey(cleanTitle), artistId, key, normalize(metadata.displayKey), normalize(metadata.genre), now],
   );
   return { id: meta.last_row_id, key, created: true };
 }
@@ -270,7 +295,7 @@ async function addStream(input) {
   const insertedSongs = [];
   for (let index = 0; index < lines.length; index += 1) {
     const parsed = splitSongLine(lines[index]);
-    const song = await upsertSong(parsed.title, parsed.artist);
+    const song = await upsertSong(parsed.title, parsed.artist, parsed);
     await execute(
       'INSERT INTO stream_songs (stream_id, song_id, position, raw_text, title_snapshot, artist_snapshot, song_key_snapshot, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [stream.id, song.id, index + 1, parsed.raw, parsed.title, parsed.artist, song.key, now],
@@ -283,10 +308,91 @@ async function addStream(input) {
          updated_at = excluded.updated_at`,
       [song.id, channel.id, now, now],
     );
-    insertedSongs.push({ position: index + 1, title: parsed.title, artist: parsed.artist, created: song.created });
+    insertedSongs.push({
+      position: index + 1,
+      title: parsed.title,
+      artist: parsed.artist,
+      displayKey: parsed.displayKey,
+      genre: parsed.genre,
+      created: song.created,
+    });
   }
 
   return { streamId: stream.id, channel: channel.code, streamedOn, songCount: insertedSongs.length, songs: insertedSongs };
+}
+
+async function searchSongs(query) {
+  const q = `%${normalize(query.q || '')}%`;
+  return select(
+    `SELECT songs.id, songs.title, artists.name AS artist, songs.display_key, songs.genre
+     FROM songs
+     LEFT JOIN artists ON artists.id = songs.artist_id
+     WHERE songs.title LIKE ? OR artists.name LIKE ? OR songs.display_key LIKE ? OR songs.genre LIKE ?
+     ORDER BY songs.title ASC
+     LIMIT 80`,
+    [q, q, q, q],
+  );
+}
+
+async function saveSongMetadata(input) {
+  const songId = Number(input.songId);
+  if (!songId) throw new Error('songId is required');
+  await execute('UPDATE songs SET display_key = ?, genre = ? WHERE id = ?', [
+    normalize(input.displayKey),
+    normalize(input.genre),
+    songId,
+  ]);
+  return { ok: true };
+}
+
+function pickColumn(columns, candidates) {
+  const normalized = columns.map((name) => ({ name, key: normalizedKey(name).replace(/[\s_-]/g, '') }));
+  for (const candidate of candidates) {
+    const key = normalizedKey(candidate).replace(/[\s_-]/g, '');
+    const found = normalized.find((column) => column.key === key || column.key.includes(key));
+    if (found) return found.name;
+  }
+  return null;
+}
+
+async function syncKeyReference() {
+  const columns = await select('PRAGMA table_info(key_reference_latest_streams_from_sheet)');
+  const names = columns.map((row) => row.name);
+  const titleCol = pickColumn(names, ['title', 'song_title', '曲名', '楽曲名']);
+  const artistCol = pickColumn(names, ['artist', 'artist_name', '歌手', 'アーティスト']);
+  const keyCol = pickColumn(names, ['display_key', 'key', 'song_key_text', 'キー']);
+  const genreCol = pickColumn(names, ['genre', 'ジャンル']);
+  if (!titleCol || !keyCol) {
+    throw new Error(`key_reference_latest_streams_from_sheet の列を判定できません: ${names.join(', ')}`);
+  }
+  const rows = await select(`SELECT * FROM key_reference_latest_streams_from_sheet`);
+  let updated = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    const title = normalize(row[titleCol]);
+    const artist = artistCol ? normalize(row[artistCol]) : '';
+    const displayKey = normalize(row[keyCol]);
+    const genre = genreCol ? normalize(row[genreCol]) : '';
+    if (!title || (!displayKey && !genre)) {
+      skipped += 1;
+      continue;
+    }
+    const exactKey = songKey(title, artist);
+    let song = artist
+      ? await selectOne('SELECT id FROM songs WHERE song_key = ?', [exactKey])
+      : null;
+    if (!song) {
+      const matches = await select('SELECT id FROM songs WHERE normalized_title = ?', [normalizedKey(title)]);
+      song = matches.length === 1 ? matches[0] : null;
+    }
+    if (!song) {
+      skipped += 1;
+      continue;
+    }
+    await updateSongMetadata(song.id, displayKey, genre);
+    updated += 1;
+  }
+  return { updated, skipped, detectedColumns: { title: titleCol, artist: artistCol, key: keyCol, genre: genreCol } };
 }
 
 function renderPage() {
@@ -298,13 +404,13 @@ function renderPage() {
   <title>夢川かなう 歌枠管理</title>
   <style>
     body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6fbff; color: #143045; }
-    main { max-width: 980px; margin: 0 auto; padding: 28px 18px 52px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 28px 18px 52px; }
     h1 { margin: 0 0 18px; font-size: 26px; }
     label { display: grid; gap: 6px; font-weight: 700; }
     input, select, textarea { box-sizing: border-box; width: 100%; border: 1px solid #b7d8ea; border-radius: 6px; padding: 10px 12px; font: inherit; background: white; }
     textarea { min-height: 260px; resize: vertical; font-family: ui-monospace, "Cascadia Mono", monospace; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-    .panel { background: white; border: 1px solid #d4ebf7; border-radius: 8px; padding: 18px; box-shadow: 0 8px 24px rgba(39, 126, 171, .08); }
+    .panel { background: white; border: 1px solid #d4ebf7; border-radius: 8px; padding: 18px; box-shadow: 0 8px 24px rgba(39, 126, 171, .08); margin-bottom: 18px; }
     .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
     button { border: 0; border-radius: 6px; padding: 10px 14px; font-weight: 800; cursor: pointer; }
     .primary { background: #2398c7; color: white; }
@@ -314,6 +420,7 @@ function renderPage() {
     th, td { border-bottom: 1px solid #d9edf7; padding: 8px; text-align: left; vertical-align: top; }
     .ok { color: #12683d; }
     .warn { color: #b06a00; }
+    .compact-input { min-width: 110px; padding: 7px 9px; }
     @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -329,13 +436,30 @@ function renderPage() {
         <label>配信タイトル<input id="title" type="text"></label>
         <label>URL<input id="url" type="url" placeholder="https://..."></label>
       </div>
-      <label style="margin-top:14px">曲リスト<textarea id="songsText" placeholder="曲名 / アーティスト&#10;曲名 / アーティスト"></textarea></label>
+      <label style="margin-top:14px">曲リスト<textarea id="songsText" placeholder="曲名 / アーティスト&#10;曲名 / アーティスト | +2 | アニソン"></textarea></label>
       <div class="actions">
         <button class="ghost" id="preview">プレビュー</button>
         <button class="primary" id="submit">登録</button>
       </div>
       <div class="status" id="status"></div>
       <div id="previewBox"></div>
+    </section>
+    <section class="panel">
+      <h2>キー・ジャンル管理</h2>
+      <div class="grid">
+        <label>曲検索<input id="songQuery" type="search" placeholder="曲名 / 歌手 / キー / ジャンル"></label>
+        <div>
+          <strong>最新キー参照</strong>
+          <div class="actions">
+            <button class="ghost" id="syncKeys" type="button">key_reference_latest_streams_from_sheet から同期</button>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="searchSongs" type="button">検索</button>
+      </div>
+      <div class="status" id="metaStatus"></div>
+      <div id="songMetaBox"></div>
     </section>
   </main>
   <script>
@@ -368,8 +492,14 @@ function renderPage() {
     }
 
     function renderPreview(rows) {
-      $('previewBox').innerHTML = '<table><thead><tr><th>#</th><th>曲</th><th>歌手</th><th>判定</th></tr></thead><tbody>' +
-        rows.map(row => '<tr><td>' + row.position + '</td><td>' + escapeHtml(row.title) + '</td><td>' + escapeHtml(row.artist || '') + '</td><td class="' + (row.match === 'exact' || row.match === 'title' ? 'ok' : 'warn') + '">' + row.match + '</td></tr>').join('') +
+      $('previewBox').innerHTML = '<table><thead><tr><th>#</th><th>曲</th><th>歌手</th><th>キー</th><th>ジャンル</th><th>判定</th></tr></thead><tbody>' +
+        rows.map(row => '<tr><td>' + row.position + '</td><td>' + escapeHtml(row.title) + '</td><td>' + escapeHtml(row.artist || '') + '</td><td>' + escapeHtml(row.displayKey || '') + '</td><td>' + escapeHtml(row.genre || '') + '</td><td class="' + (row.match === 'exact' || row.match === 'title' ? 'ok' : 'warn') + '">' + row.match + '</td></tr>').join('') +
+        '</tbody></table>';
+    }
+
+    function renderSongMeta(rows) {
+      $('songMetaBox').innerHTML = '<table><thead><tr><th>曲</th><th>歌手</th><th>キー</th><th>ジャンル</th><th></th></tr></thead><tbody>' +
+        rows.map(row => '<tr data-song-id="' + row.id + '"><td>' + escapeHtml(row.title) + '</td><td>' + escapeHtml(row.artist || '') + '</td><td><input class="compact-input" data-field="displayKey" value="' + escapeHtml(row.display_key || '') + '"></td><td><input class="compact-input" data-field="genre" value="' + escapeHtml(row.genre || '') + '"></td><td><button class="ghost" type="button" data-save-meta>保存</button></td></tr>').join('') +
         '</tbody></table>';
     }
 
@@ -403,6 +533,45 @@ function renderPage() {
         $('status').textContent = error.message;
       }
     });
+
+    $('searchSongs').addEventListener('click', async () => {
+      $('metaStatus').textContent = '検索中...';
+      try {
+        const data = await api('/api/songs/search?q=' + encodeURIComponent($('songQuery').value));
+        renderSongMeta(data.songs);
+        $('metaStatus').textContent = data.songs.length + '件';
+      } catch (error) {
+        $('metaStatus').textContent = error.message;
+      }
+    });
+
+    $('songMetaBox').addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-save-meta]');
+      if (!button) return;
+      const row = button.closest('[data-song-id]');
+      $('metaStatus').textContent = '保存中...';
+      try {
+        await api('/api/songs/metadata', {
+          songId: row.dataset.songId,
+          displayKey: row.querySelector('[data-field="displayKey"]').value,
+          genre: row.querySelector('[data-field="genre"]').value,
+        });
+        $('metaStatus').textContent = '保存しました';
+      } catch (error) {
+        $('metaStatus').textContent = error.message;
+      }
+    });
+
+    $('syncKeys').addEventListener('click', async () => {
+      if (!confirm('key_reference_latest_streams_from_sheet からD1のキー/ジャンルを同期します。よろしいですか？')) return;
+      $('metaStatus').textContent = '同期中...';
+      try {
+        const data = await api('/api/key-reference/sync', {});
+        $('metaStatus').textContent = '同期しました: updated=' + data.updated + ', skipped=' + data.skipped + '\\ncolumns=' + JSON.stringify(data.detectedColumns);
+      } catch (error) {
+        $('metaStatus').textContent = error.message;
+      }
+    });
   </script>
 </body>
 </html>`;
@@ -415,8 +584,11 @@ async function handle(req, res) {
     if (url.pathname.startsWith('/api/')) assertAdminToken(req);
     if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true });
     if (req.method === 'GET' && url.pathname === '/api/channels') return json(res, 200, { channels: await getChannels() });
+    if (req.method === 'GET' && url.pathname === '/api/songs/search') return json(res, 200, { songs: await searchSongs({ q: url.searchParams.get('q') || '' }) });
     if (req.method === 'POST' && url.pathname === '/api/preview-stream') return json(res, 200, { songs: await previewStream(await readJson(req)) });
     if (req.method === 'POST' && url.pathname === '/api/streams') return json(res, 200, await addStream(await readJson(req)));
+    if (req.method === 'POST' && url.pathname === '/api/songs/metadata') return json(res, 200, await saveSongMetadata(await readJson(req)));
+    if (req.method === 'POST' && url.pathname === '/api/key-reference/sync') return json(res, 200, await syncKeyReference());
     json(res, 404, { error: 'Not found' });
   } catch (error) {
     json(res, error.status || 500, { error: error.message || String(error) });

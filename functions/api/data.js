@@ -1,11 +1,4 @@
 const CACHE_SECONDS = 60;
-const SPREADSHEET_ID = '1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o';
-const INTEGRATED_GID = '1012689826';
-const KEY_TITLE_COL = 19;
-const KEY_ARTIST_COL = 20;
-const KEY_VALUE_COL = 21;
-const KEY_PUBLISH_COL = 22;
-const GENRE_COL = 23;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -34,46 +27,6 @@ function daysSince(dateText) {
   return Math.floor((today - date) / 86400000);
 }
 
-function lookupKey(title, artist) {
-  return `${normalize(title).toLowerCase()}__${normalize(artist).toLowerCase()}`;
-}
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let cell = '';
-  let quoted = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    const next = text[i + 1];
-    if (quoted) {
-      if (ch === '"' && next === '"') {
-        cell += '"';
-        i += 1;
-      } else if (ch === '"') {
-        quoted = false;
-      } else {
-        cell += ch;
-      }
-    } else if (ch === '"') {
-      quoted = true;
-    } else if (ch === ',') {
-      row.push(cell);
-      cell = '';
-    } else if (ch === '\n') {
-      row.push(cell);
-      rows.push(row);
-      row = [];
-      cell = '';
-    } else if (ch !== '\r') {
-      cell += ch;
-    }
-  }
-  row.push(cell);
-  if (row.length > 1 || row[0]) rows.push(row);
-  return rows;
-}
-
 function inferGenre(title, artist) {
   const text = `${normalize(title)} ${normalize(artist)}`.toLowerCase();
   if (!text.trim()) return '未分類';
@@ -87,28 +40,6 @@ function inferGenre(title, artist) {
   if (/(internet overdose|internet yamero|aiobahn|yunomi|picco|psyqui|tofubeats|nyankobrq|yuigot|garnidelia|極楽浄土|ready steady|g4l|ch4nge|プロセカ|アイマス|ラブライブ|シンデレラ|うまぴょい|お願い!シンデレラ)/i.test(text)) return 'ゲーム・キャラソン';
   if (/(名前のない怪物|残響散歌|優しい彗星|星間飛行|watch me|catch you catch me|祝福|スピラーレ|春擬き|おジャ魔女|青春コンプレックス|snow halation|残酷な天使|白金ディスコ|恋愛サーキュレーション|ムーンライト伝説|鏡面の波|i beg you|asphyxia|brave shine|炎|コネクト|不可思議のカルテ|少年よ我に帰れ|もうそう|ユーフォリア|love & roll|god knows|花ハ踊レヤ|sincerely|ライオン|ユメヲカケル|unravel|legend of mermaid|give it back|angelic angel|awakening harmony|sweets parade|this game|トライアングラー|stone ocean|オトメロディー|創聖のアクエリオン|花の唄|ダイアモンドクレバス|タッチ|don't say|サマータイムレコード|secret base|ninelie|bravely you|魂のルフラン|渡月橋|ぼなぺてぃーと|catch the moment|いけないボーダーライン|お願い!シンデレラ|うまぴょい|オリオンをなぞる|only my railgun|紅蓮の弓矢|プリキュア|ノーザンクロス|ミックスナッツ|光るなら|black shout|ようこそジャパリパーク|daydream café|回レ！雪月花|los! los! los!|ジョジョ|五等分の気持ち|crossing field|悪魔の子|勇者|アイドル \/ yoasobi|怪物|青のすみか)/i.test(text)) return 'アニソン';
   return 'J-POP';
-}
-
-async function fetchSongMetadata() {
-  const query = new URLSearchParams({ tqx: 'out:csv', gid: INTEGRATED_GID });
-  const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?${query}`;
-  const res = await fetch(url);
-  if (!res.ok) return { displayKeys: new Map(), genres: new Map(), keyPublished: false };
-  const rows = parseCsv(await res.text());
-  const publishFlag = normalize(rows[0]?.[KEY_PUBLISH_COL] || '');
-  const keyPublished = publishFlag === '公開';
-  const displayKeys = new Map();
-  const genres = new Map();
-  for (const row of rows) {
-    const title = normalize(row[KEY_TITLE_COL] || '');
-    const artist = normalize(row[KEY_ARTIST_COL] || '');
-    const key = normalize(row[KEY_VALUE_COL] || '');
-    const genre = normalize(row[GENRE_COL] || '');
-    const songLookupKey = lookupKey(title, artist);
-    if (title && artist && key && keyPublished) displayKeys.set(songLookupKey, key);
-    if (title && artist && genre) genres.set(songLookupKey, genre);
-  }
-  return { displayKeys, genres, keyPublished };
 }
 
 async function d1Select(env, table, orderBy) {
@@ -146,7 +77,7 @@ function deriveArtists(songs) {
   return Array.from(byArtist.values()).sort((a, b) => b.totalCount - a.totalCount);
 }
 
-function buildDataset(channel, tables, metadata) {
+function buildDataset(channel, tables) {
   const statsBySong = new Map(
     tables.song_channel_stats
       .filter((row) => row.channel_id === channel.id)
@@ -191,9 +122,8 @@ function buildDataset(channel, tables, metadata) {
   const songs = Array.from(statsBySong.values()).map((stat) => {
     const song = songsById.get(stat.song_id);
     const artist = artistsById.get(song?.artist_id);
-    const songLookupKey = lookupKey(song?.title, artist?.name);
-    const displayKey = metadata.displayKeys.get(songLookupKey) || '';
-    const genre = metadata.genres.get(songLookupKey) || inferGenre(song?.title, artist?.name);
+    const displayKey = normalize(song?.display_key || '');
+    const genre = normalize(song?.genre || '') || inferGenre(song?.title, artist?.name);
     return {
       sourceIndex: stat.source_index || 0,
       title: normalize(song?.title),
@@ -227,7 +157,7 @@ function buildDataset(channel, tables, metadata) {
     avgPerStream: streams.length ? Math.round((total / streams.length) * 10) / 10 : 0,
     channelId: channel.code,
     channelLabel: channel.name,
-    keyPublished: metadata.keyPublished,
+    keyPublished: tables.songs.some((row) => normalize(row.display_key || '')),
   };
 
   return { stats, songs, streams, orphans: [], artists: deriveArtists(songs) };
@@ -242,6 +172,10 @@ function mergeChannels(datasets) {
       if (existing) {
         existing.count += song.count;
         existing.channels = Array.from(new Set([...existing.channels, ...song.channels]));
+        if (!existing.displayKey && song.displayKey) {
+          existing.displayKey = song.displayKey;
+          existing.keyText = song.displayKey;
+        }
         if (!existing.genre || existing.genre === '未分類') {
           existing.genre = song.genre || existing.genre;
           existing.genreText = existing.genre;
@@ -290,7 +224,6 @@ export async function onRequestGet({ env }) {
       d1Select(env, 'stream_songs', 'stream_id ASC, position ASC, id ASC'),
       d1Select(env, 'song_channel_stats', 'channel_id ASC, song_id ASC'),
     ]);
-    const metadata = await fetchSongMetadata();
     const tables = {
       artists,
       songs,
@@ -300,7 +233,7 @@ export async function onRequestGet({ env }) {
     };
     const channelDatasets = {};
     for (const channel of channels) {
-      channelDatasets[channel.code] = buildDataset(channel, tables, metadata);
+      channelDatasets[channel.code] = buildDataset(channel, tables);
     }
     return json({
       channels: channelDatasets,

@@ -46,4 +46,24 @@ song_channel_stats
 曲名 / アーティスト
 ```
 
+キーやジャンルも同時に保存する場合は、行末に `|` 区切りで追加できます。
+
+```text
+曲名 / アーティスト | +2 | アニソン
+```
+
 同じ `channel + date + url` の歌枠を登録した場合は、その歌枠の `stream_songs` を作り直します。
+
+## Key and Genre Metadata
+
+D1の `songs.display_key` と `songs.genre` を更新します。
+
+- 曲検索から個別編集できます。
+- `key_reference_latest_streams_from_sheet` がD1にある場合は、管理画面の同期ボタンで一括反映できます。
+
+初回だけD1 Consoleで次を実行してください。
+
+```sql
+ALTER TABLE songs ADD COLUMN display_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE songs ADD COLUMN genre TEXT NOT NULL DEFAULT '';
+```
