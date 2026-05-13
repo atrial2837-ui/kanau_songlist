@@ -188,19 +188,9 @@ function buildDataset(channel, tables, metadata) {
     })
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 
-  const streamRefsBySongKey = new Map();
-  for (const stream of streams) {
-    for (const song of stream.songs) {
-      if (!streamRefsBySongKey.has(song.key)) streamRefsBySongKey.set(song.key, []);
-      streamRefsBySongKey.get(song.key).push(stream);
-    }
-  }
-
   const songs = Array.from(statsBySong.values()).map((stat) => {
     const song = songsById.get(stat.song_id);
     const artist = artistsById.get(song?.artist_id);
-    const refs = streamRefsBySongKey.get(song?.song_key) || [];
-    const dates = refs.map((stream) => stream.date).filter(Boolean).sort().reverse();
     const songLookupKey = lookupKey(song?.title, artist?.name);
     const displayKey = metadata.displayKeys.get(songLookupKey) || '';
     const genre = metadata.genres.get(songLookupKey) || inferGenre(song?.title, artist?.name);
@@ -215,11 +205,11 @@ function buildDataset(channel, tables, metadata) {
       genre,
       genreText: genre,
       channels: [channel.code],
-      dates,
-      streamRefs: refs,
-      lastSung: dates[0] || null,
-      firstSung: dates[dates.length - 1] || null,
-      daysSinceLast: daysSince(dates[0]),
+      dates: [],
+      streamRefs: [],
+      lastSung: null,
+      firstSung: null,
+      daysSinceLast: null,
       rank: 0,
     };
   });
@@ -263,15 +253,6 @@ function mergeChannels(datasets) {
     streams.push(...dataset.streams);
   }
   streams.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  for (const song of songMap.values()) {
-    const refs = streams.filter((stream) => stream.songs.some((item) => item.key === song.key));
-    const dates = refs.map((stream) => stream.date).filter(Boolean).sort().reverse();
-    song.streamRefs = refs;
-    song.dates = dates;
-    song.lastSung = dates[0] || null;
-    song.firstSung = dates[dates.length - 1] || null;
-    song.daysSinceLast = daysSince(dates[0]);
-  }
   const songs = Array.from(songMap.values());
   assignRanks(songs);
   const total = datasets.reduce((sum, dataset) => sum + dataset.stats.total, 0);
