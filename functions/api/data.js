@@ -1,4 +1,3 @@
-const PAGE_SIZE = 1000;
 const CACHE_SECONDS = 60;
 const SPREADSHEET_ID = '1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o';
 const INTEGRATED_GID = '1012689826';
@@ -112,31 +111,9 @@ async function fetchSongMetadata() {
   return { displayKeys, genres, keyPublished };
 }
 
-async function supabaseSelect(env, table, query = {}) {
-  const key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
-  const rows = [];
-  for (let offset = 0; ; offset += PAGE_SIZE) {
-    const params = new URLSearchParams({
-      select: '*',
-      limit: String(PAGE_SIZE),
-      offset: String(offset),
-      ...query,
-    });
-    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}?${params}`, {
-      headers: {
-        apikey: key,
-        authorization: `Bearer ${key}`,
-        accept: 'application/json',
-      },
-    });
-    if (!res.ok) {
-      throw new Error(`${table} ${res.status}: ${await res.text()}`);
-    }
-    const page = await res.json();
-    rows.push(...page);
-    if (page.length < PAGE_SIZE) break;
-  }
-  return rows;
+async function d1Select(env, table, orderBy) {
+  const result = await env.DB.prepare(`SELECT * FROM ${table} ORDER BY ${orderBy}`).all();
+  return result.results || [];
 }
 
 function assignRanks(songs) {
@@ -321,16 +298,16 @@ function mergeChannels(datasets) {
 
 export async function onRequestGet({ env }) {
   try {
-    if (!env.SUPABASE_URL || !(env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY)) {
-      return json({ error: 'Supabase environment variables are missing' }, 500);
+    if (!env.DB) {
+      return json({ error: 'D1 binding DB is missing' }, 500);
     }
     const [channels, artists, songs, streams, streamSongs, songChannelStats] = await Promise.all([
-      supabaseSelect(env, 'channels', { order: 'sort_order.asc,id.asc' }),
-      supabaseSelect(env, 'artists', { order: 'id.asc' }),
-      supabaseSelect(env, 'songs', { order: 'id.asc' }),
-      supabaseSelect(env, 'streams', { order: 'channel_id.asc,streamed_on.desc,id.asc' }),
-      supabaseSelect(env, 'stream_songs', { order: 'stream_id.asc,position.asc,id.asc' }),
-      supabaseSelect(env, 'song_channel_stats', { order: 'channel_id.asc,song_id.asc' }),
+      d1Select(env, 'channels', 'sort_order ASC, id ASC'),
+      d1Select(env, 'artists', 'id ASC'),
+      d1Select(env, 'songs', 'id ASC'),
+      d1Select(env, 'streams', 'channel_id ASC, streamed_on DESC, id ASC'),
+      d1Select(env, 'stream_songs', 'stream_id ASC, position ASC, id ASC'),
+      d1Select(env, 'song_channel_stats', 'channel_id ASC, song_id ASC'),
     ]);
     const metadata = await fetchSongMetadata();
     const tables = {
