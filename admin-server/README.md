@@ -59,11 +59,24 @@ song_channel_stats
 D1の `songs.display_key` と `songs.genre` を更新します。
 
 - 曲検索から個別編集できます。
-- `key_reference_latest_streams_from_sheet` がD1にある場合は、管理画面の同期ボタンで一括反映できます。
+- 統合集計SpreadsheetのT/U/V/X列から一括同期できます。
+- CSVを書き出して管理画面からアップロード同期することもできます。
 
 初回だけD1 Consoleで次を実行してください。
 
 ```sql
 ALTER TABLE songs ADD COLUMN display_key TEXT NOT NULL DEFAULT '';
 ALTER TABLE songs ADD COLUMN genre TEXT NOT NULL DEFAULT '';
+```
+
+Spreadsheet URLは、統合集計タブのURLを使います。T列=曲名、U列=アーティスト、V列=キー、X列=ジャンルとして読み込みます。
+
+```text
+https://docs.google.com/spreadsheets/d/1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o/edit?gid=1012689826#gid=1012689826
+```
+
+毎回入力したくない場合は `.env` に保存できます。
+
+```env
+KEY_REFERENCE_CSV_URL=https://docs.google.com/spreadsheets/d/1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o/edit?gid=1012689826#gid=1012689826
 ```

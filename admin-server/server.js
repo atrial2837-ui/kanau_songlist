@@ -35,6 +35,12 @@ function normalizedKey(value) {
   return normalize(value).toLowerCase();
 }
 
+function cleanMetadata(value) {
+  const text = normalize(value);
+  if (!text || ['#REF!', '#N/A', 'N/A', 'NULL'].includes(text.toUpperCase())) return '';
+  return text;
+}
+
 function songKey(title, artist) {
   return `${normalizedKey(title)}__${normalizedKey(artist)}`;
 }
@@ -62,6 +68,70 @@ function splitSongLine(raw) {
     genre: normalize(parts[2] || ''),
     raw: text,
   };
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const ch = text[index];
+    const next = text[index + 1];
+    if (quoted) {
+      if (ch === '"' && next === '"') {
+        cell += '"';
+        index += 1;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (ch === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else if (ch !== '\r') {
+      cell += ch;
+    }
+  }
+  row.push(cell);
+  if (row.length > 1 || row[0]) rows.push(row);
+  return rows;
+}
+
+function csvObjects(text) {
+  const rows = parseCsv(text);
+  const headers = (rows.shift() || []).map((header) => normalize(header));
+  return rows.map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] || ''])));
+}
+
+function fixedIntegratedRows(text) {
+  return parseCsv(text)
+    .map((row) => ({
+      title: row[19] || '',
+      artist: row[20] || '',
+      displayKey: row[21] || '',
+      genre: row[23] || '',
+    }))
+    .filter((row) => normalize(row.title) && (cleanMetadata(row.displayKey) || cleanMetadata(row.genre)));
+}
+
+function spreadsheetCsvUrl(value) {
+  const raw = normalize(value);
+  if (!raw) return '';
+  if (/output=csv|tqx=out:csv/.test(raw)) return raw;
+  const match = raw.match(/\/spreadsheets\/d\/([^/]+)/);
+  if (!match) return raw;
+  const gidMatch = raw.match(/[?#&]gid=(\d+)/) || raw.match(/#gid=(\d+)/);
+  const gid = gidMatch ? gidMatch[1] : '0';
+  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
 }
 
 function todayIso() {
@@ -349,7 +419,12 @@ function pickColumn(columns, candidates) {
   const normalized = columns.map((name) => ({ name, key: normalizedKey(name).replace(/[\s_-]/g, '') }));
   for (const candidate of candidates) {
     const key = normalizedKey(candidate).replace(/[\s_-]/g, '');
-    const found = normalized.find((column) => column.key === key || column.key.includes(key));
+    const found = normalized.find((column) => column.key === key);
+    if (found) return found.name;
+  }
+  for (const candidate of candidates) {
+    const key = normalizedKey(candidate).replace(/[\s_-]/g, '');
+    const found = normalized.find((column) => column.key.includes(key));
     if (found) return found.name;
   }
   return null;
@@ -393,6 +468,70 @@ async function syncKeyReference() {
     updated += 1;
   }
   return { updated, skipped, detectedColumns: { title: titleCol, artist: artistCol, key: keyCol, genre: genreCol } };
+}
+
+async function importKeyReferenceCsv(input) {
+  const csvText = String(input.csvText || '');
+  const rows = csvObjects(csvText);
+  if (!rows.length) throw new Error('CSVが空です');
+  const names = Object.keys(rows[0]);
+  const titleCol = pickColumn(names, ['title', 'song_title', '曲名', '楽曲名']);
+  const artistCol = pickColumn(names, ['artist', 'artist_name', '歌手', 'アーティスト']);
+  const keyCol = pickColumn(names, ['キー', 'display_key', 'key', 'song_key_text']);
+  const genreCol = pickColumn(names, ['genre', 'ジャンル']);
+  const fixedRows = !titleCol || (!keyCol && !genreCol) ? fixedIntegratedRows(csvText) : [];
+  if ((!titleCol || (!keyCol && !genreCol)) && !fixedRows.length) {
+    throw new Error(`CSVの列を判定できません: ${names.join(', ')}`);
+  }
+  let updated = 0;
+  let skipped = 0;
+  const sourceRows = fixedRows.length ? fixedRows : rows.map((row) => ({
+    title: row[titleCol],
+    artist: artistCol ? row[artistCol] : '',
+    displayKey: keyCol ? row[keyCol] : '',
+    genre: genreCol ? row[genreCol] : '',
+  }));
+  for (const row of sourceRows) {
+    const title = normalize(row.title);
+    const artist = normalize(row.artist);
+    const displayKey = cleanMetadata(row.displayKey);
+    const genre = cleanMetadata(row.genre);
+    if (!title || (!displayKey && !genre)) {
+      skipped += 1;
+      continue;
+    }
+    const exactKey = songKey(title, artist);
+    let song = artist
+      ? await selectOne('SELECT id FROM songs WHERE song_key = ?', [exactKey])
+      : null;
+    if (!song) {
+      const matches = await select('SELECT id FROM songs WHERE normalized_title = ?', [normalizedKey(title)]);
+      song = matches.length === 1 ? matches[0] : null;
+    }
+    if (!song) {
+      skipped += 1;
+      continue;
+    }
+    await updateSongMetadata(song.id, displayKey, genre);
+    updated += 1;
+  }
+  return {
+    updated,
+    skipped,
+    detectedColumns: fixedRows.length
+      ? { title: 'T', artist: 'U', key: 'V', genre: 'X' }
+      : { title: titleCol, artist: artistCol, key: keyCol, genre: genreCol },
+  };
+}
+
+async function syncKeyReferenceUrl(input) {
+  const url = spreadsheetCsvUrl(input.url || process.env.KEY_REFERENCE_CSV_URL || '');
+  if (!url) throw new Error('Spreadsheet URL or KEY_REFERENCE_CSV_URL is required');
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Spreadsheet CSV fetch failed: HTTP ${response.status}`);
+  }
+  return importKeyReferenceCsv({ csvText: await response.text() });
 }
 
 function renderPage() {
@@ -450,8 +589,11 @@ function renderPage() {
         <label>曲検索<input id="songQuery" type="search" placeholder="曲名 / 歌手 / キー / ジャンル"></label>
         <div>
           <strong>最新キー参照</strong>
+          <label style="margin-top:8px">Spreadsheet URL<input id="keySheetUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/.../edit#gid=..."></label>
+          <label style="margin-top:8px">CSVファイル<input id="keyCsvFile" type="file" accept=".csv,text/csv"></label>
           <div class="actions">
-            <button class="ghost" id="syncKeys" type="button">key_reference_latest_streams_from_sheet から同期</button>
+            <button class="ghost" id="syncKeys" type="button">Spreadsheetから同期</button>
+            <button class="ghost" id="syncKeyCsv" type="button">CSVから同期</button>
           </div>
         </div>
       </div>
@@ -573,10 +715,26 @@ function renderPage() {
     });
 
     $('syncKeys').addEventListener('click', async () => {
-      if (!confirm('key_reference_latest_streams_from_sheet からD1のキー/ジャンルを同期します。よろしいですか？')) return;
+      if (!confirm('SpreadsheetからD1のキー/ジャンルを同期します。よろしいですか？')) return;
       $('metaStatus').textContent = '同期中...';
       try {
-        const data = await api('/api/key-reference/sync', {});
+        const data = await api('/api/key-reference/sync-url', { url: $('keySheetUrl').value });
+        $('metaStatus').textContent = '同期しました: updated=' + data.updated + ', skipped=' + data.skipped + '\\ncolumns=' + JSON.stringify(data.detectedColumns);
+      } catch (error) {
+        $('metaStatus').textContent = error.message;
+      }
+    });
+
+    $('syncKeyCsv').addEventListener('click', async () => {
+      const file = $('keyCsvFile').files[0];
+      if (!file) {
+        $('metaStatus').textContent = 'CSVファイルを選んでください';
+        return;
+      }
+      if (!confirm('CSVからD1のキー/ジャンルを同期します。よろしいですか？')) return;
+      $('metaStatus').textContent = 'CSV同期中...';
+      try {
+        const data = await api('/api/key-reference/import-csv', { csvText: await file.text() });
         $('metaStatus').textContent = '同期しました: updated=' + data.updated + ', skipped=' + data.skipped + '\\ncolumns=' + JSON.stringify(data.detectedColumns);
       } catch (error) {
         $('metaStatus').textContent = error.message;
@@ -599,6 +757,8 @@ async function handle(req, res) {
     if (req.method === 'POST' && url.pathname === '/api/streams') return json(res, 200, await addStream(await readJson(req)));
     if (req.method === 'POST' && url.pathname === '/api/songs/metadata') return json(res, 200, await saveSongMetadata(await readJson(req)));
     if (req.method === 'POST' && url.pathname === '/api/key-reference/sync') return json(res, 200, await syncKeyReference());
+    if (req.method === 'POST' && url.pathname === '/api/key-reference/import-csv') return json(res, 200, await importKeyReferenceCsv(await readJson(req)));
+    if (req.method === 'POST' && url.pathname === '/api/key-reference/sync-url') return json(res, 200, await syncKeyReferenceUrl(await readJson(req)));
     json(res, 404, { error: 'Not found' });
   } catch (error) {
     json(res, error.status || 500, { error: error.message || String(error) });
