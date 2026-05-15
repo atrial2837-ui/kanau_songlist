@@ -7,8 +7,21 @@
 <meta name="description" content="夢川かなう 新ch 歌った曲データベース 開発版・グラフ・分析機能つき">
 <link rel="icon" type="image/svg+xml" href="assets/site-icon.svg">
 <link rel="apple-touch-icon" href="assets/site-icon.svg">
-<link rel="preconnect" href="https://docs.google.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preload" href="/api/data" as="fetch" type="application/json" crossorigin>
+<link rel="modulepreload" href="js/main.js">
+<link rel="modulepreload" href="js/data.js">
+<link rel="modulepreload" href="js/state.js">
+<link rel="modulepreload" href="js/search.js">
+<link rel="modulepreload" href="js/theme.js">
+<link rel="modulepreload" href="js/charts.js">
+<link rel="modulepreload" href="js/utils.js">
+<link rel="modulepreload" href="js/config.js">
+<link rel="modulepreload" href="js/views/dashboard.js">
+<link rel="modulepreload" href="js/views/ranking.js">
+<link rel="modulepreload" href="js/views/songs.js">
+<link rel="modulepreload" href="js/views/timeline.js">
+<link rel="modulepreload" href="js/views/analytics.js">
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/views.css">
@@ -181,7 +194,6 @@
 </div>
 
 <!-- Dependencies -->
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script type="importmap">
 {
