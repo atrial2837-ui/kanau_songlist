@@ -546,6 +546,7 @@ function tagBadges(song) {
 }
 
 function keyHtml(song) {
+  if (!state.singerMode) return '';
   if (!state.data?.stats?.keyPublished) return '';
   const key = String(song.displayKey || '').trim();
   if (!key) {
