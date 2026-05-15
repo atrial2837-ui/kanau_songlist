@@ -9,6 +9,13 @@
 <link rel="apple-touch-icon" href="assets/site-icon.svg">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preload" href="/api/data" as="fetch" type="application/json" crossorigin>
+<script type="importmap">
+{
+  "imports": {
+    "fuse": "https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.mjs"
+  }
+}
+</script>
 <link rel="modulepreload" href="js/main.js">
 <link rel="modulepreload" href="js/data.js">
 <link rel="modulepreload" href="js/state.js">
@@ -195,13 +202,6 @@
 
 <!-- Dependencies -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script type="importmap">
-{
-  "imports": {
-    "fuse": "https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.mjs"
-  }
-}
-</script>
 <script type="module" src="js/main.js"></script>
 
 </body>
