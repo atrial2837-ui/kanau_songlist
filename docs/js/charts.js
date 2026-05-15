@@ -1,7 +1,25 @@
 import { onThemeChange, getResolvedTheme } from './theme.js';
 
+const CHART_JS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
 const charts = new Map();
+let chartJsPromise = null;
 let cssVars = {};
+
+function ensureChartJs() {
+  if (window.Chart) return Promise.resolve(window.Chart);
+  if (chartJsPromise) return chartJsPromise;
+
+  chartJsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = CHART_JS_URL;
+    script.async = true;
+    script.onload = () => resolve(window.Chart);
+    script.onerror = () => reject(new Error('Chart.js failed to load'));
+    document.head.appendChild(script);
+  });
+
+  return chartJsPromise;
+}
 
 function readCssVars() {
   const cs = getComputedStyle(document.documentElement);
@@ -77,18 +95,26 @@ function deepMerge(a, b) {
 }
 
 export function createChart(id, type, data, options = {}) {
-  const canvas = document.getElementById(id);
-  if (!canvas) return null;
-  const ctx = canvas.getContext('2d');
-  if (charts.has(id)) {
-    charts.get(id).destroy();
-  }
-  const merged = deepMerge(defaults(), options);
-  merged.responsive = true;
-  merged.maintainAspectRatio = false;
-  const chart = new Chart(ctx, { type, data, options: merged });
-  charts.set(id, chart);
-  return chart;
+  ensureChartJs()
+    .then((ChartCtor) => {
+      const canvas = document.getElementById(id);
+      if (!canvas) return null;
+      const ctx = canvas.getContext('2d');
+      if (charts.has(id)) {
+        charts.get(id).destroy();
+      }
+      const merged = deepMerge(defaults(), options);
+      merged.responsive = true;
+      merged.maintainAspectRatio = false;
+      const chart = new ChartCtor(ctx, { type, data, options: merged });
+      charts.set(id, chart);
+      return chart;
+    })
+    .catch(() => {
+      const canvas = document.getElementById(id);
+      if (canvas) canvas.replaceWith(document.createTextNode('グラフを読み込めませんでした'));
+    });
+  return null;
 }
 
 export function destroyChart(id) {

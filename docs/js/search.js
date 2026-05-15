@@ -1,4 +1,3 @@
-import Fuse from 'fuse';
 import { normalize } from './utils.js';
 
 const fuseOptions = {
@@ -16,11 +15,29 @@ const fuseOptions = {
 };
 
 let fuse = null;
+let fuseCtor = null;
+let fusePromise = null;
 let songRef = null;
+
+function loadFuse() {
+  if (fuseCtor) return Promise.resolve(fuseCtor);
+  if (!fusePromise) {
+    fusePromise = import('fuse').then((module) => {
+      fuseCtor = module.default;
+      return fuseCtor;
+    });
+  }
+  return fusePromise;
+}
 
 export function buildIndex(songs) {
   songRef = songs;
-  fuse = new Fuse(songs, fuseOptions);
+  fuse = null;
+  loadFuse()
+    .then((Fuse) => {
+      if (songRef === songs) fuse = new Fuse(songs, fuseOptions);
+    })
+    .catch(() => {});
 }
 
 const FIELD_RE = /(?<key>title|artist|genre|tag|mood|season|key|count|last|days)\s*(?<op>:|<=|>=|=|<|>)\s*(?<val>"[^"]*"|\S+)/gi;
@@ -127,9 +144,22 @@ export function search(rawQuery, fallbackSongs) {
   let pool = applyFieldFilters(songs, filters);
   if (!tokens.length) return { results: pool, tokens: [] };
   const phrase = tokens.join(' ');
+  if (!fuseCtor) {
+    const needle = normalize(phrase).toLowerCase();
+    return {
+      results: pool.filter((song) => [
+        song.title,
+        song.artist,
+        song.genreText || song.genre,
+        song.tagText,
+        song.keyText,
+      ].some((value) => normalize(value).toLowerCase().includes(needle))),
+      tokens,
+    };
+  }
   const fuseLocal = (pool === songs && fuse)
     ? fuse
-    : new Fuse(pool, fuseOptions);
+    : new fuseCtor(pool, fuseOptions);
   const fuseResults = fuseLocal.search(phrase);
   return { results: fuseResults.map(r => r.item), tokens };
 }
