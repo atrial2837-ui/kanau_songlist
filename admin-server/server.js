@@ -41,6 +41,14 @@ function cleanMetadata(value) {
   return text;
 }
 
+function cleanDisplayKey(value) {
+  const text = cleanMetadata(value).replace(/^＋/, '+').replace(/^－/, '-');
+  if (!text) return '';
+  if (text === '原キー') return text;
+  if (/^[+-]\d{1,2}$/.test(text)) return text;
+  return '';
+}
+
 function songKey(title, artist) {
   return `${normalizedKey(title)}__${normalizedKey(artist)}`;
 }
@@ -120,7 +128,7 @@ function fixedIntegratedRows(text) {
       displayKey: row[21] || '',
       genre: row[23] || '',
     }))
-    .filter((row) => normalize(row.title) && (cleanMetadata(row.displayKey) || cleanMetadata(row.genre)));
+    .filter((row) => normalize(row.title) && (cleanDisplayKey(row.displayKey) || cleanMetadata(row.genre)));
 }
 
 function spreadsheetCsvUrl(value) {
@@ -446,7 +454,7 @@ async function syncKeyReference() {
   for (const row of rows) {
     const title = normalize(row[titleCol]);
     const artist = artistCol ? normalize(row[artistCol]) : '';
-    const displayKey = normalize(row[keyCol]);
+    const displayKey = cleanDisplayKey(row[keyCol]);
     const genre = genreCol ? normalize(row[genreCol]) : '';
     if (!title || (!displayKey && !genre)) {
       skipped += 1;
@@ -494,7 +502,7 @@ async function importKeyReferenceCsv(input) {
   for (const row of sourceRows) {
     const title = normalize(row.title);
     const artist = normalize(row.artist);
-    const displayKey = cleanMetadata(row.displayKey);
+    const displayKey = cleanDisplayKey(row.displayKey);
     const genre = cleanMetadata(row.genre);
     if (!title || (!displayKey && !genre)) {
       skipped += 1;
