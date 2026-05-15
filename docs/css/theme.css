@@ -395,11 +395,23 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 }
 .song-detail-stream {
   display: grid;
-  grid-template-columns: 92px 1fr;
+  grid-template-columns: 58px 92px 1fr;
   gap: 10px;
+  align-items: center;
   padding: 9px 0;
   border-top: 1px dashed var(--border);
   color: var(--ink);
+}
+.song-detail-thumb {
+  width: 58px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+}
+.song-detail-thumb.placeholder {
+  display: block;
 }
 .song-detail-stream span {
   color: var(--primary-strong);
@@ -475,8 +487,11 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
     grid-template-columns: 1fr;
   }
   .song-detail-stream {
-    grid-template-columns: 1fr;
-    gap: 2px;
+    grid-template-columns: 58px 1fr;
+    gap: 6px 10px;
+  }
+  .song-detail-stream strong {
+    grid-column: 2;
   }
 }
 

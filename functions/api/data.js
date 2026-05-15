@@ -85,13 +85,19 @@ function buildDataset(channel, tables) {
   );
   const artistsById = new Map(tables.artists.map((row) => [row.id, row]));
   const songsById = new Map(tables.songs.map((row) => [row.id, row]));
+  const streamSongsByStreamId = new Map();
+  for (const row of tables.stream_songs) {
+    if (!streamSongsByStreamId.has(row.stream_id)) streamSongsByStreamId.set(row.stream_id, []);
+    streamSongsByStreamId.get(row.stream_id).push(row);
+  }
+  for (const rows of streamSongsByStreamId.values()) {
+    rows.sort((a, b) => a.position - b.position);
+  }
   const streams = tables.streams
     .filter((row) => row.channel_id === channel.id)
     .map((stream) => {
       const date = stream.streamed_on;
-      const songs = tables.stream_songs
-        .filter((row) => row.stream_id === stream.id)
-        .sort((a, b) => a.position - b.position)
+      const songs = (streamSongsByStreamId.get(stream.id) || [])
         .map((row) => {
           const song = songsById.get(row.song_id);
           return {

@@ -102,6 +102,27 @@ function findSong(key) {
   return (state.data?.songs || []).find(song => song.key === key) || null;
 }
 
+function youtubeVideoId(url) {
+  const text = String(url || '');
+  const patterns = [
+    /youtu\.be\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/watch\?[^#]*v=([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/live\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return match[1];
+  }
+  return '';
+}
+
+function youtubeThumb(url) {
+  const id = youtubeVideoId(url);
+  return id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : '';
+}
+
 function openSongDetail(key) {
   const song = findSong(key);
   const modal = $('#song-modal');
@@ -110,7 +131,10 @@ function openSongDetail(key) {
   if (!song || !modal || !body || !title) return;
 
   title.textContent = song.title;
-  const refs = (song.streamRefs || []).slice(0, 8);
+  const refs = (song.streamRefs || []).slice(0, 8).map(ref => ({
+    ...ref,
+    thumbnail: youtubeThumb(ref.url),
+  }));
   const tags = [
     song.genre,
     ...(song.seasonTags || []),
@@ -137,6 +161,7 @@ function openSongDetail(key) {
       <h3>歌った歌枠</h3>
       ${refs.length ? refs.map(ref => `
         <a class="song-detail-stream" href="${escapeHtml(ref.url || '#')}" target="_blank" rel="noopener">
+          ${ref.thumbnail ? `<img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" alt="" loading="lazy">` : '<div class="song-detail-thumb placeholder"></div>'}
           <span>${fmtDate(ref.date)}</span>
           <strong>${escapeHtml(ref.title || '配信')}</strong>
         </a>
