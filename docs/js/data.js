@@ -1,6 +1,6 @@
 import { daysSince } from './utils.js';
 
-const API_URL = '/api/data';
+const API_URLS = ['/data.json', '/api/data'];
 
 function parseApiDate(value) {
   if (!value) return null;
@@ -152,16 +152,18 @@ function hydratePayload(payload) {
 }
 
 export async function loadAll() {
-  const res = await fetch(API_URL);
-  if (!res.ok) {
-    let detail = '';
+  let lastError = null;
+  for (const url of API_URLS) {
+    const res = await fetch(url, { cache: url.endsWith('.json') ? 'default' : 'no-store' });
+    if (res.ok) {
+      return hydratePayload(await res.json());
+    }
     try {
       const body = await res.json();
-      detail = body.error ? `: ${body.error}` : '';
+      lastError = body.error ? `${url}: ${body.error}` : `${url}: HTTP ${res.status}`;
     } catch (_) {
-      detail = `: HTTP ${res.status}`;
+      lastError = `${url}: HTTP ${res.status}`;
     }
-    throw new Error(`APIからデータを取得できませんでした${detail}`);
   }
-  return hydratePayload(await res.json());
+  throw new Error(`APIからデータを取得できませんでした: ${lastError || 'unknown error'}`);
 }
