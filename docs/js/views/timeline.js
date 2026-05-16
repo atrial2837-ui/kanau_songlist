@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { TIMELINE_INITIAL, TIMELINE_STEP } from '../config.js';
-import { $, $$, escapeHtml, fmtDate } from '../utils.js';
+import { $, $$, escapeHtml, fmtDate, streamKey } from '../utils.js';
 
 export function renderTimeline() {
   const { streams } = state.data;
@@ -49,6 +49,13 @@ export function renderTimeline() {
 
   const limited = visible.slice(0, state.timelineLimit);
   $('#timeline').innerHTML = limited.map((s, idx) => renderItem(s, idx, filter)).join('');
+  if (state.timelineFocus) {
+    const focus = document.querySelector(`[data-streamkey="${CSS.escape(state.timelineFocus)}"]`);
+    const item = focus?.closest('.timeline-item');
+    item?.classList.add('focus');
+    item?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    state.timelineFocus = null;
+  }
   $('#timeline').onclick = async (event) => {
     const btn = event.target.closest('[data-copy-stream]');
     if (!btn) return;
@@ -93,6 +100,7 @@ function renderItem(s, idx, filter) {
     : '';
   return `
     <article class="timeline-item ${recentClass}">
+      <span class="stream-anchor" data-streamkey="${escapeHtml(streamKey(s))}"></span>
       <header class="timeline-head">
         <span class="timeline-date">${fmtDate(s.date)}</span>
         <span class="timeline-stream-no">第${s.index}枠</span>

@@ -3,8 +3,9 @@ import { loadAll } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
-import { $, $$, escapeHtml, fmtDate, daysSince, isLink, formatNumber } from './utils.js';
+import { $, $$, escapeHtml, fmtDate, daysSince, isLink, formatNumber, streamKey } from './utils.js';
 import { DEFAULT_CHANNEL } from './config.js';
+import { readUrlState, writeUrlState } from './url-state.js';
 
 initTheme();
 
@@ -35,11 +36,12 @@ async function renderTab(tab = state.activeTab) {
   renderer();
 }
 
-function activateTab(tab) {
+function activateTab(tab, options = {}) {
   if (!isValidTab(tab)) tab = 'dashboard';
   state.activeTab = tab;
   $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+  if (options.updateUrl !== false) writeUrlState({ tab });
   renderTab(tab);
 }
 
@@ -49,22 +51,33 @@ function getDataset(channelId) {
   return state.channelData.channels[channelId] || null;
 }
 
-function switchChannel(channelId) {
+function switchChannel(channelId, options = {}) {
   const ds = getDataset(channelId);
   if (!ds) return;
   state.channel = channelId;
   updatePageTitle(channelId);
   state.data = ds;
   state.timelineFilter = null;
+  state.timelineFocus = null;
   state.timelineLimit = 12;
   state.songsLimit = 100;
-  state.songsQuery = '';
-  state.songsTitleQuery = '';
-  state.songsArtistQuery = '';
-  state.songsGenre = 'all';
+  if (options.resetSearch !== false) {
+    state.songsQuery = '';
+    state.songsTitleQuery = '';
+    state.songsArtistQuery = '';
+    state.songsGenre = 'all';
+  }
   buildIndex(ds.songs);
   destroyAllCharts();
   $$('#channel-switch [data-channel]').forEach(b => b.classList.toggle('active', b.dataset.channel === channelId));
+  if (options.updateUrl !== false) {
+    writeUrlState({
+      channel: channelId,
+      q: state.songsQuery,
+      title: state.songsTitleQuery,
+      artist: state.songsArtistQuery,
+    });
+  }
   renderHero();
   renderTab();
 }
@@ -108,9 +121,27 @@ function filterTimelineBySong({ key, title, artist }) {
   } else {
     state.timelineFilter = { key, title, artist };
   }
+  state.timelineFocus = null;
   state.timelineLimit = 12;
   activateTab('timeline');
   $('#panel-timeline').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function jumpToStreamFromDetail(song, ref) {
+  state.timelineFilter = { key: song.key, title: song.title, artist: song.artist };
+  state.timelineFocus = streamKey(ref);
+  state.timelineLimit = 9999;
+  activateTab('timeline');
+  $('#panel-timeline').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function searchArtistFromDetail(song) {
+  state.songsQuery = '';
+  state.songsTitleQuery = '';
+  state.songsArtistQuery = song.artist || '';
+  state.songsLimit = 100;
+  writeUrlState({ tab: 'songs', q: '', title: '', artist: state.songsArtistQuery });
+  activateTab('songs', { updateUrl: false });
 }
 
 function findSong(key) {
@@ -149,6 +180,7 @@ function openSongDetail(key) {
   const refs = (song.streamRefs || []).slice(0, 8).map(ref => ({
     ...ref,
     thumbnail: youtubeThumb(ref.url),
+    detailKey: streamKey(ref),
   }));
   const tags = [
     song.genre,
@@ -159,7 +191,7 @@ function openSongDetail(key) {
   body.innerHTML = `
     <div class="song-detail-main">
       <div>
-        <div class="song-detail-artist">${escapeHtml(song.artist)}</div>
+        <button class="song-detail-artist" type="button" data-detail-action="artist" data-songkey="${escapeHtml(song.key)}">${escapeHtml(song.artist)}</button>
         <div class="song-detail-tags">${tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('')}</div>
       </div>
       <div class="song-detail-stats">
@@ -179,7 +211,7 @@ function openSongDetail(key) {
           ${ref.thumbnail && ref.url
             ? `<a class="song-detail-thumb-link" href="${escapeHtml(ref.url)}" target="_blank" rel="noopener" aria-label="YouTubeで歌枠を開く"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" alt="" loading="lazy"></a>`
             : '<div class="song-detail-thumb placeholder"></div>'}
-          <button class="song-detail-frame" type="button" data-detail-action="timeline" data-songkey="${escapeHtml(song.key)}">
+          <button class="song-detail-frame" type="button" data-detail-action="stream" data-songkey="${escapeHtml(song.key)}" data-streamkey="${escapeHtml(ref.detailKey)}">
             <span>${fmtDate(ref.date)}</span>
             <strong>${escapeHtml(ref.title || '配信')}</strong>
           </button>
@@ -207,6 +239,17 @@ function initSongModal() {
       const song = findSong(action.dataset.songkey);
       close();
       if (song) filterTimelineBySong(song);
+    }
+    if (action.dataset.detailAction === 'stream') {
+      const song = findSong(action.dataset.songkey);
+      const ref = song?.streamRefs?.find(item => streamKey(item) === action.dataset.streamkey);
+      close();
+      if (song && ref) jumpToStreamFromDetail(song, ref);
+    }
+    if (action.dataset.detailAction === 'artist') {
+      const song = findSong(action.dataset.songkey);
+      close();
+      if (song) searchArtistFromDetail(song);
     }
   });
   document.addEventListener('keydown', (event) => {
@@ -328,7 +371,11 @@ async function init() {
   try {
     const channelData = await loadAll();
     state.channelData = channelData;
-    let initialChannel = state.channel || DEFAULT_CHANNEL;
+    const url = readUrlState();
+    state.songsQuery = url.q;
+    state.songsTitleQuery = url.title;
+    state.songsArtistQuery = url.artist;
+    let initialChannel = url.channel || state.channel || DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) initialChannel = DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) {
       const fallback = Object.keys(channelData.channels)[0];
@@ -337,7 +384,8 @@ async function init() {
     if (!getDataset(initialChannel)) throw new Error('No channel data could be loaded');
     refreshChannelButtons();
     hideLoading();
-    switchChannel(initialChannel);
+    switchChannel(initialChannel, { resetSearch: false, updateUrl: false });
+    activateTab(url.tab, { updateUrl: false });
     switchAudience(state.audience);
     for (const ch of Object.values(channelData.channels)) {
       if (ch.orphans.length) {
@@ -348,6 +396,18 @@ async function init() {
     console.error(e);
     showError(e);
   }
+}
+
+function applyUrlState() {
+  if (!state.channelData) return;
+  const url = readUrlState();
+  state.songsQuery = url.q;
+  state.songsTitleQuery = url.title;
+  state.songsArtistQuery = url.artist;
+  if (url.channel !== state.channel && getDataset(url.channel)) {
+    switchChannel(url.channel, { resetSearch: false, updateUrl: false });
+  }
+  activateTab(url.tab, { updateUrl: false });
 }
 
 // Tab buttons
@@ -363,6 +423,8 @@ $$('.ch-btn').forEach(btn => {
     switchChannel(btn.dataset.channel);
   });
 });
+
+window.addEventListener('popstate', applyUrlState);
 
 // Audience switch
 $$('[data-audience]').forEach(btn => {

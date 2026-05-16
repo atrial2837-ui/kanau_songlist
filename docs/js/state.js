@@ -10,6 +10,7 @@ export const state = {
   // timeline
   timelineLimit: 12,
   timelineFilter: null,
+  timelineFocus: null,
 
   // songs
   songsQuery: '',

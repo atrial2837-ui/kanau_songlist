@@ -363,6 +363,17 @@
   color: var(--ink-mute);
   margin-top: 2px;
   word-break: break-word;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: inline;
+  padding: 0;
+  text-align: left;
+}
+.song-row .artist:hover {
+  color: var(--primary-strong);
+  text-decoration: underline;
 }
 .song-meta-line {
   display: flex;
@@ -561,6 +572,14 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 .timeline-item.recent::before { background: var(--accent); }
+.timeline-item.focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.stream-anchor {
+  position: absolute;
+  inset: 0 auto auto 0;
+}
 .timeline-head {
   display: flex;
   flex-wrap: wrap;

@@ -26,6 +26,14 @@ export const fmtDate = (d) => {
 export const fmtMonth = (d) =>
   `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
 
+export const streamKey = (stream) =>
+  [
+    stream?.channel || '',
+    stream?.dateRaw || fmtDate(stream?.date),
+    stream?.index || '',
+    stream?.url || '',
+  ].join('|');
+
 export const monthKey = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 

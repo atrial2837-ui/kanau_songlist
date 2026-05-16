@@ -354,6 +354,16 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   color: var(--ink-soft);
   font-size: 14px;
   margin-bottom: 10px;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.song-detail-artist:hover {
+  color: var(--primary-strong);
+  text-decoration: underline;
 }
 .song-detail-tags {
   display: flex;

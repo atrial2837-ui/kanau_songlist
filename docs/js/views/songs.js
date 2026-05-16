@@ -1,6 +1,7 @@
 import { state } from '../state.js';
 import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText, normalize } from '../utils.js';
 import { search, matchReasons } from '../search.js';
+import { writeUrlState } from '../url-state.js';
 
 let searchInputEl, titleSearchEl, artistSearchEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
 const SETLIST_STORAGE_KEY = 'kanau-setlist-v1';
@@ -78,6 +79,12 @@ export function renderSongs() {
     state.songsTitleQuery = titleSearchEl.value;
     state.songsArtistQuery = artistSearchEl.value;
     state.songsLimit = 100;
+    writeUrlState({
+      tab: 'songs',
+      q: state.songsQuery,
+      title: state.songsTitleQuery,
+      artist: state.songsArtistQuery,
+    }, { replace: true });
     refresh();
   }, 120);
   searchInputEl.addEventListener('input', debounced);
@@ -127,6 +134,20 @@ export function renderSongs() {
       handleSetlistAction(action);
       return;
     }
+    const artist = e.target.closest('[data-artist-search]');
+    if (artist) {
+      e.stopPropagation();
+      state.songsQuery = '';
+      state.songsTitleQuery = '';
+      state.songsArtistQuery = artist.dataset.artistSearch || '';
+      searchInputEl.value = state.songsQuery;
+      titleSearchEl.value = state.songsTitleQuery;
+      artistSearchEl.value = state.songsArtistQuery;
+      state.songsLimit = 100;
+      writeUrlState({ tab: 'songs', q: '', title: '', artist: state.songsArtistQuery });
+      refresh();
+      return;
+    }
     const tag = e.target.closest('[data-tag-search]');
     if (!tag) return;
     e.stopPropagation();
@@ -134,6 +155,7 @@ export function renderSongs() {
     state.songsQuery = `${type}:${tag.dataset.tagSearch}`;
     searchInputEl.value = state.songsQuery;
     state.songsLimit = 100;
+    writeUrlState({ tab: 'songs', q: state.songsQuery, title: state.songsTitleQuery, artist: state.songsArtistQuery });
     refresh();
   };
   panel.oninput = (e) => {
@@ -544,7 +566,7 @@ function rowHtml(song, tokens) {
       <div class="rank ${rankClass}">${song.rank}</div>
       <div class="info">
         <div class="title">${titleHtml}</div>
-        <div class="artist">${artistHtml}</div>
+        <button class="artist artist-search-btn" type="button" data-artist-search="${escapeHtml(song.artist)}">${artistHtml}</button>
         <div class="song-meta-line">
           <span class="genre-badge">${escapeHtml(genreLabel(song))}</span>
           ${tagBadges(song)}
