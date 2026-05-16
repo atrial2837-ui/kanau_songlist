@@ -1,8 +1,8 @@
 import { state } from '../state.js';
-import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText } from '../utils.js';
+import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText, normalize } from '../utils.js';
 import { search, matchReasons } from '../search.js';
 
-let searchInputEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
+let searchInputEl, titleSearchEl, artistSearchEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
 const SETLIST_STORAGE_KEY = 'kanau-setlist-v1';
 let currentFiltered = [];
 
@@ -16,6 +16,8 @@ export function renderSongs() {
     </div>
     <div class="controls">
       <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・field検索（あいまい一致）" value="${escapeHtml(state.songsQuery)}">
+      <input id="songs-title-search" class="text-input compact-search" type="search" placeholder="曲名で検索" value="${escapeHtml(state.songsTitleQuery)}">
+      <input id="songs-artist-search" class="text-input compact-search" type="search" placeholder="アーティストで検索" value="${escapeHtml(state.songsArtistQuery)}">
       <select id="songs-sort" class="select-input">
         <option value="count-desc">回数（多）</option>
         <option value="count-asc">回数（少）</option>
@@ -55,6 +57,8 @@ export function renderSongs() {
   `;
 
   searchInputEl = $('#songs-search');
+  titleSearchEl = $('#songs-title-search');
+  artistSearchEl = $('#songs-artist-search');
   sortSelectEl = $('#songs-sort');
   genreSelectEl = $('#songs-genre');
   filterButtonsEl = $('#songs-filters');
@@ -69,8 +73,16 @@ export function renderSongs() {
   refreshFilterButtons();
   refreshGenreChips();
 
-  const debounced = debounce(() => { state.songsQuery = searchInputEl.value; state.songsLimit = 100; refresh(); }, 120);
+  const debounced = debounce(() => {
+    state.songsQuery = searchInputEl.value;
+    state.songsTitleQuery = titleSearchEl.value;
+    state.songsArtistQuery = artistSearchEl.value;
+    state.songsLimit = 100;
+    refresh();
+  }, 120);
   searchInputEl.addEventListener('input', debounced);
+  titleSearchEl.addEventListener('input', debounced);
+  artistSearchEl.addEventListener('input', debounced);
   sortSelectEl.addEventListener('change', () => { state.songsSort = sortSelectEl.value; refresh(); });
   genreSelectEl.addEventListener('change', () => {
     state.songsGenre = genreSelectEl.value;
@@ -206,6 +218,18 @@ function applyTagFilter(songs) {
   }
 }
 
+function applyDedicatedSearch(songs) {
+  const titleNeedle = normalize(state.songsTitleQuery).toLowerCase();
+  const artistNeedle = normalize(state.songsArtistQuery).toLowerCase();
+  if (!titleNeedle && !artistNeedle) return songs;
+  return songs.filter((song) => {
+    const title = normalize(song.title).toLowerCase();
+    const artist = normalize(song.artist).toLowerCase();
+    return (!titleNeedle || title.includes(titleNeedle))
+      && (!artistNeedle || artist.includes(artistNeedle));
+  });
+}
+
 function applySingerMode(songs) {
   if (!state.singerMode) return songs;
   const base = songs.filter(s => s.lastSung);
@@ -230,10 +254,11 @@ function refresh() {
   const genreFiltered = applyGenreFilter(songs);
   const modeFiltered = applySingerMode(genreFiltered);
   const tagFiltered = applyTagFilter(modeFiltered);
-  const { results, tokens } = search(state.songsQuery, tagFiltered);
+  const dedicatedFiltered = applyDedicatedSearch(tagFiltered);
+  const { results, tokens } = search(state.songsQuery, dedicatedFiltered);
   let filtered = state.songsQuery.trim()
-    ? results.filter(s => tagFiltered.includes(s))
-    : tagFiltered;
+    ? results.filter(s => dedicatedFiltered.includes(s))
+    : dedicatedFiltered;
 
   filtered = sortSongs(filtered, state.songsSort, !!state.songsQuery.trim());
   currentFiltered = filtered;

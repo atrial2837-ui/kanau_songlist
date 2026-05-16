@@ -564,6 +564,7 @@
   align-items: center;
 }
 .controls .text-input { flex: 1 1 280px; min-width: 220px; }
+.controls .compact-search { flex: 0 1 180px; min-width: 150px; }
 .controls .select-input { flex: 0 0 auto; }
 .controls .genre-select { min-width: 170px; }
 

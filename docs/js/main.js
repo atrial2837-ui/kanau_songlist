@@ -59,6 +59,8 @@ function switchChannel(channelId) {
   state.timelineLimit = 12;
   state.songsLimit = 100;
   state.songsQuery = '';
+  state.songsTitleQuery = '';
+  state.songsArtistQuery = '';
   state.songsGenre = 'all';
   buildIndex(ds.songs);
   destroyAllCharts();
@@ -173,11 +175,15 @@ function openSongDetail(key) {
     <div class="song-detail-history">
       <h3>歌った歌枠</h3>
       ${refs.length ? refs.map(ref => `
-        <a class="song-detail-stream" href="${escapeHtml(ref.url || '#')}" target="_blank" rel="noopener">
-          ${ref.thumbnail ? `<img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" alt="" loading="lazy">` : '<div class="song-detail-thumb placeholder"></div>'}
-          <span>${fmtDate(ref.date)}</span>
-          <strong>${escapeHtml(ref.title || '配信')}</strong>
-        </a>
+        <div class="song-detail-stream">
+          ${ref.thumbnail && ref.url
+            ? `<a class="song-detail-thumb-link" href="${escapeHtml(ref.url)}" target="_blank" rel="noopener" aria-label="YouTubeで歌枠を開く"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" alt="" loading="lazy"></a>`
+            : '<div class="song-detail-thumb placeholder"></div>'}
+          <button class="song-detail-frame" type="button" data-detail-action="timeline" data-songkey="${escapeHtml(song.key)}">
+            <span>${fmtDate(ref.date)}</span>
+            <strong>${escapeHtml(ref.title || '配信')}</strong>
+          </button>
+        </div>
       `).join('') : '<p class="song-detail-empty">履歴未確認</p>'}
     </div>
   `;
@@ -195,6 +201,7 @@ function initSongModal() {
     if (event.target === modal) close();
     const action = event.target.closest('[data-detail-action]');
     if (!action) return;
+    event.stopPropagation();
     if (action.dataset.detailAction === 'close') close();
     if (action.dataset.detailAction === 'timeline') {
       const song = findSong(action.dataset.songkey);
