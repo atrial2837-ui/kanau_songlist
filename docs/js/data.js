@@ -1,6 +1,11 @@
 import { daysSince } from './utils.js';
 
-const API_URLS = ['/data.json', '/api/data'];
+const STATIC_URLS = {
+  meta: '/data/meta.json',
+  songs: '/data/songs.json',
+  streams: '/data/streams.json',
+};
+const FALLBACK_URL = '/api/data';
 
 function parseApiDate(value) {
   if (!value) return null;
@@ -188,6 +193,29 @@ function hydrateDataset(dataset) {
   }
   dataset.streams.sort((a, b) => (b.date || 0) - (a.date || 0));
 
+  const songByKey = new Map();
+  for (const song of dataset.songs) {
+    song.displayKey = song.displayKey || '';
+    song.keyText = song.keyText || song.displayKey;
+    song.genre = song.genre || '未分類';
+    song.genreText = song.genreText || song.genre;
+    song.channels = Array.isArray(song.channels) ? song.channels : Array.from(song.channels || []);
+    song.count = Number(song.count || 0);
+    songByKey.set(song.key, song);
+  }
+
+  for (const stream of dataset.streams) {
+    stream.songs = (stream.songs || []).map((item) => {
+      const song = songByKey.get(item.key);
+      return {
+        title: item.title || song?.title || '',
+        artist: item.artist || song?.artist || '',
+        key: item.key || song?.key || '',
+        raw: item.raw || '',
+      };
+    });
+  }
+
   const refsBySongKey = new Map();
   for (const stream of dataset.streams) {
     for (const song of stream.songs) {
@@ -199,21 +227,15 @@ function hydrateDataset(dataset) {
   for (const song of dataset.songs) {
     const refs = refsBySongKey.get(song.key) || [];
     const dates = refs.map((stream) => stream.date).filter(Boolean).sort((a, b) => b - a);
-    song.displayKey = song.displayKey || '';
-    song.keyText = song.keyText || song.displayKey;
-    song.genre = song.genre || '未分類';
-    song.genreText = song.genreText || song.genre;
     song.seasonTags = inferSeasonTags(song);
     song.seasonText = song.seasonTags.join(' ');
     song.moodTags = inferMoodTags(song);
     song.moodText = song.moodTags.join(' ');
-    song.channels = Array.isArray(song.channels) ? song.channels : Array.from(song.channels || []);
     song.streamRefs = refs;
     song.dates = dates;
     song.lastSung = dates[0] || null;
     song.firstSung = dates[dates.length - 1] || null;
     song.daysSinceLast = daysSince(song.lastSung);
-    song.count = Number(song.count || 0);
     song.trend = trendLabel(song);
     song.singerTags = singerTags(song);
     song.tagText = [
@@ -242,19 +264,62 @@ function hydratePayload(payload) {
   };
 }
 
-export async function loadAll() {
-  let lastError = null;
-  for (const url of API_URLS) {
-    const res = await fetch(url, { cache: url.endsWith('.json') ? 'default' : 'no-store' });
-    if (res.ok) {
-      return hydratePayload(await res.json());
-    }
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function loadStaticSplit() {
+  const [meta, songs, streams] = await Promise.all([
+    fetchJson(STATIC_URLS.meta),
+    fetchJson(STATIC_URLS.songs),
+    fetchJson(STATIC_URLS.streams),
+  ]);
+  const channels = {};
+  const codes = new Set([
+    ...Object.keys(meta.channels || {}),
+    ...Object.keys(songs.channels || {}),
+    ...Object.keys(streams.channels || {}),
+  ]);
+  for (const code of codes) {
+    channels[code] = {
+      stats: meta.channels?.[code] || {},
+      songs: songs.channels?.[code] || [],
+      streams: streams.channels?.[code] || [],
+      orphans: [],
+      artists: [],
+    };
+  }
+  return hydratePayload({
+    channels,
+    combined: { stats: meta.combined || {} },
+  });
+}
+
+async function loadFallbackApi() {
+  const res = await fetch(FALLBACK_URL, { cache: 'no-store' });
+  if (!res.ok) {
+    let detail = '';
     try {
       const body = await res.json();
-      lastError = body.error ? `${url}: ${body.error}` : `${url}: HTTP ${res.status}`;
+      detail = body.error ? `: ${body.error}` : '';
     } catch (_) {
-      lastError = `${url}: HTTP ${res.status}`;
+      detail = `: HTTP ${res.status}`;
+    }
+    throw new Error(`${FALLBACK_URL}${detail}`);
+  }
+  return hydratePayload(await res.json());
+}
+
+export async function loadAll() {
+  try {
+    return await loadStaticSplit();
+  } catch (staticError) {
+    try {
+      return await loadFallbackApi();
+    } catch (fallbackError) {
+      throw new Error(`APIからデータを取得できませんでした: ${staticError.message}; ${fallbackError.message}`);
     }
   }
-  throw new Error(`APIからデータを取得できませんでした: ${lastError || 'unknown error'}`);
 }

@@ -619,8 +619,6 @@ function buildSiteDataset(channel, tables) {
       const songs = (streamSongsByStreamId.get(stream.id) || []).map((row) => {
         const song = songsById.get(row.song_id);
         return {
-          title: normalize(song?.title || row.title_snapshot),
-          artist: normalize(artistsById.get(song?.artist_id)?.name || row.artist_snapshot),
           key: song?.song_key || row.song_key_snapshot,
           raw: row.raw_text || '',
         };
@@ -759,22 +757,43 @@ async function buildStaticSiteData() {
 
 async function generateStaticData() {
   const data = await buildStaticSiteData();
-  const staticData = {
-    channels: data.channels,
-    combined: {
-      stats: data.combined.stats,
+  const generatedAt = todayIso();
+  const split = {
+    meta: {
+      generatedAt,
+      channels: Object.fromEntries(
+        Object.entries(data.channels).map(([code, dataset]) => [code, dataset.stats]),
+      ),
+      combined: data.combined.stats,
+    },
+    songs: {
+      generatedAt,
+      channels: Object.fromEntries(
+        Object.entries(data.channels).map(([code, dataset]) => [code, dataset.songs]),
+      ),
+    },
+    streams: {
+      generatedAt,
+      channels: Object.fromEntries(
+        Object.entries(data.channels).map(([code, dataset]) => [code, dataset.streams]),
+      ),
     },
   };
-  const outPath = path.join(ROOT, '..', 'docs', 'data.json');
-  const body = `${JSON.stringify(staticData)}\n`;
-  fs.writeFileSync(outPath, body, 'utf8');
-  const bytes = Buffer.byteLength(body);
+  const outDir = path.join(ROOT, '..', 'docs', 'data');
+  fs.mkdirSync(outDir, { recursive: true });
+  const files = {};
+  for (const [name, value] of Object.entries(split)) {
+    const outPath = path.join(outDir, `${name}.json`);
+    const body = `${JSON.stringify(value)}\n`;
+    fs.writeFileSync(outPath, body, 'utf8');
+    files[`data/${name}.json`] = Buffer.byteLength(body);
+  }
   return {
     ok: true,
-    path: path.relative(path.join(ROOT, '..'), outPath),
-    bytes,
-    generatedAt: todayIso(),
-    stats: staticData.combined.stats,
+    files,
+    bytes: Object.values(files).reduce((sum, size) => sum + size, 0),
+    generatedAt,
+    stats: split.meta.combined,
   };
 }
 
@@ -849,9 +868,9 @@ function renderPage() {
     </section>
     <section class="panel">
       <h2>静的データ生成</h2>
-      <p>D1の現在の内容から公開サイト用の <code>docs/data.json</code> を生成します。生成後はGitへコミット/PushするとPagesに反映できます。</p>
+      <p>D1の現在の内容から公開サイト用の <code>docs/data/*.json</code> を生成します。生成後はGitへコミット/PushするとPagesに反映できます。</p>
       <div class="actions">
-        <button class="primary" id="generateStaticData" type="button">data.jsonを生成</button>
+        <button class="primary" id="generateStaticData" type="button">静的JSONを生成</button>
       </div>
       <div class="status" id="staticStatus"></div>
     </section>
@@ -994,13 +1013,17 @@ function renderPage() {
     });
 
     $('generateStaticData').addEventListener('click', async () => {
-      if (!confirm('D1の現在の内容から docs/data.json を生成します。よろしいですか？')) return;
+      if (!confirm('D1の現在の内容から docs/data/*.json を生成します。よろしいですか？')) return;
       $('staticStatus').textContent = '生成中...';
       try {
         const data = await api('/api/static-data/generate', {});
+        const files = Object.entries(data.files || {})
+          .map(([name, bytes]) => name + ': ' + Math.round(bytes / 1024) + ' KiB')
+          .join('\\n');
         $('staticStatus').textContent =
-          '生成しました: ' + data.path +
-          '\\nサイズ: ' + Math.round(data.bytes / 1024) + ' KiB' +
+          '生成しました' +
+          '\\n' + files +
+          '\\n合計: ' + Math.round(data.bytes / 1024) + ' KiB' +
           '\\n曲数: ' + data.stats.repertoire +
           '\\n歌枠: ' + data.stats.streams +
           '\\n最新: ' + data.stats.updateDate +
