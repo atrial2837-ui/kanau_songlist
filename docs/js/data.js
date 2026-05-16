@@ -28,6 +28,94 @@ function assignRanks(songs) {
   });
 }
 
+function deriveArtists(songs) {
+  const byArtist = new Map();
+  for (const song of songs) {
+    const artist = song.artist || '(不明)';
+    if (!byArtist.has(artist)) {
+      byArtist.set(artist, { artist, songs: [], totalCount: 0, songCount: 0 });
+    }
+    const item = byArtist.get(artist);
+    item.songs.push(song);
+    item.totalCount += song.count;
+    item.songCount += 1;
+  }
+  return Array.from(byArtist.values()).sort((a, b) => b.totalCount - a.totalCount);
+}
+
+function mergeChannels(datasets, baseStats = {}) {
+  const songMap = new Map();
+  const streams = [];
+  for (const dataset of datasets) {
+    for (const song of dataset.songs || []) {
+      const existing = songMap.get(song.key);
+      if (existing) {
+        existing.count += song.count;
+        existing.channels = Array.from(new Set([...existing.channels, ...song.channels]));
+        if (!existing.displayKey && song.displayKey) {
+          existing.displayKey = song.displayKey;
+          existing.keyText = song.displayKey;
+        }
+        if (!existing.genre || existing.genre === '未分類') {
+          existing.genre = song.genre || existing.genre;
+          existing.genreText = existing.genre;
+        }
+      } else {
+        songMap.set(song.key, {
+          ...song,
+          channels: [...song.channels],
+          dates: [],
+          streamRefs: [],
+        });
+      }
+    }
+    streams.push(...(dataset.streams || []));
+  }
+
+  streams.sort((a, b) => (b.date || 0) - (a.date || 0));
+  const refsBySongKey = new Map();
+  for (const stream of streams) {
+    for (const song of stream.songs || []) {
+      if (!refsBySongKey.has(song.key)) refsBySongKey.set(song.key, []);
+      refsBySongKey.get(song.key).push(stream);
+    }
+  }
+
+  for (const song of songMap.values()) {
+    const refs = refsBySongKey.get(song.key) || [];
+    const dates = refs.map((stream) => stream.date).filter(Boolean).sort((a, b) => b - a);
+    song.streamRefs = refs;
+    song.dates = dates;
+    song.lastSung = dates[0] || null;
+    song.firstSung = dates[dates.length - 1] || null;
+    song.daysSinceLast = daysSince(song.lastSung);
+  }
+
+  const songs = Array.from(songMap.values());
+  assignRanks(songs);
+  const total = datasets.reduce((sum, dataset) => sum + (dataset.stats?.total || 0), 0);
+  const newestStream = streams[0]?.date || null;
+  const stats = {
+    title: '全期間',
+    updateText: newestStream ? `更新日：${fmtApiDate(newestStream)}` : '',
+    updateDate: newestStream,
+    total,
+    repertoire: songs.length,
+    streams: datasets.reduce((sum, dataset) => sum + (dataset.stats?.streams || 0), 0),
+    avgPerStream: streams.length ? Math.round((total / streams.length) * 10) / 10 : 0,
+    channelId: 'all',
+    channelLabel: '全期間',
+    keyPublished: datasets.some((dataset) => dataset.stats?.keyPublished),
+    ...baseStats,
+  };
+  if (typeof stats.updateDate === 'string') stats.updateDate = parseApiDate(stats.updateDate);
+  return { stats, songs, streams, orphans: [], artists: deriveArtists(songs) };
+}
+
+function fmtApiDate(date) {
+  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+}
+
 function inferSeasonTags(song) {
   const text = `${song.title || ''} ${song.artist || ''}`.toLowerCase();
   const tags = [];
@@ -145,9 +233,12 @@ function hydratePayload(payload) {
   for (const key of Object.keys(channels)) {
     channels[key] = hydrateDataset(channels[key]);
   }
+  const combined = payload.combined?.songs
+    ? hydrateDataset(payload.combined)
+    : mergeChannels(Object.values(channels), payload.combined?.stats || {});
   return {
     channels,
-    combined: hydrateDataset(payload.combined),
+    combined,
   };
 }
 

@@ -759,8 +759,14 @@ async function buildStaticSiteData() {
 
 async function generateStaticData() {
   const data = await buildStaticSiteData();
+  const staticData = {
+    channels: data.channels,
+    combined: {
+      stats: data.combined.stats,
+    },
+  };
   const outPath = path.join(ROOT, '..', 'docs', 'data.json');
-  const body = `${JSON.stringify(data)}\n`;
+  const body = `${JSON.stringify(staticData)}\n`;
   fs.writeFileSync(outPath, body, 'utf8');
   const bytes = Buffer.byteLength(body);
   return {
@@ -768,7 +774,7 @@ async function generateStaticData() {
     path: path.relative(path.join(ROOT, '..'), outPath),
     bytes,
     generatedAt: todayIso(),
-    stats: data.combined.stats,
+    stats: staticData.combined.stats,
   };
 }
 
