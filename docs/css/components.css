@@ -230,6 +230,7 @@
   box-shadow: var(--shadow-sm);
 }
 
+.panels { min-height: 720px; }
 .panel { display: none; animation: fadeIn 0.3s ease; }
 .panel.active { display: block; }
 
@@ -635,6 +636,7 @@ mark.hl {
   main.container { padding-top: 18px; }
   .hero { padding: 24px 18px 20px; }
   .hero-title { font-size: 19px; }
+  .panels { min-height: 560px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .stat-card { padding: 12px 8px; min-height: 76px; }
   .stat-card .stat-value { font-size: 20px; }

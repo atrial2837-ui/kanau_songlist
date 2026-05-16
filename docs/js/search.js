@@ -18,6 +18,7 @@ let fuse = null;
 let fuseCtor = null;
 let fusePromise = null;
 let songRef = null;
+let indexToken = 0;
 
 function loadFuse() {
   if (fuseCtor) return Promise.resolve(fuseCtor);
@@ -33,11 +34,19 @@ function loadFuse() {
 export function buildIndex(songs) {
   songRef = songs;
   fuse = null;
-  loadFuse()
-    .then((Fuse) => {
-      if (songRef === songs) fuse = new Fuse(songs, fuseOptions);
-    })
-    .catch(() => {});
+  const token = ++indexToken;
+  const build = () => {
+    loadFuse()
+      .then((Fuse) => {
+        if (token === indexToken && songRef === songs) fuse = new Fuse(songs, fuseOptions);
+      })
+      .catch(() => {});
+  };
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(build, { timeout: 3000 });
+  } else {
+    window.setTimeout(build, 1500);
+  }
 }
 
 const FIELD_RE = /(?<key>title|artist|genre|tag|mood|season|key|count|last|days)\s*(?<op>:|<=|>=|=|<|>)\s*(?<val>"[^"]*"|\S+)/gi;
@@ -145,6 +154,11 @@ export function search(rawQuery, fallbackSongs) {
   if (!tokens.length) return { results: pool, tokens: [] };
   const phrase = tokens.join(' ');
   if (!fuseCtor) {
+    loadFuse()
+      .then((Fuse) => {
+        if (!fuse && songRef) fuse = new Fuse(songRef, fuseOptions);
+      })
+      .catch(() => {});
     const needle = normalize(phrase).toLowerCase();
     return {
       results: pool.filter((song) => [

@@ -6,28 +6,41 @@ import { onRerenderNeeded, destroyAllCharts } from './charts.js';
 import { $, $$, escapeHtml, fmtDate, daysSince, isLink, formatNumber } from './utils.js';
 import { DEFAULT_CHANNEL } from './config.js';
 
-import { renderDashboard } from './views/dashboard.js';
-import { renderRanking }   from './views/ranking.js';
-import { renderSongs }     from './views/songs.js';
-import { renderTimeline }  from './views/timeline.js';
-import { renderAnalytics } from './views/analytics.js';
-
 initTheme();
 
-const RENDERERS = {
-  dashboard: renderDashboard,
-  ranking:   renderRanking,
-  songs:     renderSongs,
-  timeline:  renderTimeline,
-  analytics: renderAnalytics,
+const VIEW_LOADERS = {
+  dashboard: () => import('./views/dashboard.js').then(m => m.renderDashboard),
+  ranking:   () => import('./views/ranking.js').then(m => m.renderRanking),
+  songs:     () => import('./views/songs.js').then(m => m.renderSongs),
+  timeline:  () => import('./views/timeline.js').then(m => m.renderTimeline),
+  analytics: () => import('./views/analytics.js').then(m => m.renderAnalytics),
 };
+const rendererCache = new Map();
+let renderToken = 0;
+
+function isValidTab(tab) {
+  return Object.prototype.hasOwnProperty.call(VIEW_LOADERS, tab);
+}
+
+async function getRenderer(tab) {
+  if (!rendererCache.has(tab)) rendererCache.set(tab, VIEW_LOADERS[tab]());
+  return rendererCache.get(tab);
+}
+
+async function renderTab(tab = state.activeTab) {
+  if (!state.data || !isValidTab(tab)) return;
+  const token = ++renderToken;
+  const renderer = await getRenderer(tab);
+  if (token !== renderToken || tab !== state.activeTab || !state.data) return;
+  renderer();
+}
 
 function activateTab(tab) {
-  if (!RENDERERS[tab]) tab = 'dashboard';
+  if (!isValidTab(tab)) tab = 'dashboard';
   state.activeTab = tab;
   $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
-  if (state.data) RENDERERS[tab]();
+  renderTab(tab);
 }
 
 function getDataset(channelId) {
@@ -51,7 +64,7 @@ function switchChannel(channelId) {
   destroyAllCharts();
   $$('#channel-switch [data-channel]').forEach(b => b.classList.toggle('active', b.dataset.channel === channelId));
   renderHero();
-  if (state.data) RENDERERS[state.activeTab]();
+  renderTab();
 }
 
 function switchAudience(audience) {
@@ -66,7 +79,7 @@ function switchAudience(audience) {
     state.songsLimit = 100;
     activateTab('songs');
   } else if (state.data) {
-    RENDERERS[state.activeTab]();
+    renderTab();
   }
 }
 
@@ -367,8 +380,7 @@ initWelcomeTip();
 onRerenderNeeded(() => {
   if (!state.data) return;
   destroyAllCharts();
-  if (state.activeTab === 'dashboard') renderDashboard();
-  if (state.activeTab === 'analytics') renderAnalytics();
+  if (state.activeTab === 'dashboard' || state.activeTab === 'analytics') renderTab();
 });
 
 init();

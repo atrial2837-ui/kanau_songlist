@@ -1,6 +1,37 @@
 import { state } from '../state.js';
 import { $, escapeHtml, fmtDate, monthKey, fmtMonth, daysClass } from '../utils.js';
-import { createChart, chartCanvas, getColors } from '../charts.js';
+import { chartCanvas } from '../charts.js';
+
+let chartRenderToken = 0;
+
+function afterInitialPaint(fn) {
+  const run = () => {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(fn, { timeout: 2500 });
+    } else {
+      window.setTimeout(fn, 1200);
+    }
+  };
+  if (document.readyState === 'complete') {
+    window.setTimeout(run, 500);
+  } else {
+    window.addEventListener('load', () => window.setTimeout(run, 500), { once: true });
+  }
+}
+
+function whenChartVisible(id, fn) {
+  const target = document.getElementById(id)?.parentElement;
+  if (!target || !('IntersectionObserver' in window)) {
+    afterInitialPaint(fn);
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    if (!entries.some(entry => entry.isIntersecting)) return;
+    observer.disconnect();
+    afterInitialPaint(fn);
+  }, { rootMargin: '160px 0px', threshold: 0.01 });
+  observer.observe(target);
+}
 
 export function renderDashboard() {
   const { stats, songs, streams } = state.data;
@@ -105,7 +136,11 @@ export function renderDashboard() {
     </div>
   `;
 
-  drawMonthlyChart(monthly);
+  const token = ++chartRenderToken;
+  whenChartVisible('chart-monthly', () => {
+    if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
+    drawMonthlyChart(monthly);
+  });
 }
 
 function periodHits(streams, period) {
@@ -180,7 +215,8 @@ function buildMonthly(streams) {
   return out;
 }
 
-function drawMonthlyChart(monthly) {
+async function drawMonthlyChart(monthly) {
+  const { createChart, getColors } = await import('../charts.js');
   const c = getColors();
   createChart('chart-monthly', 'bar', {
     labels: monthly.map(m => fmtMonth(m.date)),
