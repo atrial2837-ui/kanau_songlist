@@ -14,8 +14,6 @@ export const state = {
 
   // songs
   songsQuery: '',
-  songsTitleQuery: '',
-  songsArtistQuery: '',
   songsSort: 'count-desc',
   songsLimit: 100,
   songsFilter: 'all',

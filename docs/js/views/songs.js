@@ -1,9 +1,9 @@
 import { state } from '../state.js';
-import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText, normalize } from '../utils.js';
+import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText } from '../utils.js';
 import { search, matchReasons } from '../search.js';
 import { writeUrlState } from '../url-state.js';
 
-let searchInputEl, titleSearchEl, artistSearchEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
+let searchInputEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
 const SETLIST_STORAGE_KEY = 'kanau-setlist-v1';
 let currentFiltered = [];
 
@@ -16,9 +16,7 @@ export function renderSongs() {
       <span class="count-pill" id="songs-count">—</span>
     </div>
     <div class="controls">
-      <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・field検索（あいまい一致）" value="${escapeHtml(state.songsQuery)}">
-      <input id="songs-title-search" class="text-input compact-search" type="search" placeholder="曲名で検索" value="${escapeHtml(state.songsTitleQuery)}">
-      <input id="songs-artist-search" class="text-input compact-search" type="search" placeholder="アーティストで検索" value="${escapeHtml(state.songsArtistQuery)}">
+      <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・artist:miwa などで検索" value="${escapeHtml(state.songsQuery)}">
       <select id="songs-sort" class="select-input">
         <option value="count-desc">回数（多）</option>
         <option value="count-asc">回数（少）</option>
@@ -58,8 +56,6 @@ export function renderSongs() {
   `;
 
   searchInputEl = $('#songs-search');
-  titleSearchEl = $('#songs-title-search');
-  artistSearchEl = $('#songs-artist-search');
   sortSelectEl = $('#songs-sort');
   genreSelectEl = $('#songs-genre');
   filterButtonsEl = $('#songs-filters');
@@ -76,20 +72,14 @@ export function renderSongs() {
 
   const debounced = debounce(() => {
     state.songsQuery = searchInputEl.value;
-    state.songsTitleQuery = titleSearchEl.value;
-    state.songsArtistQuery = artistSearchEl.value;
     state.songsLimit = 100;
     writeUrlState({
       tab: 'songs',
       q: state.songsQuery,
-      title: state.songsTitleQuery,
-      artist: state.songsArtistQuery,
     }, { replace: true });
     refresh();
   }, 120);
   searchInputEl.addEventListener('input', debounced);
-  titleSearchEl.addEventListener('input', debounced);
-  artistSearchEl.addEventListener('input', debounced);
   sortSelectEl.addEventListener('change', () => { state.songsSort = sortSelectEl.value; refresh(); });
   genreSelectEl.addEventListener('change', () => {
     state.songsGenre = genreSelectEl.value;
@@ -137,14 +127,11 @@ export function renderSongs() {
     const artist = e.target.closest('[data-artist-search]');
     if (artist) {
       e.stopPropagation();
-      state.songsQuery = '';
-      state.songsTitleQuery = '';
-      state.songsArtistQuery = artist.dataset.artistSearch || '';
+      const name = String(artist.dataset.artistSearch || '').replace(/"/g, '');
+      state.songsQuery = `artist:"${name}"`;
       searchInputEl.value = state.songsQuery;
-      titleSearchEl.value = state.songsTitleQuery;
-      artistSearchEl.value = state.songsArtistQuery;
       state.songsLimit = 100;
-      writeUrlState({ tab: 'songs', q: '', title: '', artist: state.songsArtistQuery });
+      writeUrlState({ tab: 'songs', q: state.songsQuery });
       refresh();
       return;
     }
@@ -155,7 +142,7 @@ export function renderSongs() {
     state.songsQuery = `${type}:${tag.dataset.tagSearch}`;
     searchInputEl.value = state.songsQuery;
     state.songsLimit = 100;
-    writeUrlState({ tab: 'songs', q: state.songsQuery, title: state.songsTitleQuery, artist: state.songsArtistQuery });
+    writeUrlState({ tab: 'songs', q: state.songsQuery });
     refresh();
   };
   panel.oninput = (e) => {
@@ -240,18 +227,6 @@ function applyTagFilter(songs) {
   }
 }
 
-function applyDedicatedSearch(songs) {
-  const titleNeedle = normalize(state.songsTitleQuery).toLowerCase();
-  const artistNeedle = normalize(state.songsArtistQuery).toLowerCase();
-  if (!titleNeedle && !artistNeedle) return songs;
-  return songs.filter((song) => {
-    const title = normalize(song.title).toLowerCase();
-    const artist = normalize(song.artist).toLowerCase();
-    return (!titleNeedle || title.includes(titleNeedle))
-      && (!artistNeedle || artist.includes(artistNeedle));
-  });
-}
-
 function applySingerMode(songs) {
   if (!state.singerMode) return songs;
   const base = songs.filter(s => s.lastSung);
@@ -276,11 +251,10 @@ function refresh() {
   const genreFiltered = applyGenreFilter(songs);
   const modeFiltered = applySingerMode(genreFiltered);
   const tagFiltered = applyTagFilter(modeFiltered);
-  const dedicatedFiltered = applyDedicatedSearch(tagFiltered);
-  const { results, tokens } = search(state.songsQuery, dedicatedFiltered);
+  const { results, tokens } = search(state.songsQuery, tagFiltered);
   let filtered = state.songsQuery.trim()
-    ? results.filter(s => dedicatedFiltered.includes(s))
-    : dedicatedFiltered;
+    ? results.filter(s => tagFiltered.includes(s))
+    : tagFiltered;
 
   filtered = sortSongs(filtered, state.songsSort, !!state.songsQuery.trim());
   currentFiltered = filtered;

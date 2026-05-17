@@ -63,8 +63,6 @@ function switchChannel(channelId, options = {}) {
   state.songsLimit = 100;
   if (options.resetSearch !== false) {
     state.songsQuery = '';
-    state.songsTitleQuery = '';
-    state.songsArtistQuery = '';
     state.songsGenre = 'all';
   }
   buildIndex(ds.songs);
@@ -74,8 +72,6 @@ function switchChannel(channelId, options = {}) {
     writeUrlState({
       channel: channelId,
       q: state.songsQuery,
-      title: state.songsTitleQuery,
-      artist: state.songsArtistQuery,
     });
   }
   renderHero();
@@ -136,11 +132,14 @@ function jumpToStreamFromDetail(song, ref) {
 }
 
 function searchArtistFromDetail(song) {
-  state.songsQuery = '';
-  state.songsTitleQuery = '';
-  state.songsArtistQuery = song.artist || '';
+  searchArtistName(song.artist || '');
+}
+
+function searchArtistName(artist) {
+  const name = String(artist || '').replace(/"/g, '');
+  state.songsQuery = name ? `artist:"${name}"` : '';
   state.songsLimit = 100;
-  writeUrlState({ tab: 'songs', q: '', title: '', artist: state.songsArtistQuery });
+  writeUrlState({ tab: 'songs', q: state.songsQuery });
   activateTab('songs', { updateUrl: false });
 }
 
@@ -373,8 +372,6 @@ async function init() {
     state.channelData = channelData;
     const url = readUrlState();
     state.songsQuery = url.q;
-    state.songsTitleQuery = url.title;
-    state.songsArtistQuery = url.artist;
     let initialChannel = url.channel || state.channel || DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) initialChannel = DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) {
@@ -402,8 +399,6 @@ function applyUrlState() {
   if (!state.channelData) return;
   const url = readUrlState();
   state.songsQuery = url.q;
-  state.songsTitleQuery = url.title;
-  state.songsArtistQuery = url.artist;
   if (url.channel !== state.channel && getDataset(url.channel)) {
     switchChannel(url.channel, { resetSearch: false, updateUrl: false });
   }
@@ -433,6 +428,13 @@ $$('[data-audience]').forEach(btn => {
 
 // Global click → filter timeline by song
 document.body.addEventListener('click', (e) => {
+  const artist = e.target.closest('[data-artist-search]');
+  if (artist) {
+    e.preventDefault();
+    e.stopPropagation();
+    searchArtistName(artist.dataset.artistSearch || artist.textContent || '');
+    return;
+  }
   if (isLink(e.target)) return;
   const target = e.target.closest('[data-songkey]');
   if (!target) return;

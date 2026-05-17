@@ -4,8 +4,6 @@ const DEFAULTS = {
   tab: 'dashboard',
   channel: 'new',
   q: '',
-  title: '',
-  artist: '',
 };
 
 export function readUrlState() {
@@ -16,8 +14,6 @@ export function readUrlState() {
     tab: VALID_TABS.has(rawTab) ? rawTab : DEFAULTS.tab,
     channel: VALID_CHANNELS.has(rawChannel) ? rawChannel : DEFAULTS.channel,
     q: params.get('q') || DEFAULTS.q,
-    title: params.get('title') || DEFAULTS.title,
-    artist: params.get('artist') || DEFAULTS.artist,
   };
 }
 
@@ -27,8 +23,6 @@ export function writeUrlState(next = {}, options = {}) {
   if (merged.tab !== DEFAULTS.tab) params.set('tab', merged.tab);
   if (merged.channel !== DEFAULTS.channel) params.set('ch', merged.channel);
   if (merged.q) params.set('q', merged.q);
-  if (merged.title) params.set('title', merged.title);
-  if (merged.artist) params.set('artist', merged.artist);
   const search = params.toString();
   const url = search ? `${window.location.pathname}?${search}` : window.location.pathname;
   const method = options.replace ? 'replaceState' : 'pushState';

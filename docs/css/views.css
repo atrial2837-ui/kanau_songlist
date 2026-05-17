@@ -130,6 +130,16 @@
   color: var(--ink-mute);
   margin-bottom: 10px;
   word-break: break-word;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  text-align: center;
+}
+.podium-card .song-artist:hover {
+  color: var(--primary-strong);
+  text-decoration: underline;
 }
 .podium-card .count-big {
   font-size: 26px;

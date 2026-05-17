@@ -44,7 +44,7 @@ function podiumCard(s, i, medal) {
     <div class="podium-card rank-${i + 1}" data-songkey="${escapeHtml(s.key)}" data-songtitle="${escapeHtml(s.title)}" data-songartist="${escapeHtml(s.artist)}" title="クリックで配信タイムラインに絞り込み">
       <div class="podium-medal">${medal}</div>
       <div class="song-title">${escapeHtml(s.title)}</div>
-      <div class="song-artist">${escapeHtml(s.artist)}</div>
+      <button class="song-artist artist-search-btn" type="button" data-artist-search="${escapeHtml(s.artist)}">${escapeHtml(s.artist)}</button>
       <div class="count-big">${s.count}<small>回</small></div>
       <div class="last-sung">${s.lastSung ? `最終: ${fmtDate(s.lastSung)} (${s.daysSinceLast}日前)` : '未披露'}</div>
     </div>
@@ -61,7 +61,7 @@ function rowHtml(song) {
       <div class="rank ${rankClass}">${song.rank}</div>
       <div class="info">
         <div class="title">${escapeHtml(song.title)}</div>
-        <div class="artist">${escapeHtml(song.artist)}</div>
+        <button class="artist artist-search-btn" type="button" data-artist-search="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</button>
       </div>
       <div class="count">${song.count}<small>回</small></div>
       <div class="last">${lastHtml}</div>
