@@ -222,6 +222,9 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   align-items: center;
   gap: 8px;
 }
+.mobile-menu-state {
+  display: none;
+}
 .mobile-menu-toggle {
   display: none;
 }
@@ -549,6 +552,7 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
     z-index: 2;
     touch-action: manipulation;
   }
+  .mobile-menu-state:checked + .mobile-menu-toggle,
   .mobile-menu-toggle[aria-expanded="true"] {
     border-color: var(--primary-strong);
     color: var(--primary-strong);
@@ -573,6 +577,14 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
     box-shadow: var(--shadow-sm);
   }
   .topbar-actions.is-open {
+    display: grid !important;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    justify-content: end;
+    position: relative;
+    z-index: 1;
+  }
+  .mobile-menu-state:checked ~ .topbar-actions {
     display: grid !important;
     grid-template-columns: 1fr auto auto auto;
     align-items: center;

@@ -50,10 +50,11 @@
         <span class="brand-sub">v2 · Dev Edition</span>
       </span>
     </a>
-    <button class="mobile-menu-toggle" id="mobile-menu-toggle" type="button" aria-expanded="false" aria-controls="topbar-actions">
+    <input class="mobile-menu-state" id="mobile-menu-state" type="checkbox" aria-hidden="true">
+    <label class="mobile-menu-toggle" id="mobile-menu-toggle" for="mobile-menu-state" role="button" tabindex="0" aria-expanded="false" aria-controls="topbar-actions">
       <span id="mobile-menu-label">新ch / リスナー</span>
       <span class="mobile-menu-icon" aria-hidden="true">☰</span>
-    </button>
+    </label>
     <div class="topbar-actions" id="topbar-actions">
       <div class="channel-switch" id="channel-switch" role="group" aria-label="チャンネル切替">
         <button class="ch-btn active" data-channel="new" type="button">新ch</button>

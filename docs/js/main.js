@@ -125,21 +125,30 @@ function updateMobileMenuLabel() {
 
 function initMobileMenu() {
   const toggle = $('#mobile-menu-toggle');
+  const checkbox = $('#mobile-menu-state');
   const menu = $('#topbar-actions');
-  if (!toggle || !menu) return;
+  if (!toggle || !checkbox || !menu) return;
   const setOpen = (open) => {
+    checkbox.checked = open;
     menu.classList.toggle('is-open', open);
     toggle.setAttribute('aria-expanded', String(open));
   };
   const close = () => setOpen(false);
   toggle.addEventListener('click', (event) => {
-    event.preventDefault();
     event.stopPropagation();
-    setOpen(!menu.classList.contains('is-open'));
+    requestAnimationFrame(() => setOpen(checkbox.checked));
+  });
+  toggle.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    setOpen(!checkbox.checked);
+  });
+  checkbox.addEventListener('change', () => {
+    setOpen(checkbox.checked);
   });
   document.addEventListener('click', (event) => {
     if (!menu.classList.contains('is-open')) return;
-    if (event.target.closest('#topbar-actions') || event.target.closest('#mobile-menu-toggle')) return;
+    if (event.target.closest('#topbar-actions') || event.target.closest('#mobile-menu-toggle') || event.target.closest('#mobile-menu-state')) return;
     close();
   });
   document.addEventListener('keydown', (event) => {
