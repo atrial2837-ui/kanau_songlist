@@ -502,6 +502,57 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   line-height: 1.55;
 }
 
+.page-top-toast {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(18px, calc(env(safe-area-inset-bottom) + 18px));
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-glass);
+  color: var(--primary-strong);
+  box-shadow: var(--shadow);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+}
+.page-top-toast[hidden] {
+  display: inline-flex;
+}
+.page-top-toast span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  font-size: 14px;
+  line-height: 1;
+}
+.page-top-toast.is-visible {
+  opacity: 0.94;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.page-top-toast:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
 @media (max-width: 700px) {
   html,
   body {

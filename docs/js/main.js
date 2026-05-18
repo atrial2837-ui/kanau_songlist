@@ -160,6 +160,31 @@ function initMobileMenu() {
   updateMobileMenuLabel();
 }
 
+function initPageTopToast() {
+  const button = $('#page-top-toast');
+  if (!button) return;
+  let ticking = false;
+  const threshold = 420;
+  const update = () => {
+    ticking = false;
+    const visible = window.scrollY > threshold;
+    button.classList.toggle('is-visible', visible);
+    button.setAttribute('aria-hidden', String(!visible));
+  };
+  const requestUpdate = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  };
+  button.hidden = false;
+  button.setAttribute('aria-hidden', 'true');
+  button.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  window.addEventListener('scroll', requestUpdate, { passive: true });
+  update();
+}
+
 function refreshChannelButtons() {
   if (!state.channelData) return;
   for (const btn of $$('#channel-switch [data-channel]')) {
@@ -539,6 +564,7 @@ $('#reload-btn').addEventListener('click', init);
 initHelpModal();
 initSongModal();
 initMobileMenu();
+initPageTopToast();
 initWelcomeTip();
 
 // Re-render charts on theme change
