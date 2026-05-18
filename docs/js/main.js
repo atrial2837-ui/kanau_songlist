@@ -25,15 +25,33 @@ function isValidTab(tab) {
 
 async function getRenderer(tab) {
   if (!rendererCache.has(tab)) rendererCache.set(tab, VIEW_LOADERS[tab]());
-  return rendererCache.get(tab);
+  try {
+    return await rendererCache.get(tab);
+  } catch (error) {
+    rendererCache.delete(tab);
+    throw error;
+  }
 }
 
 async function renderTab(tab = state.activeTab) {
   if (!state.data || !isValidTab(tab)) return;
   const token = ++renderToken;
-  const renderer = await getRenderer(tab);
-  if (token !== renderToken || tab !== state.activeTab || !state.data) return;
-  renderer();
+  try {
+    const renderer = await getRenderer(tab);
+    if (token !== renderToken || tab !== state.activeTab || !state.data) return;
+    renderer();
+  } catch (error) {
+    console.error(`[${tab}] render failed`, error);
+    const panel = $(`#panel-${tab}`);
+    if (panel) {
+      panel.innerHTML = `
+        <div class="state-card">
+          <div class="msg">表示に失敗しました</div>
+          <div class="err-detail">${escapeHtml(error?.message || String(error))}</div>
+        </div>
+      `;
+    }
+  }
 }
 
 function activateTab(tab, options = {}) {
@@ -68,8 +86,10 @@ function switchChannel(channelId, options = {}) {
   buildIndex(ds.songs);
   destroyAllCharts();
   $$('#channel-switch [data-channel]').forEach(b => b.classList.toggle('active', b.dataset.channel === channelId));
+  updateMobileMenuLabel();
   if (options.updateUrl !== false) {
     writeUrlState({
+      tab: state.activeTab,
       channel: channelId,
       q: state.songsQuery,
     });
@@ -86,12 +106,41 @@ function switchAudience(audience) {
     btn.classList.toggle('active', btn.dataset.audience === state.audience);
   });
   document.body.dataset.audience = state.audience;
+  updateMobileMenuLabel();
   if (state.audience === 'singer') {
     state.songsLimit = 100;
     activateTab('songs');
   } else if (state.data) {
     renderTab();
   }
+}
+
+function updateMobileMenuLabel() {
+  const label = $('#mobile-menu-label');
+  if (!label) return;
+  const channel = $('#channel-switch [data-channel].active')?.textContent?.trim() || '新ch';
+  const audience = $('#audience-switch [data-audience].active')?.textContent?.trim() || 'リスナー';
+  label.textContent = `${channel} / ${audience}`;
+}
+
+function initMobileMenu() {
+  const toggle = $('#mobile-menu-toggle');
+  const menu = $('#topbar-actions');
+  if (!toggle || !menu) return;
+  const close = () => {
+    menu.classList.remove('is-open');
+    toggle.setAttribute('aria-expanded', 'false');
+  };
+  toggle.addEventListener('click', () => {
+    const open = !menu.classList.contains('is-open');
+    menu.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+  });
+  menu.addEventListener('click', (event) => {
+    if (!event.target.closest('button')) return;
+    if (window.matchMedia('(max-width: 700px)').matches) close();
+  });
+  updateMobileMenuLabel();
 }
 
 function refreshChannelButtons() {
@@ -165,7 +214,17 @@ function youtubeVideoId(url) {
 
 function youtubeThumb(url) {
   const id = youtubeVideoId(url);
+  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
+}
+
+function youtubeThumbFallback(url) {
+  const id = youtubeVideoId(url);
   return id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : '';
+}
+
+function youtubeThumbTiny(url) {
+  const id = youtubeVideoId(url);
+  return id ? `https://i.ytimg.com/vi/${id}/default.jpg` : '';
 }
 
 function openSongDetail(key) {
@@ -179,6 +238,8 @@ function openSongDetail(key) {
   const refs = (song.streamRefs || []).slice(0, 8).map(ref => ({
     ...ref,
     thumbnail: youtubeThumb(ref.url),
+    thumbnailFallback: youtubeThumbFallback(ref.url),
+    thumbnailTiny: youtubeThumbTiny(ref.url),
     detailKey: streamKey(ref),
   }));
   const tags = [
@@ -208,7 +269,7 @@ function openSongDetail(key) {
       ${refs.length ? refs.map(ref => `
         <div class="song-detail-stream">
           ${ref.thumbnail && ref.url
-            ? `<a class="song-detail-thumb-link" href="${escapeHtml(ref.url)}" target="_blank" rel="noopener" aria-label="YouTubeで歌枠を開く"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" alt="" loading="lazy"></a>`
+            ? `<a class="song-detail-thumb-link" href="${escapeHtml(ref.url)}" target="_blank" rel="noopener" aria-label="YouTubeで歌枠を開く"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" data-fallback="${escapeHtml(ref.thumbnailFallback)}" data-tiny="${escapeHtml(ref.thumbnailTiny)}" alt="" loading="lazy" referrerpolicy="no-referrer"></a>`
             : '<div class="song-detail-thumb placeholder"></div>'}
           <button class="song-detail-frame" type="button" data-detail-action="stream" data-songkey="${escapeHtml(song.key)}" data-streamkey="${escapeHtml(ref.detailKey)}">
             <span>${fmtDate(ref.date)}</span>
@@ -251,6 +312,21 @@ function initSongModal() {
       if (song) searchArtistFromDetail(song);
     }
   });
+  modal.addEventListener('error', (event) => {
+    const img = event.target.closest?.('.song-detail-thumb');
+    if (!img) return;
+    const next = img.dataset.fallback || img.dataset.tiny || '';
+    if (next && img.src !== next) {
+      img.src = next;
+      if (img.dataset.fallback === next) {
+        delete img.dataset.fallback;
+      } else {
+        delete img.dataset.tiny;
+      }
+      return;
+    }
+    img.closest('.song-detail-thumb-link')?.classList.add('thumb-missing');
+  }, true);
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !modal.hidden) close();
   });
@@ -445,6 +521,7 @@ $('#retry-btn').addEventListener('click', init);
 $('#reload-btn').addEventListener('click', init);
 initHelpModal();
 initSongModal();
+initMobileMenu();
 initWelcomeTip();
 
 // Re-render charts on theme change

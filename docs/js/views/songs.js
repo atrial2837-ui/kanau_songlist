@@ -15,41 +15,47 @@ export function renderSongs() {
       <h2>${state.singerMode ? '🎙 選曲ボード' : '🎵 全曲リスト'}</h2>
       <span class="count-pill" id="songs-count">—</span>
     </div>
-    <div class="controls">
-      <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・artist:miwa などで検索" value="${escapeHtml(state.songsQuery)}">
-      <select id="songs-sort" class="select-input">
-        <option value="count-desc">回数（多）</option>
-        <option value="count-asc">回数（少）</option>
-        <option value="recent">最終披露（新）</option>
-        <option value="oldest">最終披露（古）</option>
-        <option value="title">曲名（あ→ん）</option>
-        <option value="artist">アーティスト</option>
-      </select>
-      <select id="songs-genre" class="select-input genre-select" title="ジャンルで絞り込み">
-        ${genreOptionsHtml()}
-      </select>
+    <div class="mobile-panel-switch">
+      <button class="btn ghost active" type="button" data-mobile-panel-toggle="filters">絞り込み</button>
+      <button class="btn ghost" type="button" data-mobile-panel-toggle="setlist"${state.singerMode ? '' : ' hidden'}>セトリ制作</button>
     </div>
-    <p class="search-help">
-      ${state.singerMode
-        ? '曲の＋セトリから追加できます。ランダム追加は現在の検索・絞り込み条件から選びます。'
-        : 'タグを押すと、その条件で絞り込めます。曲を押すと詳細を開きます。'}
-    </p>
-    <div class="controls" id="songs-filters" style="margin-top:-8px;">
-      <button class="btn ghost active" data-filter="all">すべて</button>
-      <button class="btn ghost" data-filter="fresh">🟢 最近 (30日以内)</button>
-      <button class="btn ghost" data-filter="stale">🟠 久しぶり (180日以上)</button>
-      <button class="btn ghost" data-filter="never">⚪ 履歴未確認</button>
+    <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
+      <div class="controls">
+        <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・artist:miwa などで検索" value="${escapeHtml(state.songsQuery)}">
+        <select id="songs-sort" class="select-input">
+          <option value="count-desc">回数（多）</option>
+          <option value="count-asc">回数（少）</option>
+          <option value="recent">最終披露（新）</option>
+          <option value="oldest">最終披露（古）</option>
+          <option value="title">曲名（あ→ん）</option>
+          <option value="artist">アーティスト</option>
+        </select>
+        <select id="songs-genre" class="select-input genre-select" title="ジャンルで絞り込み">
+          ${genreOptionsHtml()}
+        </select>
+      </div>
+      <p class="search-help">
+        ${state.singerMode
+          ? '曲の＋セトリから追加できます。ランダム追加は現在の検索・絞り込み条件から選びます。'
+          : 'タグを押すと、その条件で絞り込めます。曲を押すと詳細を開きます。'}
+      </p>
+      <div class="controls" id="songs-filters" style="margin-top:-8px;">
+        <button class="btn ghost active" data-filter="all">すべて</button>
+        <button class="btn ghost" data-filter="fresh">🟢 最近 (30日以内)</button>
+        <button class="btn ghost" data-filter="stale">🟠 久しぶり (180日以上)</button>
+        <button class="btn ghost" data-filter="never">⚪ 履歴未確認</button>
+      </div>
+      <div class="songs-tools"${state.singerMode ? '' : ' hidden'}>
+        <button class="btn ghost" data-singer-preset="keyed" type="button">キー確認済み</button>
+        <button class="btn ghost" data-singer-preset="classic" type="button">定番</button>
+        <button class="btn ghost" data-singer-preset="stale" type="button">久しぶり</button>
+        <button class="btn ghost" data-singer-preset="rare" type="button">レア</button>
+        <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
+        <button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button>
+      </div>
+      <div id="recommend-box" class="recommend-box" hidden></div>
     </div>
-    <div class="songs-tools"${state.singerMode ? '' : ' hidden'}>
-      <button class="btn ghost" data-singer-preset="keyed" type="button">キー確認済み</button>
-      <button class="btn ghost" data-singer-preset="classic" type="button">定番</button>
-      <button class="btn ghost" data-singer-preset="stale" type="button">久しぶり</button>
-      <button class="btn ghost" data-singer-preset="rare" type="button">レア</button>
-      <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
-      <button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button>
-    </div>
-    <div id="recommend-box" class="recommend-box" hidden></div>
-    <div id="setlist-planner" class="setlist-planner"></div>
+    <div id="setlist-planner" class="setlist-planner mobile-panel mobile-panel-setlist"></div>
     <div class="genre-strip" id="songs-genre-chips">${genreChipsHtml()}</div>
     <div id="songs-list" class="song-list"></div>
     <div class="timeline-controls" id="songs-more-wrap"></div>
@@ -117,6 +123,9 @@ export function renderSongs() {
     refresh();
   });
   $('#recommend-btn')?.addEventListener('click', () => showRecommendation());
+  for (const btn of panel.querySelectorAll('[data-mobile-panel-toggle]')) {
+    btn.addEventListener('click', () => toggleMobilePanel(btn.dataset.mobilePanelToggle));
+  }
   panel.onclick = (e) => {
     const action = e.target.closest('[data-setlist-action]');
     if (action) {
@@ -157,6 +166,18 @@ export function renderSongs() {
   };
 
   refresh();
+}
+
+function toggleMobilePanel(panelName) {
+  const filters = $('#songs-filter-panel');
+  const setlist = $('#setlist-planner');
+  if (panelName === 'setlist' && !state.singerMode) return;
+  const showSetlist = panelName === 'setlist';
+  filters?.classList.toggle('is-open', !showSetlist);
+  setlist?.classList.toggle('is-open', showSetlist);
+  for (const btn of document.querySelectorAll('[data-mobile-panel-toggle]')) {
+    btn.classList.toggle('active', btn.dataset.mobilePanelToggle === panelName);
+  }
 }
 
 function genreLabel(song) {
@@ -549,8 +570,10 @@ function rowHtml(song, tokens) {
         </div>
         ${keyHtml(song)}
       </div>
-      <div class="count">${song.count}<small>回</small></div>
-      <div class="last">${lastHtml}</div>
+      <div class="song-row-side">
+        <div class="count">${song.count}<small>回</small></div>
+        <div class="last">${lastHtml}</div>
+      </div>
     </div>
   `;
 }

@@ -63,8 +63,10 @@ function rowHtml(song) {
         <div class="title">${escapeHtml(song.title)}</div>
         <button class="artist artist-search-btn" type="button" data-artist-search="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</button>
       </div>
-      <div class="count">${song.count}<small>回</small></div>
-      <div class="last">${lastHtml}</div>
+      <div class="song-row-side">
+        <div class="count">${song.count}<small>回</small></div>
+        <div class="last">${lastHtml}</div>
+      </div>
     </div>
   `;
 }

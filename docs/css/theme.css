@@ -222,6 +222,9 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   align-items: center;
   gap: 8px;
 }
+.mobile-menu-toggle {
+  display: none;
+}
 
 /* === Footer === */
 
@@ -523,13 +526,70 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .mobile-menu-toggle {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 36px;
+    padding: 5px 12px;
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+    box-shadow: var(--shadow-sm);
+  }
+  .mobile-menu-toggle[aria-expanded="true"] {
+    border-color: var(--primary-strong);
+    color: var(--primary-strong);
+    background: var(--primary-soft);
+  }
+  .mobile-menu-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
   .topbar-actions {
     flex: 1 1 100%;
     width: 100%;
+    display: none;
     gap: 5px;
     flex-wrap: wrap;
     justify-content: flex-start;
     min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    background: var(--surface-glass);
+    box-shadow: var(--shadow-sm);
+  }
+  .topbar-actions.is-open {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    justify-content: end;
+  }
+  .topbar-actions .channel-switch {
+    grid-column: 1 / -1;
+  }
+  .topbar-actions .audience-switch {
+    grid-column: 1 / -1;
+  }
+  .topbar-actions .theme-toggle,
+  .topbar-actions .icon-btn {
+    justify-self: end;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+  }
+  .topbar-actions .theme-toggle {
+    grid-column: 2;
   }
   .theme-toggle { width: 36px; padding: 0; justify-content: center; }
   .help-grid { grid-template-columns: 1fr; }
@@ -571,32 +631,10 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 }
 
 @media (max-width: 480px) {
-  .topbar-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr 36px 36px 36px;
-    align-items: center;
-  }
-  .topbar-actions .channel-switch {
-    grid-column: 1 / 4;
-    width: 100%;
-  }
-  .topbar-actions .audience-switch {
-    grid-column: 4 / 6;
-    width: 100%;
-  }
   .topbar-actions .theme-toggle,
   .topbar-actions .icon-btn {
     width: 36px;
-    justify-self: center;
-  }
-  .topbar-actions .theme-toggle {
-    grid-column: 1;
-  }
-  .topbar-actions .help-btn {
-    grid-column: 2;
-  }
-  .topbar-actions #reload-btn {
-    grid-column: 3;
+    min-width: 36px;
   }
   .modal-backdrop {
     align-items: end;
