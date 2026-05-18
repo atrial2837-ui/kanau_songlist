@@ -17,7 +17,6 @@ export function renderSongs() {
     </div>
     <div class="mobile-panel-switch">
       <button class="btn ghost active" type="button" data-mobile-panel-toggle="filters">絞り込み</button>
-      <button class="btn ghost" type="button" data-mobile-panel-toggle="setlist"${state.singerMode ? '' : ' hidden'}>セトリ制作</button>
     </div>
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="controls">
@@ -44,18 +43,22 @@ export function renderSongs() {
         <button class="btn ghost" data-filter="fresh">🟢 最近 (30日以内)</button>
         <button class="btn ghost" data-filter="stale">🟠 久しぶり (180日以上)</button>
         <button class="btn ghost" data-filter="never">⚪ 履歴未確認</button>
+        ${state.singerMode ? '' : '<button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button>'}
       </div>
-      <div class="songs-tools"${state.singerMode ? '' : ' hidden'}>
-        <button class="btn ghost" data-singer-preset="keyed" type="button">キー確認済み</button>
-        <button class="btn ghost" data-singer-preset="classic" type="button">定番</button>
-        <button class="btn ghost" data-singer-preset="stale" type="button">久しぶり</button>
-        <button class="btn ghost" data-singer-preset="rare" type="button">レア</button>
-        <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
-        <button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button>
-      </div>
+      ${state.singerMode ? `
+        <div class="songs-tools">
+          <button class="btn ghost" data-singer-preset="keyed" type="button">キー確認済み</button>
+          <button class="btn ghost" data-singer-preset="classic" type="button">定番</button>
+          <button class="btn ghost" data-singer-preset="stale" type="button">久しぶり</button>
+          <button class="btn ghost" data-singer-preset="rare" type="button">レア</button>
+          <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
+          <button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button>
+          <button class="btn ghost" id="setlist-toggle-btn" type="button" aria-controls="setlist-planner" aria-expanded="${state.setlistExpanded ? 'true' : 'false'}">${state.setlistExpanded ? 'セトリ制作を閉じる' : 'セトリ制作を開く'}</button>
+        </div>
+      ` : ''}
       <div id="recommend-box" class="recommend-box" hidden></div>
     </div>
-    <div id="setlist-planner" class="setlist-planner mobile-panel mobile-panel-setlist"></div>
+    ${state.singerMode ? '<div id="setlist-planner" class="setlist-planner mobile-panel mobile-panel-setlist"></div>' : ''}
     <div class="genre-strip" id="songs-genre-chips">${genreChipsHtml()}</div>
     <div id="songs-list" class="song-list"></div>
     <div class="timeline-controls" id="songs-more-wrap"></div>
@@ -122,6 +125,7 @@ export function renderSongs() {
     state.songsView = state.songsView === 'compact' ? 'comfortable' : 'compact';
     refresh();
   });
+  $('#setlist-toggle-btn')?.addEventListener('click', () => toggleSetlistPlanner());
   $('#recommend-btn')?.addEventListener('click', () => showRecommendation());
   for (const btn of panel.querySelectorAll('[data-mobile-panel-toggle]')) {
     btn.addEventListener('click', () => toggleMobilePanel(btn.dataset.mobilePanelToggle));
@@ -171,12 +175,38 @@ export function renderSongs() {
 function toggleMobilePanel(panelName) {
   const filters = $('#songs-filter-panel');
   const setlist = $('#setlist-planner');
-  if (panelName === 'setlist' && !state.singerMode) return;
+  if (panelName === 'setlist' && !state.singerMode) {
+    filters?.classList.add('is-open');
+    setlist?.classList.remove('is-open');
+    for (const btn of document.querySelectorAll('[data-mobile-panel-toggle]')) {
+      btn.classList.toggle('active', btn.dataset.mobilePanelToggle === 'filters');
+    }
+    return;
+  }
+  if (state.singerMode) {
+    filters?.classList.add('is-open');
+    const target = filters;
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    for (const btn of document.querySelectorAll('[data-mobile-panel-toggle]')) {
+      btn.classList.toggle('active', btn.dataset.mobilePanelToggle === 'filters');
+    }
+    return;
+  }
   const showSetlist = panelName === 'setlist';
   filters?.classList.toggle('is-open', !showSetlist);
   setlist?.classList.toggle('is-open', showSetlist);
   for (const btn of document.querySelectorAll('[data-mobile-panel-toggle]')) {
     btn.classList.toggle('active', btn.dataset.mobilePanelToggle === panelName);
+  }
+}
+
+function toggleSetlistPlanner() {
+  if (!state.singerMode) return;
+  state.setlistExpanded = !state.setlistExpanded;
+  renderSetlistPlanner();
+  const wrap = $('#setlist-planner');
+  if (state.setlistExpanded) {
+    wrap?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
 
@@ -440,7 +470,9 @@ function setlistBalance(items) {
 function renderSetlistPlanner(message = '') {
   const wrap = $('#setlist-planner');
   if (!wrap) return;
-  wrap.hidden = !state.singerMode;
+  updateSetlistToggle();
+  wrap.hidden = !state.singerMode || !state.setlistExpanded;
+  wrap.classList.toggle('is-open', state.singerMode && state.setlistExpanded);
   if (!state.singerMode) {
     wrap.innerHTML = '';
     return;
@@ -576,6 +608,16 @@ function rowHtml(song, tokens) {
       </div>
     </div>
   `;
+}
+
+function updateSetlistToggle() {
+  const btn = $('#setlist-toggle-btn');
+  if (!btn) return;
+  const items = state.setlist.items.length;
+  btn.setAttribute('aria-expanded', state.setlistExpanded ? 'true' : 'false');
+  btn.textContent = state.setlistExpanded
+    ? `セトリ制作を閉じる${items ? ` (${items})` : ''}`
+    : `セトリ制作を開く${items ? ` (${items})` : ''}`;
 }
 
 function tagBadges(song) {

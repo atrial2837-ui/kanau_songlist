@@ -27,6 +27,7 @@ export const state = {
     copyFormat: 'simple',
     items: [],
   },
+  setlistExpanded: false,
 
   // ranking
   rankingLimit: 50,

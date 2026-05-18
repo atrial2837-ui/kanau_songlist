@@ -175,6 +175,10 @@
   gap: 8px;
   margin: 10px 0 12px;
 }
+body[data-audience="listener"] #setlist-planner,
+body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
+  display: none !important;
+}
 .recommend-box {
   margin: 8px 0 12px;
 }
@@ -523,6 +527,20 @@
   }
   .song-key-badge {
     max-width: 100%;
+  }
+  .songs-tools {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .songs-tools .btn {
+    justify-content: center;
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  body[data-audience="listener"] .songs-tools {
+    grid-template-columns: minmax(0, 1fr);
   }
   .dashboard-grid {
     gap: 12px;
