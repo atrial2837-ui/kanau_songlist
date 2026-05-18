@@ -146,38 +146,74 @@
       <div>
         <p class="help-kicker">Guide</p>
         <h2 id="help-title">使い方</h2>
+        <p class="help-lead">曲を探す、歌枠をたどる、配信用の選曲を作るための歌唱データベースです。</p>
       </div>
       <button class="icon-btn help-close" id="help-close" type="button" aria-label="閉じる">×</button>
     </div>
+    <div class="guide-flow" aria-label="基本の流れ">
+      <div class="guide-step">
+        <span>1</span>
+        <strong>範囲を選ぶ</strong>
+        <p>新ch・旧ch・全期間を切り替えて、見たいデータだけに絞ります。</p>
+      </div>
+      <div class="guide-step">
+        <span>2</span>
+        <strong>曲を探す</strong>
+        <p>全曲リストで曲名、アーティスト、ジャンル、タグから探せます。</p>
+      </div>
+      <div class="guide-step">
+        <span>3</span>
+        <strong>履歴を見る</strong>
+        <p>曲詳細やタイムラインから、どの歌枠で歌ったか確認できます。</p>
+      </div>
+    </div>
     <div class="guide-sections">
       <section class="guide-section">
-        <h3>見たい・探したい</h3>
+        <h3>データ範囲とモード</h3>
         <ul>
-          <li>新ch・旧ch・全期間で範囲を選びます。</li>
-          <li>全曲リストで曲名、アーティスト、ジャンル、タグを検索できます。</li>
-          <li>曲を押すと詳細と歌った歌枠を確認できます。</li>
+          <li>ヘッダーの新ch・旧ch・全期間は、表示する歌唱データの範囲です。</li>
+          <li>リスナーモードは閲覧向け、配信者モードは選曲・セトリ作成向けです。</li>
+          <li>Official Channel は公式YouTube・Xへの外部リンクです。</li>
         </ul>
       </section>
       <section class="guide-section">
-        <h3>配信で使いたい</h3>
+        <h3>曲を探す</h3>
         <ul>
-          <li>ヘッダーで配信者モードに切り替えます。</li>
-          <li>キー確認済み、定番、久しぶり、レアから選曲できます。</li>
+          <li>全曲リストでは曲名・アーティスト名・ジャンルで検索できます。</li>
+          <li>タグを押すと、その雰囲気や季節の曲だけに絞り込めます。</li>
+          <li>おすすめ選曲は、現在の絞り込み条件から候補を出します。</li>
+        </ul>
+      </section>
+      <section class="guide-section">
+        <h3>曲詳細とタイムライン</h3>
+        <ul>
+          <li>曲を押すと、歌唱回数、キー、最後に歌った日、歌枠履歴を見られます。</li>
+          <li>曲詳細の歌枠を押すと、該当するタイムラインへ移動できます。</li>
+          <li>タイムラインでは歌枠ごとのセトリとYouTubeリンクを確認できます。</li>
+        </ul>
+      </section>
+      <section class="guide-section">
+        <h3>配信者モード</h3>
+        <ul>
+          <li>キー確認済み、定番、久しぶり、レアから選曲候補を探せます。</li>
           <li>＋セトリで曲を追加し、並び替えてコピーできます。</li>
+          <li>タイムラインでは歌枠のセトリをタイムスタンプ用にコピーできます。</li>
         </ul>
       </section>
       <section class="guide-section">
-        <h3>タイムラインを使いたい</h3>
+        <h3>便利な操作</h3>
         <ul>
-          <li>歌枠ごとのセトリとYouTubeリンクを確認できます。</li>
-          <li>配信者モードでは歌枠のセトリをタイムスタンプ用にコピーできます。</li>
+          <li>下へスクロールすると、右下にページ上部へ戻るTOPボタンが出ます。</li>
+          <li>スマホではヘッダーのメニューから範囲、モード、公式リンクを操作できます。</li>
+          <li>右上の更新ボタンでデータを再読み込みできます。</li>
         </ul>
       </section>
       <section class="guide-section">
-        <h3>困ったとき</h3>
+        <h3>反映がおかしいとき</h3>
         <ul>
-          <li>右上の更新ボタンで最新データを読み直します。</li>
-          <li>反映直後に古く見える場合はハードリロードします。</li>
+          <li>データ更新直後は、数分待ってから再読み込みしてください。</li>
+          <li>古い表示が残る場合は、ブラウザのハードリロードを試してください。</li>
+          <li>曲名やキーの誤り、表示の不具合はお問い合わせから連絡できます。</li>
         </ul>
       </section>
     </div>
@@ -186,8 +222,8 @@
 
 <div class="welcome-tip" id="welcome-tip" hidden>
   <div>
-    <strong>リスナー/配信者を切り替えて使えます</strong>
-    <span>閲覧はリスナー、選曲やセトリ作成は配信者モードが便利です。</span>
+    <strong>まずは範囲とモードを選べます</strong>
+    <span>閲覧はリスナー、選曲やセトリ作成は配信者モード。詳しい使い方はヘッダーの「?」から見られます。</span>
   </div>
   <button class="icon-btn help-close" id="welcome-close" type="button" aria-label="閉じる">×</button>
 </div>
