@@ -114,27 +114,40 @@
 }
 
 @media (max-width: 600px) {
-  .channel-switch { height: 32px; }
-  .ch-btn { padding: 0 8px; font-size: 10.5px; }
+  .channel-switch { height: 32px; width: 100%; }
+  .ch-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 6px;
+    font-size: 10.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .audience-switch .ch-btn { padding: 0 7px; }
 }
 
 @media (max-width: 700px) {
   .tabs {
-    position: sticky;
-    bottom: 8px;
+    position: static;
     z-index: 45;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     background: var(--surface-glass);
     border: 1px solid var(--border-soft);
-    border-radius: 999px;
+    border-radius: 20px;
     box-shadow: var(--shadow);
-    padding: 6px;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
+    gap: 8px;
+    margin: 20px 0 16px;
+    overflow: visible;
+    padding: 10px;
   }
   .tab-btn {
-    padding: 8px 12px;
+    justify-content: center;
+    min-width: 0;
+    padding: 9px 10px;
     font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
@@ -633,16 +646,73 @@ mark.hl {
 /* === Responsive === */
 
 @media (max-width: 600px) {
+  .btn,
+  .card,
+  .stat-card {
+    min-width: 0;
+  }
   main.container { padding-top: 18px; }
   .hero { padding: 24px 18px 20px; }
   .hero-title { font-size: 19px; }
   .panels { min-height: 560px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .stat-card { padding: 12px 8px; min-height: 76px; }
-  .stat-card .stat-value { font-size: 20px; }
-  .topbar-inner { height: 52px; }
+  .stat-card .stat-value {
+    font-size: 20px;
+    overflow-wrap: anywhere;
+  }
+  .topbar-inner { height: auto; }
   .brand-title { font-size: 13px; }
   .brand-sub { font-size: 9.5px; }
   .theme-label { display: none; }
   .theme-toggle { padding: 0 10px; }
+  .card,
+  .card.lg {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+  .controls {
+    gap: 8px;
+  }
+  .controls .text-input,
+  .controls .select-input,
+  .controls .genre-select {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+  .genre-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .genre-strip::-webkit-scrollbar {
+    display: none;
+  }
+  .genre-chip {
+    flex: 0 0 auto;
+  }
+  .filter-banner {
+    padding: 10px 12px;
+  }
+  .filter-banner .clear-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stat-card .stat-label {
+    font-size: 10px;
+  }
+  .stat-card .stat-value {
+    font-size: 18px;
+  }
+  .tab-btn {
+    padding: 8px 7px;
+    font-size: 11px;
+  }
 }
