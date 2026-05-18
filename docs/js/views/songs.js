@@ -131,6 +131,17 @@ export function renderSongs() {
     btn.addEventListener('click', () => toggleMobilePanel(btn.dataset.mobilePanelToggle));
   }
   panel.onclick = (e) => {
+    const recommendDismiss = e.target.closest('[data-recommend-dismiss]');
+    if (recommendDismiss) {
+      e.preventDefault();
+      e.stopPropagation();
+      const box = $('#recommend-box');
+      if (box) {
+        box.hidden = true;
+        box.innerHTML = '';
+      }
+      return;
+    }
     const action = e.target.closest('[data-setlist-action]');
     if (action) {
       e.stopPropagation();
@@ -368,6 +379,7 @@ function showRecommendation() {
         <span>${pick.daysSinceLast ?? '—'}日前</span>
         ${pick.displayKey ? `<span>キー ${escapeHtml(pick.displayKey)}</span>` : ''}
       </div>
+      <button class="recommend-dismiss" type="button" data-recommend-dismiss aria-label="おすすめ選曲を閉じる">×</button>
     </div>
   `;
 }

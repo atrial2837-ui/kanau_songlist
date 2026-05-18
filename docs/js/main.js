@@ -127,14 +127,23 @@ function initMobileMenu() {
   const toggle = $('#mobile-menu-toggle');
   const menu = $('#topbar-actions');
   if (!toggle || !menu) return;
-  const close = () => {
-    menu.classList.remove('is-open');
-    toggle.setAttribute('aria-expanded', 'false');
-  };
-  toggle.addEventListener('click', () => {
-    const open = !menu.classList.contains('is-open');
+  const setOpen = (open) => {
     menu.classList.toggle('is-open', open);
     toggle.setAttribute('aria-expanded', String(open));
+  };
+  const close = () => setOpen(false);
+  toggle.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(!menu.classList.contains('is-open'));
+  });
+  document.addEventListener('click', (event) => {
+    if (!menu.classList.contains('is-open')) return;
+    if (event.target.closest('#topbar-actions') || event.target.closest('#mobile-menu-toggle')) return;
+    close();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') close();
   });
   menu.addEventListener('click', (event) => {
     if (!event.target.closest('button')) return;
