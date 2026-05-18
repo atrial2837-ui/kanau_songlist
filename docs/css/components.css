@@ -503,7 +503,7 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0 auto 14px;
+  margin: 0;
 }
 .official-link {
   display: inline-flex;
@@ -525,6 +525,22 @@
 .official-link:hover {
   transform: translateY(-1px);
   text-decoration: none;
+}
+.topbar-official-links {
+  align-items: center;
+  justify-content: flex-start;
+}
+.topbar-official-label {
+  color: var(--ink-mute);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.topbar-official-links .official-link {
+  min-height: 26px;
+  padding: 2px 9px;
+  font-size: 10.5px;
 }
 .official-link.youtube {
   border-color: #ff9aa2;

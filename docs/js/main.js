@@ -155,8 +155,7 @@ function initMobileMenu() {
     if (event.key === 'Escape') close();
   });
   menu.addEventListener('click', (event) => {
-    if (!event.target.closest('button')) return;
-    if (window.matchMedia('(max-width: 700px)').matches) close();
+    event.stopPropagation();
   });
   updateMobileMenuLabel();
 }
