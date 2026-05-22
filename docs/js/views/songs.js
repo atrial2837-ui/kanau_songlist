@@ -610,7 +610,6 @@ function rowHtml(song, tokens) {
           <span class="genre-badge">${escapeHtml(genreLabel(song))}</span>
           ${tagBadges(song)}
           ${reasons.map(reason => `<span class="match-badge">${escapeHtml(reason)}一致</span>`).join('')}
-          ${state.singerMode ? `<button class="tag-badge tag-click" type="button" data-setlist-action="add" data-songkey="${escapeHtml(song.key)}">＋セトリ</button>` : ''}
         </div>
         ${keyHtml(song)}
       </div>
@@ -645,16 +644,20 @@ function tagBadges(song) {
 
 function keyHtml(song) {
   if (!state.singerMode) return '';
-  if (!state.data?.stats?.keyPublished) return '';
+  const addButton = `<button class="setlist-add-btn" type="button" data-setlist-action="add" data-songkey="${escapeHtml(song.key)}">＋セトリ</button>`;
+  if (!state.data?.stats?.keyPublished) {
+    return `<div class="song-key-line song-key-actions">${addButton}</div>`;
+  }
   const key = String(song.displayKey || '').trim();
   if (!key) {
-    return `<div class="song-key-line"><span class="song-key-empty">キー未登録</span></div>`;
+    return `<div class="song-key-line song-key-actions"><span class="song-key-empty">キー未登録</span>${addButton}</div>`;
   }
   return `
-    <div class="song-key-line">
+    <div class="song-key-line song-key-actions">
       <button type="button" class="song-key-badge" title="統合集計 T/U列のキー">
         <span>キー</span><strong>${escapeHtml(key)}</strong>
       </button>
+      ${addButton}
     </div>
   `;
 }

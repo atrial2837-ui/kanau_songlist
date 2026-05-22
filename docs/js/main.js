@@ -435,13 +435,13 @@ function updatePageTitle(mode) {
   if (!el) return;
 
   if (mode === 'new') {
-    el.textContent = '🐟 夢川かなう 新ch 歌唱データベース';
+    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32">夢川かなう 新ch 歌唱データベース';
     document.title = '夢川かなう 新ch 歌唱データベース';
   } else if (mode === 'old') {
-    el.textContent = '🐟 夢川かなう 旧ch 歌唱データベース';
+    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32">夢川かなう 旧ch 歌唱データベース';
     document.title = '夢川かなう 旧ch 歌唱データベース';
   } else {
-    el.textContent = '🐟 夢川かなう 歌唱データベース';
+    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32">夢川かなう 歌唱データベース';
     document.title = '夢川かなう 歌唱データベース';
   }
 }
