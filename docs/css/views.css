@@ -553,18 +553,78 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     max-width: 100%;
   }
   .songs-tools {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    margin: 6px 0 8px;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .songs-tools::-webkit-scrollbar {
+    display: none;
+  }
+  body[data-audience="singer"] .songs-tools {
+    margin-top: 4px;
+    margin-bottom: 6px;
+  }
+  .songs-tools .btn {
+    flex: 0 0 auto;
+    justify-content: center;
+    min-height: 30px;
+    padding: 4px 9px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  body[data-audience="listener"] .songs-tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+  body[data-audience="singer"] .mobile-panel-filters > .controls:first-child {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
+    margin-bottom: 8px;
   }
-  .songs-tools .btn {
-    justify-content: center;
-    min-height: 32px;
-    padding: 5px 8px;
+  body[data-audience="singer"] .mobile-panel-filters > .controls:first-child .text-input {
+    grid-column: 1 / -1;
+  }
+  body[data-audience="singer"] .mobile-panel-filters > .controls:first-child .select-input,
+  body[data-audience="singer"] .mobile-panel-filters > .controls:first-child .genre-select {
+    min-height: 34px;
+    width: 100%;
+    font-size: 12px;
+  }
+  body[data-audience="singer"] .search-help {
+    display: none;
+  }
+  body[data-audience="singer"] #songs-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    margin: 0 0 6px !important;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  body[data-audience="singer"] #songs-filters::-webkit-scrollbar {
+    display: none;
+  }
+  body[data-audience="singer"] #songs-filters .btn {
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 4px 9px;
     font-size: 11px;
+    white-space: nowrap;
   }
-  body[data-audience="listener"] .songs-tools {
-    grid-template-columns: minmax(0, 1fr);
+  body[data-audience="singer"] .genre-strip {
+    margin: 0 0 8px;
+    gap: 6px;
+  }
+  body[data-audience="singer"] .genre-chip {
+    min-height: 26px;
+    padding: 3px 9px;
+    font-size: 11px;
   }
   .dashboard-grid {
     gap: 12px;
