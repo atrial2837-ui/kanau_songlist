@@ -475,9 +475,8 @@
   overflow: hidden;
 }
 .hero::before {
-  content: "🐟";
-  position: absolute; top: 16px; left: 22px;
-  font-size: 20px; opacity: 0.5;
+  content: "";
+  display: none;
 }
 .hero::after {
   content: "🫧";
@@ -485,11 +484,21 @@
   font-size: 20px; opacity: 0.5;
 }
 .hero-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   font-size: clamp(20px, 3.5vw, 28px);
   text-align: center;
   letter-spacing: 0.04em;
   color: var(--ink);
   margin-bottom: 4px;
+}
+.hero-title-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 4px 10px rgba(55, 166, 217, 0.2));
 }
 .hero-sub {
   text-align: center;
@@ -673,7 +682,15 @@ mark.hl {
   }
   main.container { padding-top: 18px; }
   .hero { padding: 24px 18px 20px; }
-  .hero-title { font-size: 19px; }
+  .hero-title {
+    font-size: 19px;
+    line-height: 1.45;
+    flex-wrap: wrap;
+  }
+  .hero-title-icon {
+    width: 28px;
+    height: 28px;
+  }
   .panels { min-height: 560px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .stat-card { padding: 12px 8px; min-height: 76px; }
