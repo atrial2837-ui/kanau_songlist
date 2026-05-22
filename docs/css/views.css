@@ -468,8 +468,10 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   font-size: 11px;
 }
 .song-key-actions {
-  justify-content: space-between;
+  justify-content: flex-start;
   flex-wrap: nowrap;
+  width: fit-content;
+  max-width: 100%;
 }
 .setlist-add-btn {
   display: inline-flex;
@@ -477,10 +479,10 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   justify-content: center;
   flex: 0 0 auto;
   min-height: 24px;
-  border: 1px solid var(--primary);
+  border: 1px solid var(--accent);
   border-radius: 999px;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
   padding: 2px 10px;
   font-family: inherit;
   font-size: 11px;
@@ -488,11 +490,13 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   line-height: 1.2;
   white-space: nowrap;
   cursor: pointer;
-  transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease;
+  box-shadow: none;
+  transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 .setlist-add-btn:hover {
-  border-color: var(--primary-strong);
+  border-color: var(--accent-strong);
   background: var(--surface);
+  color: var(--accent-strong);
 }
 .setlist-add-btn:active {
   transform: scale(0.96);
@@ -761,8 +765,11 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   }
   body[data-audience="singer"] .song-key-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, max-content) auto;
     align-items: center;
+    justify-content: flex-start;
+    width: fit-content;
+    max-width: 100%;
     overflow: visible;
   }
   body[data-audience="singer"] .song-key-actions .song-key-badge,
