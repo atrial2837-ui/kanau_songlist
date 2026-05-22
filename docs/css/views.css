@@ -470,6 +470,7 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 .song-key-actions {
   justify-content: space-between;
   flex-wrap: nowrap;
+  gap: 6px;
 }
 .setlist-add-btn {
   display: inline-flex;
