@@ -475,15 +475,18 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   max-width: 100%;
 }
 .setlist-add-btn {
+  --setlist-add-bg: #c8f0ff;
+  --setlist-add-border: #57bfe5;
+  --setlist-add-text: #237fa8;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
   min-height: 24px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--setlist-add-border);
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: var(--setlist-add-bg);
+  color: var(--setlist-add-text);
   padding: 2px 10px;
   font-family: inherit;
   font-size: 11px;
@@ -495,9 +498,9 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 .setlist-add-btn:hover {
-  border-color: var(--accent-strong);
+  border-color: var(--primary-strong);
   background: var(--surface);
-  color: var(--accent-strong);
+  color: var(--primary-strong);
 }
 .setlist-add-btn:active {
   transform: scale(0.96);
@@ -785,9 +788,9 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   }
   body[data-audience="singer"] .setlist-add-btn {
     min-height: 24px;
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    color: var(--accent-strong);
+    border-color: var(--setlist-add-border);
+    background: var(--setlist-add-bg);
+    color: var(--setlist-add-text);
     padding: 2px 9px;
     font-size: 11px;
   }
