@@ -444,7 +444,7 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   align-items: center;
   gap: 6px;
   min-height: 24px;
-  padding: 2px 9px;
+  padding: 2px 6px 2px 9px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface-2);
@@ -470,7 +470,6 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 .song-key-actions {
   justify-content: space-between;
   flex-wrap: nowrap;
-  gap: 6px;
 }
 .setlist-add-btn {
   display: inline-flex;
