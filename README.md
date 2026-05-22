@@ -1,77 +1,87 @@
 # 夢川かなう 歌唱データベース
 
-Cloudflare Pagesで公開している歌唱データベースです。フロントエンドは `docs/`、APIはCloudflare Pages Functions、データベースはSupabase PostgreSQLを使います。
+Cloudflare Pagesで公開している歌唱データベースです。フロントエンドは `docs/`、APIはCloudflare Pages Functions、データベースはCloudflare D1を使います。
 
 ## 構成
 
 ```text
-Google Sheets
-  データ編集元
-
-tools/import_supabase.py
-  Google SheetsからSupabaseへ取り込み
-
-Supabase
+D1
   songs / streams / stream_songs などを保存
 
 Cloudflare Pages Functions
-  /api/data でSupabaseのデータをJSON化
+  /api/data でD1のデータをJSON化
+  /api/admin/* で管理画面からD1更新
 
 docs/
   公開フロントエンド
+
+GitHub Actions
+  D1から docs/data/*.json を生成してcommit/push
 ```
 
-## 通常のデータ更新
+## スマホ単独の管理
 
-Google Sheetsで追加・修正した内容をSupabaseへ反映するときは、ローカルのPowerShellで実行します。
-
-```powershell
-$env:SUPABASE_URL="https://ptlbobhebwjaebrdgvpl.supabase.co"
-$env:SUPABASE_SECRET_KEY="sb_secret_..."
-python tools\import_supabase.py
-```
-
-通常インポートは、既存の曲・配信を上書き更新します。追加や表記修正だけならこの手順で十分です。
-
-## 完全再インポート
-
-Google Sheets側で曲や配信を削除した場合は、Supabase側に古いデータが残らないよう完全再インポートを使います。
-
-```powershell
-$env:SUPABASE_URL="https://ptlbobhebwjaebrdgvpl.supabase.co"
-$env:SUPABASE_SECRET_KEY="sb_secret_..."
-python tools\import_supabase.py --reset
-```
-
-`--reset` は `channels` を残し、以下の取り込み対象データを削除してから再投入します。
+管理画面はCloudflare Pages上で開けます。
 
 ```text
-artists
-songs
-streams
-stream_songs
-song_channel_stats
+https://サイトURL/admin.html
 ```
 
-## Cloudflare設定
+このページから歌枠追加、キー・ジャンル同期、静的データ生成のGitHub Actions起動を行えます。スマホ単独で使う場合は、Cloudflare Accessで `/admin.html` と `/api/admin/*` を保護します。
 
-Cloudflare Pagesの対象プロジェクトで、以下を設定します。
+## Cloudflare Pages設定
+
+Cloudflare Pagesの対象プロジェクトで、D1 bindingと環境変数を設定します。
 
 ```text
-SUPABASE_URL
-https://ptlbobhebwjaebrdgvpl.supabase.co
-
-SUPABASE_SECRET_KEY
-sb_secret_...
+D1 binding
+DB
 ```
 
-`SUPABASE_SECRET_KEY` は必ずSecretとして保存します。GitHub、README、フロントエンドのJavaScriptには保存しません。
+GitHub Actions起動用:
 
-## Secret keyの運用
+```text
+GITHUB_ACTIONS_TOKEN
+GitHub fine-grained token or classic token with Actions workflow dispatch permission
 
-Secret keyをチャット、ログ、GitHubなどに出してしまった場合は、SupabaseのDashboardで該当キーを削除し、新しいSecret keyを作成します。その後、Cloudflare Pagesの `SUPABASE_SECRET_KEY` とローカル実行時の環境変数を新しい値に差し替えます。
+GITHUB_OWNER
+atrial2837-ui
 
-現在使用しているSecret keyはローテート済みです。
+GITHUB_REPO
+kanau_songlist
+
+GITHUB_STATIC_WORKFLOW
+update-static-data.yml
+
+GITHUB_STATIC_REF
+main
+```
+
+任意:
+
+```text
+ADMIN_TOKEN
+管理APIの追加トークン。Cloudflare Accessを使う場合も二重ロックとして使えます。
+
+KEY_REFERENCE_CSV_URL
+統合集計Spreadsheet URL
+```
+
+## GitHub Actions設定
+
+GitHub repository secretsに以下を設定します。
+
+```text
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_D1_DATABASE_ID
+```
+
+`CLOUDFLARE_API_TOKEN` には対象D1を読み取れる権限を付けます。管理画面の「静的データ生成を開始」を押すと `.github/workflows/update-static-data.yml` が起動し、`tools/generate_static_data.mjs` が `docs/data/*.json` を生成してcommit/pushします。
+
+## Secretの運用
+
+Secret keyをチャット、ログ、GitHubなどに出してしまった場合は、該当キーを削除し、新しいSecret keyを作成します。その後、Cloudflare PagesとGitHub Secretsの値を差し替えます。
 
 ## デプロイ
 
@@ -85,7 +95,7 @@ git push
 
 Cloudflare PagesはGitHubから自動デプロイします。
 
-データだけを更新した場合は、Supabaseへのインポートだけで反映されます。GitHubへのpushは不要です。
+データだけを更新した場合は、管理画面から静的データ生成を起動するとGitHub Actionsが自動でpushします。
 
 ## 確認方法
 
@@ -114,11 +124,11 @@ https://サイトURL/admin.html
 
 ## APIキャッシュ
 
-`/api/data` はCloudflare側で最大約1分キャッシュします。Supabaseへ再インポートした直後は、サイト表示に少し遅れが出ることがあります。
+`/api/data` はCloudflare側で最大約1分キャッシュします。D1を直接参照する確認用途では少し遅れが出ることがあります。
 
 キャッシュ時間は [functions/api/data.js](functions/api/data.js) の `CACHE_SECONDS` で調整できます。
 
-## Tailscale管理画面
+## ローカル/Tailscale管理画面
 
 Tailscale内だけで歌枠を追加するローカル管理画面は [admin-server](admin-server) にあります。
 
@@ -128,6 +138,8 @@ tailscale serve http://127.0.0.1:8788
 ```
 
 設定値は [admin-server/env.example](admin-server/env.example) をコピーして `.env` に保存します。Cloudflare API tokenはGitHubへcommitしません。
+
+スマホ単独運用はCloudflare Pages上の [docs/admin.html](docs/admin.html) を使います。ローカル管理画面は接続トラブル時の予備です。
 
 キーとジャンルはD1の `songs.display_key` / `songs.genre` に保存します。初回だけ [d1/add_song_metadata.sql](d1/add_song_metadata.sql) をD1 Consoleで実行してください。
 

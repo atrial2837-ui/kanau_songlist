@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>運用管理｜夢川かなう 歌唱データベース</title>
+<title>歌枠管理｜夢川かなう 歌唱データベース</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="assets/site-icon.svg">
 <link rel="stylesheet" href="css/theme.css">
@@ -17,8 +17,8 @@
     <a class="brand" href="./" aria-label="夢川かなう 歌唱データベース ホーム">
       <img class="brand-icon" src="assets/site-icon.svg" alt="" width="28" height="28">
       <span class="brand-text">
-        <span class="brand-title">運用管理</span>
-        <span class="brand-sub">Supabase / Cloudflare</span>
+        <span class="brand-title">歌枠管理</span>
+        <span class="brand-sub">Cloudflare D1 / GitHub Actions</span>
       </span>
     </a>
     <div class="topbar-actions">
@@ -34,10 +34,63 @@
 <main class="container admin-main">
   <section class="admin-hero">
     <div>
-      <h1>運用管理</h1>
-      <p>公開APIの状態と、データ更新手順を確認できます。</p>
+      <h1>歌枠管理</h1>
+      <p>歌枠追加、キー・ジャンル同期、公開用の静的データ生成をここから実行できます。</p>
     </div>
     <button class="btn primary" id="refresh-status" type="button">再チェック</button>
+  </section>
+
+  <section class="admin-panel">
+    <div class="section-header">
+      <h2>歌枠追加</h2>
+      <span class="badge accent" id="stream-mode-badge">D1更新</span>
+    </div>
+    <div class="admin-form-grid">
+      <label>管理トークン<input id="admin-token" type="password" autocomplete="current-password" placeholder="ADMIN_TOKENを設定した場合だけ入力"></label>
+      <label>チャンネル<select id="channel"></select></label>
+      <label>配信日<input id="streamed-on" type="date"></label>
+      <label>枠番号<input id="source-index" type="number" min="1" placeholder="空なら自動採番"></label>
+      <label>配信タイトル<input id="stream-title" type="text"></label>
+      <label>URL<input id="stream-url" type="url" placeholder="https://..."></label>
+    </div>
+    <label class="admin-field-full">曲リスト<textarea id="songs-text" placeholder="曲名 / アーティスト&#10;曲名 / アーティスト | +2 | アニソン"></textarea></label>
+    <div class="admin-actions">
+      <button class="btn ghost" id="preview-stream" type="button">プレビュー</button>
+      <button class="btn primary" id="submit-stream" type="button">D1に登録</button>
+    </div>
+    <p class="admin-note" id="stream-status"></p>
+    <div id="preview-box"></div>
+  </section>
+
+  <section class="admin-panel">
+    <div class="section-header">
+      <h2>キー・ジャンル管理</h2>
+      <span class="badge" id="meta-badge">待機中</span>
+    </div>
+    <div class="admin-form-grid">
+      <label>曲検索<input id="song-query" type="search" placeholder="曲名 / 歌手 / キー / ジャンル"></label>
+      <label>Spreadsheet URL<input id="key-sheet-url" type="url" placeholder="https://docs.google.com/spreadsheets/d/.../edit#gid=..."></label>
+      <label>CSVファイル<input id="key-csv-file" type="file" accept=".csv,text/csv"></label>
+    </div>
+    <div class="admin-actions">
+      <button class="btn ghost" id="search-songs" type="button">検索</button>
+      <button class="btn ghost" id="sync-keys" type="button">Spreadsheetから同期</button>
+      <button class="btn ghost" id="sync-key-csv" type="button">CSVから同期</button>
+    </div>
+    <p class="admin-note" id="meta-status"></p>
+    <div id="song-meta-box"></div>
+  </section>
+
+  <section class="admin-panel">
+    <div class="section-header">
+      <h2>静的データ生成</h2>
+      <span class="badge" id="static-badge">GitHub Actions</span>
+    </div>
+    <p class="admin-note">D1の現在の内容から <code>docs/data/*.json</code> を生成するGitHub Actionsを起動します。完了後、GitHubへのcommitとCloudflare Pagesの再デプロイが自動で進みます。</p>
+    <div class="admin-actions">
+      <button class="btn primary" id="generate-static-data" type="button">静的データ生成を開始</button>
+    </div>
+    <p class="admin-note" id="static-status"></p>
   </section>
 
   <section class="admin-grid">
@@ -125,26 +178,12 @@
       <h2>更新手順</h2>
     </div>
     <ol class="admin-steps">
-      <li>Google Sheetsを編集する。</li>
-      <li>ローカルでSupabaseの環境変数を設定する。</li>
-      <li>追加・修正だけなら通常インポート、削除も反映するなら完全再インポートを実行する。</li>
-      <li>反映後、このページで件数と最新日付を確認する。</li>
+      <li>この画面で歌枠追加、またはキー・ジャンル同期を実行する。</li>
+      <li>必要に応じてAPIステータスと確認項目を再チェックする。</li>
+      <li>「静的データ生成を開始」を押してGitHub Actionsを起動する。</li>
+      <li>Actions完了後、Cloudflare Pagesのデプロイが終わると公開サイトへ反映されます。</li>
     </ol>
-    <div class="command-grid">
-      <div>
-        <h3>通常インポート</h3>
-        <pre><code>$env:SUPABASE_URL="https://ptlbobhebwjaebrdgvpl.supabase.co"
-$env:SUPABASE_SECRET_KEY="sb_secret_..."
-python tools\import_supabase.py</code></pre>
-      </div>
-      <div>
-        <h3>完全再インポート</h3>
-        <pre><code>$env:SUPABASE_URL="https://ptlbobhebwjaebrdgvpl.supabase.co"
-$env:SUPABASE_SECRET_KEY="sb_secret_..."
-python tools\import_supabase.py --reset</code></pre>
-      </div>
-    </div>
-    <p class="admin-note">Secret keyはこのページやGitHubには保存しません。CloudflareではVariables and SecretsにSecretとして保存します。</p>
+    <p class="admin-note">このページをスマホ単独で使う場合は、Cloudflare Accessで保護し、D1とGitHub用のSecretをCloudflare Pagesに設定してください。</p>
   </section>
 </main>
 

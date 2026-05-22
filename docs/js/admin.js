@@ -3,6 +3,12 @@ import { $, fmtDate, formatNumber } from './utils.js';
 
 initTheme();
 
+const adminToken = $('#admin-token');
+if (adminToken) {
+  adminToken.value = localStorage.getItem('adminToken') || '';
+  adminToken.addEventListener('input', () => localStorage.setItem('adminToken', adminToken.value));
+}
+
 function parseDate(value) {
   if (!value) return null;
   const text = String(value).replaceAll('/', '-');
@@ -34,6 +40,84 @@ function statusRow(label, value, tone = '') {
 
 function songKey(song) {
   return `${song.title || ''} / ${song.artist || ''}`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch]));
+}
+
+async function adminApi(path, body) {
+  const res = await fetch(`/api/admin/${path}`, {
+    method: body ? 'POST' : 'GET',
+    headers: {
+      'content-type': 'application/json',
+      'x-admin-token': adminToken?.value || '',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function streamFormData() {
+  return {
+    channelCode: $('#channel').value,
+    streamedOn: $('#streamed-on').value,
+    sourceIndex: $('#source-index').value,
+    title: $('#stream-title').value,
+    url: $('#stream-url').value,
+    songsText: $('#songs-text').value,
+  };
+}
+
+function renderPreview(rows) {
+  $('#preview-box').innerHTML = `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>#</th><th>曲</th><th>歌手</th><th>キー</th><th>ジャンル</th><th>判定</th></tr></thead>
+        <tbody>
+          ${rows.map((row) => `
+            <tr>
+              <td>${row.position}</td>
+              <td>${escapeHtml(row.title)}</td>
+              <td>${escapeHtml(row.artist || '')}</td>
+              <td>${escapeHtml(row.displayKey || '')}</td>
+              <td>${escapeHtml(row.genre || '')}</td>
+              <td>${escapeHtml(row.match)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderSongMeta(rows) {
+  $('#song-meta-box').innerHTML = `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>曲</th><th>歌手</th><th>キー</th><th>ジャンル</th><th></th></tr></thead>
+        <tbody>
+          ${rows.map((row) => `
+            <tr data-song-id="${row.id}">
+              <td>${escapeHtml(row.title)}</td>
+              <td>${escapeHtml(row.artist || '')}</td>
+              <td><input class="admin-compact-input" data-field="displayKey" value="${escapeHtml(row.display_key || '')}"></td>
+              <td><input class="admin-compact-input" data-field="genre" value="${escapeHtml(row.genre || '')}"></td>
+              <td><button class="btn ghost" type="button" data-save-meta>保存</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function collectIssues(data) {
@@ -124,6 +208,18 @@ function renderQuality(data) {
   `).join('') || '<tr><td colspan="3">大きな問題は見つかりませんでした</td></tr>';
 }
 
+async function loadChannels() {
+  try {
+    const data = await adminApi('channels');
+    $('#channel').innerHTML = data.channels.map((channel) => (
+      `<option value="${escapeHtml(channel.code)}">${escapeHtml(channel.name)}</option>`
+    )).join('');
+  } catch (error) {
+    $('#channel').innerHTML = '';
+    $('#stream-status').textContent = `チャンネル取得に失敗しました: ${error.message || String(error)}`;
+  }
+}
+
 async function loadStatus() {
   setBadge(false, '確認中');
   $('#api-detail').textContent = '/api/data を読み込んでいます。';
@@ -179,5 +275,103 @@ async function loadStatus() {
   }
 }
 
+function initManagement() {
+  const streamedOn = $('#streamed-on');
+  if (streamedOn && !streamedOn.value) streamedOn.valueAsDate = new Date();
+  adminToken?.addEventListener('change', loadChannels);
+  loadChannels();
+
+  $('#preview-stream')?.addEventListener('click', async () => {
+    $('#stream-status').textContent = 'プレビュー中...';
+    try {
+      const data = await adminApi('preview-stream', streamFormData());
+      renderPreview(data.songs);
+      $('#stream-status').textContent = `${data.songs.length}曲を確認しました。`;
+    } catch (error) {
+      $('#stream-status').textContent = error.message || String(error);
+    }
+  });
+
+  $('#submit-stream')?.addEventListener('click', async () => {
+    if (!confirm('この歌枠をD1に登録します。よろしいですか？')) return;
+    $('#stream-status').textContent = '登録中...';
+    try {
+      const data = await adminApi('streams', streamFormData());
+      $('#stream-status').textContent = `登録しました: stream_id=${data.streamId}, ${data.songCount}曲。必要なら静的データ生成を開始してください。`;
+      $('#preview-box').innerHTML = '';
+      loadStatus();
+    } catch (error) {
+      $('#stream-status').textContent = error.message || String(error);
+    }
+  });
+
+  $('#search-songs')?.addEventListener('click', async () => {
+    $('#meta-status').textContent = '検索中...';
+    try {
+      const data = await adminApi(`songs/search?q=${encodeURIComponent($('#song-query').value)}`);
+      renderSongMeta(data.songs);
+      $('#meta-status').textContent = `${data.songs.length}件`;
+    } catch (error) {
+      $('#meta-status').textContent = error.message || String(error);
+    }
+  });
+
+  $('#song-meta-box')?.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-save-meta]');
+    if (!button) return;
+    const row = button.closest('[data-song-id]');
+    $('#meta-status').textContent = '保存中...';
+    try {
+      await adminApi('songs/metadata', {
+        songId: row.dataset.songId,
+        displayKey: row.querySelector('[data-field="displayKey"]').value,
+        genre: row.querySelector('[data-field="genre"]').value,
+      });
+      $('#meta-status').textContent = '保存しました。必要なら静的データ生成を開始してください。';
+    } catch (error) {
+      $('#meta-status').textContent = error.message || String(error);
+    }
+  });
+
+  $('#sync-keys')?.addEventListener('click', async () => {
+    if (!confirm('SpreadsheetからD1のキー/ジャンルを同期します。よろしいですか？')) return;
+    $('#meta-status').textContent = '同期中...';
+    try {
+      const data = await adminApi('key-reference/sync-url', { url: $('#key-sheet-url').value });
+      $('#meta-status').textContent = `同期しました: updated=${data.updated}, skipped=${data.skipped}\ncolumns=${JSON.stringify(data.detectedColumns)}`;
+    } catch (error) {
+      $('#meta-status').textContent = error.message || String(error);
+    }
+  });
+
+  $('#sync-key-csv')?.addEventListener('click', async () => {
+    const file = $('#key-csv-file').files[0];
+    if (!file) {
+      $('#meta-status').textContent = 'CSVファイルを選んでください';
+      return;
+    }
+    if (!confirm('CSVからD1のキー/ジャンルを同期します。よろしいですか？')) return;
+    $('#meta-status').textContent = 'CSV同期中...';
+    try {
+      const data = await adminApi('key-reference/import-csv', { csvText: await file.text() });
+      $('#meta-status').textContent = `同期しました: updated=${data.updated}, skipped=${data.skipped}\ncolumns=${JSON.stringify(data.detectedColumns)}`;
+    } catch (error) {
+      $('#meta-status').textContent = error.message || String(error);
+    }
+  });
+
+  $('#generate-static-data')?.addEventListener('click', async () => {
+    if (!confirm('GitHub Actionsで静的データ生成を開始します。よろしいですか？')) return;
+    $('#static-status').textContent = 'GitHub Actionsを起動中...';
+    try {
+      const data = await adminApi('static-data/generate', {});
+      $('#static-status').textContent = `起動しました: ${data.owner}/${data.repo} / ${data.workflow}\nGitHub Actions完了後、Pagesへ自動反映されます。`;
+    } catch (error) {
+      $('#static-status').textContent = error.message || String(error);
+    }
+  });
+}
+
 $('#refresh-status').addEventListener('click', loadStatus);
+initManagement();
 loadStatus();
