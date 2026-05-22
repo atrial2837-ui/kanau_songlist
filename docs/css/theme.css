@@ -402,8 +402,8 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 }
 .song-detail-main {
   display: grid;
-  grid-template-columns: 1fr minmax(220px, 280px);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
 }
 .song-detail-artist {
@@ -428,8 +428,9 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 }
 .song-detail-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  width: min(100%, 360px);
 }
 .song-detail-stats div {
   background: var(--surface-2);
