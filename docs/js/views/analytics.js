@@ -57,7 +57,7 @@ export function renderAnalytics() {
   drawSongsPerStream(streams);
   drawDow(streams);
   drawHistogram(songs);
-  renderArtistBars(artists);
+  renderArtistBars(artists.length ? artists : deriveArtistsFromSongs(songs));
   renderComebacks(songs);
   renderOneShots(songs);
 }
@@ -192,8 +192,13 @@ function drawHistogram(songs) {
 
 function renderArtistBars(artists) {
   const top = artists.slice(0, TOP_ARTISTS_LIMIT);
+  const el = $('#artist-bar-list');
+  if (!top.length) {
+    el.innerHTML = '<div class="empty-state">アーティストデータがありません</div>';
+    return;
+  }
   const max = top[0]?.totalCount || 1;
-  $('#artist-bar-list').innerHTML = top.map((a, i) => {
+  el.innerHTML = top.map((a, i) => {
     const pct = Math.round((a.totalCount / max) * 100);
     return `
       <div class="bar-row">
@@ -206,6 +211,20 @@ function renderArtistBars(artists) {
       </div>
     `;
   }).join('');
+}
+
+function deriveArtistsFromSongs(songs) {
+  const byArtist = new Map();
+  for (const song of songs) {
+    const artist = song.artist || '(不明)';
+    if (!byArtist.has(artist)) {
+      byArtist.set(artist, { artist, totalCount: 0, songCount: 0 });
+    }
+    const item = byArtist.get(artist);
+    item.totalCount += Number(song.count || 0);
+    item.songCount += 1;
+  }
+  return Array.from(byArtist.values()).sort((a, b) => b.totalCount - a.totalCount);
 }
 
 function renderComebacks(songs) {

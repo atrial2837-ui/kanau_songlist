@@ -177,7 +177,7 @@ function hydrateDataset(dataset) {
   dataset.songs = dataset.songs || [];
   dataset.streams = dataset.streams || [];
   dataset.orphans = dataset.orphans || [];
-  dataset.artists = dataset.artists || [];
+  if (!Array.isArray(dataset.artists)) dataset.artists = [];
 
   for (const stream of dataset.streams) {
     stream.date = parseApiDate(stream.date);
@@ -246,6 +246,9 @@ function hydrateDataset(dataset) {
     ].filter(Boolean).join(' ');
   }
   assignRanks(dataset.songs);
+  if (!dataset.artists.length) {
+    dataset.artists = deriveArtists(dataset.songs);
+  }
 
   return dataset;
 }
