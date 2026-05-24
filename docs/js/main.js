@@ -128,6 +128,20 @@ async function ensureFullData() {
   });
 }
 
+function scheduleFullDataPreload() {
+  if (state.channelData?.fullLoaded || fullDataPromise) return;
+  const preload = () => {
+    ensureFullData().catch((error) => {
+      console.warn('[data] background preload failed', error);
+    });
+  };
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(preload, { timeout: 2500 });
+  } else {
+    window.setTimeout(preload, 900);
+  }
+}
+
 async function renderTab(tab = state.activeTab, options = {}) {
   if (!state.data || !isValidTab(tab)) return;
   if (requiresFullData(tab) && !state.channelData?.fullLoaded) {
@@ -223,7 +237,7 @@ function switchChannel(channelId, options = {}) {
   if (options.render !== false) renderTab(state.activeTab, { autoLoad: options.autoLoad !== false });
 }
 
-function switchAudience(audience) {
+function switchAudience(audience, options = {}) {
   state.audience = audience === 'singer' ? 'singer' : 'listener';
   state.singerMode = state.audience === 'singer';
   if (!state.singerMode) state.singerPreset = 'all';
@@ -234,9 +248,12 @@ function switchAudience(audience) {
   updateMobileMenuLabel();
   if (state.audience === 'singer') {
     state.songsLimit = 100;
-    activateTab('songs');
+    activateTab('songs', { autoLoad: options.autoLoad !== false });
   } else if (state.data) {
-    renderTab(state.activeTab, { autoLoad: true });
+    renderTab(state.activeTab, {
+      autoLoad: options.autoLoad !== false,
+      initial: !!options.initial,
+    });
   }
 }
 
@@ -636,7 +653,11 @@ async function init() {
       autoLoad: initialAutoLoad,
       initial: true,
     });
-    switchAudience(state.audience);
+    switchAudience(state.audience, {
+      autoLoad: initialAutoLoad,
+      initial: true,
+    });
+    if (!initialAutoLoad) scheduleFullDataPreload();
     for (const ch of Object.values(channelData.channels)) {
       if (ch.orphans?.length) {
         console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
