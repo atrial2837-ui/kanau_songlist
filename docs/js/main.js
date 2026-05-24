@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { loadAll, loadInitial } from './data.js';
+import { loadAll } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
@@ -641,7 +641,7 @@ function initWelcomeTip() {
 async function init() {
   showLoading();
   try {
-    const channelData = await loadInitial();
+    const channelData = await loadAll();
     state.channelData = channelData;
     const url = readUrlState();
     state.songsQuery = url.q;
@@ -670,7 +670,6 @@ async function init() {
       autoLoad: initialAutoLoad,
       initial: true,
     });
-    if (!initialAutoLoad) scheduleFullDataPreload();
     for (const ch of Object.values(channelData.channels)) {
       if (ch.orphans?.length) {
         console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
