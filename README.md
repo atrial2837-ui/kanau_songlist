@@ -55,6 +55,9 @@ update-static-data.yml
 
 GITHUB_STATIC_REF
 main
+
+GITHUB_STATIC_ENV
+production
 ```
 
 任意:
@@ -78,6 +81,52 @@ CLOUDFLARE_D1_DATABASE_ID
 ```
 
 `CLOUDFLARE_API_TOKEN` には対象D1を読み取れる権限を付けます。管理画面の「静的データ生成を開始」を押すと `.github/workflows/update-static-data.yml` が起動し、`tools/generate_static_data.mjs` が `docs/data/*.json` を生成してcommit/pushします。
+
+## STG環境
+
+`cln_dp_tx` ブランチはSTG用のブランチとして使います。Cloudflare PagesではPreview/Branch deployの対象を `cln_dp_tx` にし、Productionとは別のD1を `DB` binding に設定します。
+
+STG側のCloudflare Pages環境変数:
+
+```text
+GITHUB_ACTIONS_TOKEN
+GitHub workflow dispatch permission付きのtoken
+
+GITHUB_OWNER
+atrial2837-ui
+
+GITHUB_REPO
+kanau_songlist
+
+GITHUB_STATIC_WORKFLOW
+update-static-data.yml
+
+GITHUB_STATIC_REF
+cln_dp_tx
+
+GITHUB_STATIC_ENV
+staging
+
+ADMIN_TOKEN
+STG用の管理トークン
+
+KEY_REFERENCE_CSV_URL
+必要ならSTG確認用Spreadsheet URL
+```
+
+STG用のGitHub repository secrets:
+
+```text
+CLOUDFLARE_API_TOKEN_STG
+CLOUDFLARE_ACCOUNT_ID_STG
+CLOUDFLARE_D1_DATABASE_ID_STG
+```
+
+`CLOUDFLARE_ACCOUNT_ID_STG` はProductionと同じCloudflareアカウントなら省略できます。その場合、workflowは `CLOUDFLARE_ACCOUNT_ID` を使います。
+
+管理画面からSTGの静的データ生成を起動すると、`environment=staging` で `.github/workflows/update-static-data.yml` が実行され、STG D1から `docs/data/*.json` を生成して `cln_dp_tx` へpushします。
+
+ローカル管理サーバーからSTG D1を触る場合は、[admin-server/env.stg.example](admin-server/env.stg.example) を `admin-server/.env` にコピーし、STG用のD1 IDとAPI tokenを設定します。Production用 `.env` と同時に置きたい場合は、`.env` を切り替えてから `node admin-server\server.js` を起動してください。
 
 ## Secretの運用
 
