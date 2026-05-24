@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { loadAll } from './data.js';
+import { loadAll, loadInitial } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
@@ -18,6 +18,7 @@ const VIEW_LOADERS = {
 };
 const rendererCache = new Map();
 let renderToken = 0;
+let fullDataPromise = null;
 
 function isValidTab(tab) {
   return Object.prototype.hasOwnProperty.call(VIEW_LOADERS, tab);
@@ -33,8 +34,89 @@ async function getRenderer(tab) {
   }
 }
 
-async function renderTab(tab = state.activeTab) {
+function requiresFullData(tab) {
+  return ['dashboard', 'ranking', 'songs', 'timeline', 'analytics'].includes(tab);
+}
+
+function renderDeferredPanel(tab) {
+  const panel = $(`#panel-${tab}`);
+  if (!panel) return;
+  const labels = {
+    dashboard: 'ダッシュボード詳細',
+    ranking: 'ランキング',
+    songs: '曲リスト',
+    timeline: '配信タイムライン',
+    analytics: 'アナリティクス',
+  };
+  panel.innerHTML = `
+    <div class="state-card">
+      <div class="msg">${escapeHtml(labels[tab] || '詳細データ')}</div>
+      <div class="err-detail">曲一覧と配信履歴は必要になった時点で読み込みます。</div>
+      <button class="btn primary" type="button" data-load-full-data="${escapeHtml(tab)}">詳細データを読み込む</button>
+    </div>
+  `;
+  panel.querySelector('[data-load-full-data]')?.addEventListener('click', () => {
+    renderTab(tab, { autoLoad: true });
+  });
+}
+
+function renderPanelLoading(tab) {
+  const panel = $(`#panel-${tab}`);
+  if (!panel) return;
+  panel.innerHTML = `
+    <div class="state-card">
+      <div class="msg">詳細データを読み込んでいます</div>
+    </div>
+  `;
+}
+
+async function ensureFullData() {
+  if (state.channelData?.fullLoaded) return;
+  if (!fullDataPromise) {
+    fullDataPromise = loadAll().finally(() => {
+      fullDataPromise = null;
+    });
+  }
+  const fullData = await fullDataPromise;
+  state.channelData = fullData;
+  state.channelData.fullLoaded = true;
+  const channel = getDataset(state.channel) ? state.channel : DEFAULT_CHANNEL;
+  switchChannel(channel, {
+    resetSearch: false,
+    updateUrl: false,
+    render: false,
+  });
+}
+
+async function renderTab(tab = state.activeTab, options = {}) {
   if (!state.data || !isValidTab(tab)) return;
+  if (requiresFullData(tab) && !state.channelData?.fullLoaded) {
+    if (options.autoLoad) {
+      renderPanelLoading(tab);
+      try {
+        await ensureFullData();
+      } catch (error) {
+        console.error('[data] full load failed', error);
+        const panel = $(`#panel-${tab}`);
+        if (panel) {
+          panel.innerHTML = `
+            <div class="state-card">
+              <div class="msg">詳細データの読み込みに失敗しました</div>
+              <div class="err-detail">${escapeHtml(error?.message || String(error))}</div>
+              <button class="btn primary" type="button" data-load-full-data="${escapeHtml(tab)}">再読み込み</button>
+            </div>
+          `;
+          panel.querySelector('[data-load-full-data]')?.addEventListener('click', () => {
+            renderTab(tab, { autoLoad: true });
+          });
+        }
+        return;
+      }
+    } else {
+      renderDeferredPanel(tab);
+      return;
+    }
+  }
   const token = ++renderToken;
   try {
     const renderer = await getRenderer(tab);
@@ -60,7 +142,7 @@ function activateTab(tab, options = {}) {
   $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
   if (options.updateUrl !== false) writeUrlState({ tab });
-  renderTab(tab);
+  renderTab(tab, { autoLoad: options.autoLoad !== false });
 }
 
 function getDataset(channelId) {
@@ -83,7 +165,7 @@ function switchChannel(channelId, options = {}) {
     state.songsQuery = '';
     state.songsGenre = 'all';
   }
-  buildIndex(ds.songs);
+  buildIndex(ds.songs || []);
   destroyAllCharts();
   $$('#channel-switch [data-channel]').forEach(b => b.classList.toggle('active', b.dataset.channel === channelId));
   updateMobileMenuLabel();
@@ -95,7 +177,7 @@ function switchChannel(channelId, options = {}) {
     });
   }
   renderHero();
-  renderTab();
+  if (options.render !== false) renderTab(state.activeTab, { autoLoad: options.autoLoad !== false });
 }
 
 function switchAudience(audience) {
@@ -375,7 +457,7 @@ function initSongModal() {
 }
 
 function renderHero() {
-  const { stats, streams } = state.data;
+  const { stats, streams = [] } = state.data;
   const latest = streams[0]?.date || null;
   const dSinceLatest = daysSince(latest);
   const dSinceUpdate = daysSince(stats.updateDate);
@@ -416,7 +498,7 @@ function renderHero() {
 }
 
 function activeDays(data) {
-  if (!data.streams.length) return '—';
+  if (!data.streams?.length) return '—';
   const first = data.streams[data.streams.length - 1].date;
   const last = data.streams[0].date;
   return Math.floor((last - first) / 86400000) + 1;
@@ -486,7 +568,7 @@ function initWelcomeTip() {
 async function init() {
   showLoading();
   try {
-    const channelData = await loadAll();
+    const channelData = await loadInitial();
     state.channelData = channelData;
     const url = readUrlState();
     state.songsQuery = url.q;
@@ -499,11 +581,11 @@ async function init() {
     if (!getDataset(initialChannel)) throw new Error('No channel data could be loaded');
     refreshChannelButtons();
     hideLoading();
-    switchChannel(initialChannel, { resetSearch: false, updateUrl: false });
-    activateTab(url.tab, { updateUrl: false });
+    switchChannel(initialChannel, { resetSearch: false, updateUrl: false, autoLoad: false });
+    activateTab(url.tab, { updateUrl: false, autoLoad: false });
     switchAudience(state.audience);
     for (const ch of Object.values(channelData.channels)) {
-      if (ch.orphans.length) {
+      if (ch.orphans?.length) {
         console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
       }
     }

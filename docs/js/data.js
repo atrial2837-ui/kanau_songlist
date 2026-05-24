@@ -264,6 +264,7 @@ function hydratePayload(payload) {
   return {
     channels,
     combined,
+    fullLoaded: true,
   };
 }
 
@@ -300,6 +301,32 @@ async function loadStaticSplit() {
   });
 }
 
+async function loadStaticMeta() {
+  const meta = await fetchJson(STATIC_URLS.meta);
+  const channels = {};
+  for (const [code, stats] of Object.entries(meta.channels || {})) {
+    channels[code] = hydrateDataset({
+      stats,
+      songs: [],
+      streams: [],
+      orphans: [],
+      artists: [],
+    });
+  }
+  const combined = hydrateDataset({
+    stats: meta.combined || {},
+    songs: [],
+    streams: [],
+    orphans: [],
+    artists: [],
+  });
+  return {
+    channels,
+    combined,
+    fullLoaded: false,
+  };
+}
+
 async function loadFallbackApi() {
   const res = await fetch(FALLBACK_URL, { cache: 'no-store' });
   if (!res.ok) {
@@ -318,6 +345,18 @@ async function loadFallbackApi() {
 export async function loadAll() {
   try {
     return await loadStaticSplit();
+  } catch (staticError) {
+    try {
+      return await loadFallbackApi();
+    } catch (fallbackError) {
+      throw new Error(`APIからデータを取得できませんでした: ${staticError.message}; ${fallbackError.message}`);
+    }
+  }
+}
+
+export async function loadInitial() {
+  try {
+    return await loadStaticMeta();
   } catch (staticError) {
     try {
       return await loadFallbackApi();
