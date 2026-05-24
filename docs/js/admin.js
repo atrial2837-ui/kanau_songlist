@@ -1,6 +1,7 @@
 import { initTheme } from './theme.js';
 import { $, fmtDate, formatNumber } from './utils.js';
 import { loadAll } from './data.js';
+import { CHANNELS, DEFAULT_CHANNEL } from './config.js';
 
 initTheme();
 
@@ -209,16 +210,13 @@ function renderQuality(data) {
   `).join('') || '<tr><td colspan="3">大きな問題は見つかりませんでした</td></tr>';
 }
 
-async function loadChannels() {
-  try {
-    const data = await adminApi('channels');
-    $('#channel').innerHTML = data.channels.map((channel) => (
-      `<option value="${escapeHtml(channel.code)}">${escapeHtml(channel.name)}</option>`
-    )).join('');
-  } catch (error) {
-    $('#channel').innerHTML = '';
-    $('#stream-status').textContent = `チャンネル取得に失敗しました: ${error.message || String(error)}`;
-  }
+function loadChannels() {
+  const channelSelect = $('#channel');
+  const channels = Object.values(CHANNELS);
+  channelSelect.innerHTML = channels.map((channel) => (
+    `<option value="${escapeHtml(channel.id)}">${escapeHtml(channel.label)}</option>`
+  )).join('');
+  channelSelect.value = CHANNELS[DEFAULT_CHANNEL] ? DEFAULT_CHANNEL : channels[0]?.id || '';
 }
 
 async function loadStatus() {
@@ -277,7 +275,6 @@ async function loadStatus() {
 function initManagement() {
   const streamedOn = $('#streamed-on');
   if (streamedOn && !streamedOn.value) streamedOn.valueAsDate = new Date();
-  adminToken?.addEventListener('change', loadChannels);
   loadChannels();
 
   $('#preview-stream')?.addEventListener('click', async () => {
