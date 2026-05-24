@@ -274,12 +274,32 @@ async function fetchJson(url) {
   return res.json();
 }
 
-async function loadStaticSplit() {
-  const [meta, songs, streams] = await Promise.all([
-    fetchJson(STATIC_URLS.meta),
-    fetchJson(STATIC_URLS.songs),
-    fetchJson(STATIC_URLS.streams),
-  ]);
+function channelStatsFromMeta(meta, code) {
+  const item = meta.channels?.[code] || {};
+  return item.stats || item;
+}
+
+function combinedStatsFromMeta(meta) {
+  const item = meta.combined || {};
+  return item.stats || item;
+}
+
+async function loadStaticSplit(metaPayload = null) {
+  let meta = metaPayload;
+  let songs;
+  let streams;
+  if (meta) {
+    [songs, streams] = await Promise.all([
+      fetchJson(STATIC_URLS.songs),
+      fetchJson(STATIC_URLS.streams),
+    ]);
+  } else {
+    [meta, songs, streams] = await Promise.all([
+      fetchJson(STATIC_URLS.meta),
+      fetchJson(STATIC_URLS.songs),
+      fetchJson(STATIC_URLS.streams),
+    ]);
+  }
   const channels = {};
   const codes = new Set([
     ...Object.keys(meta.channels || {}),
@@ -288,7 +308,7 @@ async function loadStaticSplit() {
   ]);
   for (const code of codes) {
     channels[code] = {
-      stats: meta.channels?.[code] || {},
+      stats: channelStatsFromMeta(meta, code),
       songs: songs.channels?.[code] || [],
       streams: streams.channels?.[code] || [],
       orphans: [],
@@ -297,7 +317,7 @@ async function loadStaticSplit() {
   }
   return hydratePayload({
     channels,
-    combined: { stats: meta.combined || {} },
+    combined: { stats: combinedStatsFromMeta(meta) },
   });
 }
 
@@ -342,9 +362,9 @@ async function loadFallbackApi() {
   return hydratePayload(await res.json());
 }
 
-export async function loadAll() {
+export async function loadAll(options = {}) {
   try {
-    return await loadStaticSplit();
+    return await loadStaticSplit(options.meta || null);
   } catch (staticError) {
     try {
       return await loadFallbackApi();

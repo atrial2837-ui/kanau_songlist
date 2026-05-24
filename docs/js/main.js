@@ -113,7 +113,7 @@ function renderPanelLoading(tab) {
 async function ensureFullData() {
   if (state.channelData?.fullLoaded) return;
   if (!fullDataPromise) {
-    fullDataPromise = loadAll().finally(() => {
+    fullDataPromise = loadAll({ meta: state.channelData }).finally(() => {
       fullDataPromise = null;
     });
   }
