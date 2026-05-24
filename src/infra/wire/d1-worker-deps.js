@@ -19,6 +19,10 @@ import { FetchSpreadsheetGateway } from '../spreadsheet/fetch-spreadsheet-gatewa
  * @param {object} env - Cloudflare Pages Functions env (DB バインディング必須)
  */
 export function createD1WorkerDeps(env) {
+  if (!env?.DB) {
+    throw new Error('D1 binding DB is missing');
+  }
+
   const client = new D1WorkerClient(env.DB);
   const clock = new SystemClock();
   return {

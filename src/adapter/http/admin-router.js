@@ -28,7 +28,7 @@ import { loadAdminStatus } from '../../usecase/load-admin-status.js';
  * @typedef {object} BuildAdminRouterOptions
  * @property {string} [pathPrefix=''] - ルート prefix ('' = CF, '/api' = admin-server)
  * @property {(ctx: RouteContext) => AdminDeps} getDeps
- * @property {(ctx: RouteContext) => string|null|undefined} getAdminToken
+ * @property {(env: object) => string|null|undefined} getAdminToken
  * @property {boolean} [authStrict=false]
  * @property {(ctx: RouteContext) => Promise<Response>|Response} staticDataHandler
  * @property {boolean} [includeIndexPage=false]
