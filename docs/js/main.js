@@ -662,7 +662,6 @@ async function init() {
       autoLoad: initialAutoLoad,
       initial: true,
     });
-    if (!initialAutoLoad) scheduleFullDataPreload();
     for (const ch of Object.values(channelData.channels)) {
       if (ch.orphans?.length) {
         console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
