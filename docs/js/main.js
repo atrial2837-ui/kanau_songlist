@@ -223,7 +223,7 @@ function switchChannel(channelId, options = {}) {
   if (options.render !== false) renderTab(state.activeTab, { autoLoad: options.autoLoad !== false });
 }
 
-function switchAudience(audience, options = {}) {
+function switchAudience(audience) {
   state.audience = audience === 'singer' ? 'singer' : 'listener';
   state.singerMode = state.audience === 'singer';
   if (!state.singerMode) state.singerPreset = 'all';
@@ -234,9 +234,9 @@ function switchAudience(audience, options = {}) {
   updateMobileMenuLabel();
   if (state.audience === 'singer') {
     state.songsLimit = 100;
-    activateTab('songs', { autoLoad: options.autoLoad !== false });
+    activateTab('songs');
   } else if (state.data) {
-    renderTab(state.activeTab, { autoLoad: options.autoLoad !== false });
+    renderTab(state.activeTab, { autoLoad: true });
   }
 }
 
@@ -636,7 +636,7 @@ async function init() {
       autoLoad: initialAutoLoad,
       initial: true,
     });
-    switchAudience(state.audience, { autoLoad: initialAutoLoad });
+    switchAudience(state.audience);
     for (const ch of Object.values(channelData.channels)) {
       if (ch.orphans?.length) {
         console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);

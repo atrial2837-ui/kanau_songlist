@@ -1,6 +1,6 @@
 import { initTheme } from './theme.js';
 import { $, fmtDate, formatNumber } from './utils.js';
-import { loadAll, loadInitial } from './data.js';
+import { loadAll } from './data.js';
 import { CHANNELS, DEFAULT_CHANNEL } from './config.js';
 
 initTheme();
@@ -219,8 +219,7 @@ function loadChannels() {
   channelSelect.value = CHANNELS[DEFAULT_CHANNEL] ? DEFAULT_CHANNEL : channels[0]?.id || '';
 }
 
-async function loadStatus(options = {}) {
-  const full = !!options.full;
+async function loadStatus() {
   setBadge(false, '確認中');
   $('#api-detail').textContent = '公開用の静的データを読み込んでいます。';
   $('#channel-rows').innerHTML = '<tr><td colspan="5">読み込み中</td></tr>';
@@ -230,7 +229,7 @@ async function loadStatus(options = {}) {
 
   const started = performance.now();
   try {
-    const data = full ? await loadAll() : await loadInitial();
+    const data = await loadAll();
     const elapsed = Math.round(performance.now() - started);
     const combined = data.combined || {};
     const stats = combined.stats || {};
@@ -241,17 +240,9 @@ async function loadStatus(options = {}) {
       stat('歌枠', formatNumber(stats.streams), '枠'),
       stat('応答', formatNumber(elapsed), 'ms'),
     ].join('');
-    $('#api-detail').textContent = `最新データ: ${fmtDate(parseDate(stats.updateDate))} / ${full ? '詳細JSONまで確認しました。' : '初期表示用の軽量JSONを確認しています。'}`;
+    $('#api-detail').textContent = `最新データ: ${fmtDate(parseDate(stats.updateDate))} / 公開サイトと同じ静的JSONを確認しています。`;
     renderSync(data, elapsed);
-    if (full) {
-      renderQuality(data);
-    } else {
-      $('#quality-badge').textContent = '未実行';
-      $('#quality-badge').classList.remove('accent');
-      $('#quality-summary').innerHTML = '<div class="admin-note">再チェック時に曲一覧・配信履歴を読み込んで確認します。</div>';
-      $('#issue-count').textContent = '—';
-      $('#quality-rows').innerHTML = '<tr><td colspan="3">再チェックで詳細確認します</td></tr>';
-    }
+    renderQuality(data);
 
     const channels = Object.values(data.channels || {});
     $('#channel-rows').innerHTML = channels.map((channel) => {
@@ -304,7 +295,7 @@ function initManagement() {
       const data = await adminApi('streams', streamFormData());
       $('#stream-status').textContent = `登録しました: stream_id=${data.streamId}, ${data.songCount}曲。必要なら静的データ生成を開始してください。`;
       $('#preview-box').innerHTML = '';
-      loadStatus({ full: true });
+      loadStatus();
     } catch (error) {
       $('#stream-status').textContent = error.message || String(error);
     }
@@ -377,6 +368,6 @@ function initManagement() {
   });
 }
 
-$('#refresh-status').addEventListener('click', () => loadStatus({ full: true }));
+$('#refresh-status').addEventListener('click', loadStatus);
 initManagement();
-loadStatus({ full: false });
+loadStatus();
