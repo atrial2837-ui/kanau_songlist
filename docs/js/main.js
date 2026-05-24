@@ -38,7 +38,51 @@ function requiresFullData(tab) {
   return ['dashboard', 'ranking', 'songs', 'timeline', 'analytics'].includes(tab);
 }
 
-function renderDeferredPanel(tab) {
+function renderInitialDashboard() {
+  const panel = $('#panel-dashboard');
+  if (!panel || !state.channelData) return;
+  const channels = Object.values(state.channelData.channels || {})
+    .map(dataset => dataset.stats || {})
+    .filter(stats => stats.channelLabel || stats.channelId);
+  const rows = channels.length ? channels : [state.channelData.combined?.stats || {}];
+  panel.innerHTML = `
+    <div class="dashboard-grid">
+      ${rows.map(stats => `
+        <div class="card col-6">
+          <div class="card-title">${escapeHtml(stats.channelLabel || stats.channelId || '全期間')}</div>
+          <div style="display:grid;gap:10px;">
+            <div class="activity-row">
+              <span class="a-date">歌唱</span>
+              <span class="a-meta">総歌唱数</span>
+              <strong>${formatNumber(stats.total || 0)}回</strong>
+            </div>
+            <div class="activity-row">
+              <span class="a-date">曲数</span>
+              <span class="a-meta">持ち曲数</span>
+              <strong>${formatNumber(stats.repertoire || 0)}曲</strong>
+            </div>
+            <div class="activity-row">
+              <span class="a-date">歌枠</span>
+              <span class="a-meta">配信回数</span>
+              <strong>${formatNumber(stats.streams || 0)}回</strong>
+            </div>
+            <div class="activity-row">
+              <span class="a-date">平均</span>
+              <span class="a-meta">1枠平均</span>
+              <strong>${stats.avgPerStream ?? '—'}曲</strong>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderDeferredPanel(tab, options = {}) {
+  if (tab === 'dashboard' && options.initial) {
+    renderInitialDashboard();
+    return;
+  }
   const panel = $(`#panel-${tab}`);
   if (!panel) return;
   const labels = {
@@ -51,13 +95,9 @@ function renderDeferredPanel(tab) {
   panel.innerHTML = `
     <div class="state-card">
       <div class="msg">${escapeHtml(labels[tab] || '詳細データ')}</div>
-      <div class="err-detail">曲一覧と配信履歴は必要になった時点で読み込みます。</div>
-      <button class="btn primary" type="button" data-load-full-data="${escapeHtml(tab)}">詳細データを読み込む</button>
+      <div class="err-detail">読み込み中です。</div>
     </div>
   `;
-  panel.querySelector('[data-load-full-data]')?.addEventListener('click', () => {
-    renderTab(tab, { autoLoad: true });
-  });
 }
 
 function renderPanelLoading(tab) {
@@ -113,7 +153,7 @@ async function renderTab(tab = state.activeTab, options = {}) {
         return;
       }
     } else {
-      renderDeferredPanel(tab);
+      renderDeferredPanel(tab, { initial: options.initial });
       return;
     }
   }
@@ -142,7 +182,10 @@ function activateTab(tab, options = {}) {
   $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
   if (options.updateUrl !== false) writeUrlState({ tab });
-  renderTab(tab, { autoLoad: options.autoLoad !== false });
+  renderTab(tab, {
+    autoLoad: options.autoLoad !== false,
+    initial: !!options.initial,
+  });
 }
 
 function getDataset(channelId) {
@@ -193,7 +236,7 @@ function switchAudience(audience) {
     state.songsLimit = 100;
     activateTab('songs');
   } else if (state.data) {
-    renderTab();
+    renderTab(state.activeTab, { autoLoad: true });
   }
 }
 
@@ -581,8 +624,18 @@ async function init() {
     if (!getDataset(initialChannel)) throw new Error('No channel data could be loaded');
     refreshChannelButtons();
     hideLoading();
-    switchChannel(initialChannel, { resetSearch: false, updateUrl: false, autoLoad: false });
-    activateTab(url.tab, { updateUrl: false, autoLoad: false });
+    const initialTab = isValidTab(url.tab) ? url.tab : state.activeTab;
+    const initialAutoLoad = initialTab !== 'dashboard';
+    switchChannel(initialChannel, {
+      resetSearch: false,
+      updateUrl: false,
+      autoLoad: initialAutoLoad,
+    });
+    activateTab(initialTab, {
+      updateUrl: false,
+      autoLoad: initialAutoLoad,
+      initial: true,
+    });
     switchAudience(state.audience);
     for (const ch of Object.values(channelData.channels)) {
       if (ch.orphans?.length) {
