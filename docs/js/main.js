@@ -130,10 +130,15 @@ async function ensureFullData() {
 
 function scheduleFullDataPreload() {
   if (state.channelData?.fullLoaded || fullDataPromise) return;
-  const preload = () => {
-    ensureFullData().catch((error) => {
+  const preload = async () => {
+    try {
+      await ensureFullData();
+      if (state.activeTab === 'dashboard') {
+        renderTab('dashboard', { autoLoad: false });
+      }
+    } catch (error) {
       console.warn('[data] background preload failed', error);
-    });
+    }
   };
   if ('requestIdleCallback' in window) {
     window.requestIdleCallback(preload, { timeout: 2500 });
