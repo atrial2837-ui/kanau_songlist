@@ -236,7 +236,10 @@ function switchAudience(audience, options = {}) {
     state.songsLimit = 100;
     activateTab('songs', { autoLoad: options.autoLoad !== false });
   } else if (state.data) {
-    renderTab(state.activeTab, { autoLoad: options.autoLoad !== false });
+    renderTab(state.activeTab, {
+      autoLoad: options.autoLoad !== false,
+      initial: !!options.initial,
+    });
   }
 }
 
@@ -636,7 +639,10 @@ async function init() {
       autoLoad: initialAutoLoad,
       initial: true,
     });
-    switchAudience(state.audience, { autoLoad: initialAutoLoad });
+    switchAudience(state.audience, {
+      autoLoad: initialAutoLoad,
+      initial: true,
+    });
     for (const ch of Object.values(channelData.channels)) {
       if (ch.orphans?.length) {
         console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
