@@ -140,10 +140,18 @@ function scheduleFullDataPreload() {
       console.warn('[data] background preload failed', error);
     }
   };
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(preload, { timeout: 2500 });
+  const runWhenIdle = () => {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(preload, { timeout: 4000 });
+    } else {
+      window.setTimeout(preload, 1200);
+    }
+  };
+  const scheduleAfterInitialPaint = () => window.setTimeout(runWhenIdle, 1800);
+  if (document.readyState === 'complete') {
+    scheduleAfterInitialPaint();
   } else {
-    window.setTimeout(preload, 900);
+    window.addEventListener('load', scheduleAfterInitialPaint, { once: true });
   }
 }
 
@@ -662,6 +670,7 @@ async function init() {
       autoLoad: initialAutoLoad,
       initial: true,
     });
+    if (!initialAutoLoad) scheduleFullDataPreload();
     for (const ch of Object.values(channelData.channels)) {
       if (ch.orphans?.length) {
         console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
