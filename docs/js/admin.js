@@ -1,5 +1,6 @@
 import { initTheme } from './theme.js';
 import { $, fmtDate, formatNumber } from './utils.js';
+import { loadAll } from './data.js';
 
 initTheme();
 
@@ -222,7 +223,7 @@ async function loadChannels() {
 
 async function loadStatus() {
   setBadge(false, '確認中');
-  $('#api-detail').textContent = '/api/data を読み込んでいます。';
+  $('#api-detail').textContent = '公開用の静的データを読み込んでいます。';
   $('#channel-rows').innerHTML = '<tr><td colspan="5">読み込み中</td></tr>';
   $('#sync-status').innerHTML = '<div class="admin-note">確認中</div>';
   $('#quality-summary').innerHTML = '<div class="admin-note">確認中</div>';
@@ -230,9 +231,7 @@ async function loadStatus() {
 
   const started = performance.now();
   try {
-    const res = await fetch('/api/data', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await loadAll();
     const elapsed = Math.round(performance.now() - started);
     const combined = data.combined || {};
     const stats = combined.stats || {};
@@ -243,7 +242,7 @@ async function loadStatus() {
       stat('歌枠', formatNumber(stats.streams), '枠'),
       stat('応答', formatNumber(elapsed), 'ms'),
     ].join('');
-    $('#api-detail').textContent = `最新データ: ${fmtDate(parseDate(stats.updateDate))} / APIキャッシュは最大約1分です。`;
+    $('#api-detail').textContent = `最新データ: ${fmtDate(parseDate(stats.updateDate))} / 公開サイトと同じ静的JSONを確認しています。`;
     renderSync(data, elapsed);
     renderQuality(data);
 
