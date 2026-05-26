@@ -49,7 +49,7 @@ function defaults() {
   return {
     color: c.ink,
     borderColor: c.border,
-    font: { family: '"Hiragino Maru Gothic ProN", "Yu Gothic", "Meiryo", system-ui, sans-serif', size: 11 },
+    font: { family: '"Kanau Noto Sans JP", "Noto Sans JP", "Yu Gothic", "Meiryo", system-ui, sans-serif', size: 11 },
     plugins: {
       legend: {
         labels: { color: c.inkSoft, font: { size: 11 } },

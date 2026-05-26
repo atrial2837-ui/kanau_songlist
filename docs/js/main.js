@@ -323,16 +323,19 @@ function initPageTopToast() {
   const update = () => {
     ticking = false;
     const visible = window.scrollY > threshold;
+    button.hidden = !visible;
     button.classList.toggle('is-visible', visible);
     button.setAttribute('aria-hidden', String(!visible));
+    button.tabIndex = visible ? 0 : -1;
   };
   const requestUpdate = () => {
     if (ticking) return;
     ticking = true;
     requestAnimationFrame(update);
   };
-  button.hidden = false;
+  button.hidden = true;
   button.setAttribute('aria-hidden', 'true');
+  button.tabIndex = -1;
   button.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -591,13 +594,13 @@ function updatePageTitle(mode) {
   if (!el) return;
 
   if (mode === 'new') {
-    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32">夢川かなう 新ch 歌唱データベース';
+    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32" fetchpriority="high" decoding="sync">夢川かなう 新ch 歌唱データベース';
     document.title = '夢川かなう 新ch 歌唱データベース';
   } else if (mode === 'old') {
-    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32">夢川かなう 旧ch 歌唱データベース';
+    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32" fetchpriority="high" decoding="sync">夢川かなう 旧ch 歌唱データベース';
     document.title = '夢川かなう 旧ch 歌唱データベース';
   } else {
-    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32">夢川かなう 歌唱データベース';
+    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32" fetchpriority="high" decoding="sync">夢川かなう 歌唱データベース';
     document.title = '夢川かなう 歌唱データベース';
   }
 }
@@ -631,8 +634,14 @@ function initWelcomeTip() {
   const tip = $('#welcome-tip');
   const close = $('#welcome-close');
   if (!tip || !close) return;
+  if (window.matchMedia('(max-width: 760px)').matches) return;
   if (localStorage.getItem('kanau-welcome-tip-dismissed') === '1') return;
-  tip.hidden = false;
+  const show = () => { tip.hidden = false; };
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(show, { timeout: 5000 });
+  } else {
+    window.setTimeout(show, 2500);
+  }
   close.addEventListener('click', () => {
     tip.hidden = true;
     localStorage.setItem('kanau-welcome-tip-dismissed', '1');
@@ -743,4 +752,14 @@ onRerenderNeeded(() => {
   if (state.activeTab === 'dashboard' || state.activeTab === 'analytics') renderTab();
 });
 
-init();
+function startApp() {
+  window.requestAnimationFrame(() => {
+    window.setTimeout(init, 0);
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp, { once: true });
+} else {
+  startApp();
+}

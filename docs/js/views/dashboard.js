@@ -5,15 +5,20 @@ import { chartCanvas, createChart, getColors } from '../charts.js';
 let chartRenderToken = 0;
 
 function afterInitialWork(fn) {
-  window.requestAnimationFrame(() => {
+  const schedule = () => window.requestAnimationFrame(() => {
     window.setTimeout(() => {
       if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(fn, { timeout: 1200 });
+        window.requestIdleCallback(fn, { timeout: 3000 });
       } else {
-        window.setTimeout(fn, 350);
+        window.setTimeout(fn, 1200);
       }
-    }, 250);
+    }, 900);
   });
+  if (document.readyState === 'complete') {
+    schedule();
+  } else {
+    window.addEventListener('load', schedule, { once: true });
+  }
 }
 
 function whenChartVisible(id, fn) {
@@ -26,118 +31,167 @@ function whenChartVisible(id, fn) {
     if (!entries.some(entry => entry.isIntersecting)) return;
     observer.disconnect();
     afterInitialWork(fn);
-  }, { rootMargin: '160px 0px', threshold: 0.01 });
+  }, { rootMargin: '0px 0px', threshold: 0.01 });
   observer.observe(target);
 }
 
+function isMobileDashboard() {
+  return window.matchMedia('(max-width: 760px)').matches;
+}
+
 export function renderDashboard() {
-  const { stats, songs, streams } = state.data;
+  const { songs, streams } = state.data;
   const sorted = [...songs].sort((a, b) => b.count - a.count);
   const top5 = sorted.slice(0, 5);
-
+  const top5Max = top5[0]?.count || 1;
   const recent = streams.slice(0, 5);
-  const heatmap = buildHeatmap(streams);
-  const monthly = buildMonthly(streams);
   const newSongs = countNewSongsThisMonth(songs);
-  const stalePicks = songs.filter(s => s.daysSinceLast >= 180).sort((a, b) => b.count - a.count).slice(0, 5);
-  const recentPicks = songs.filter(s => s.daysSinceLast != null && s.daysSinceLast <= 30).sort((a, b) => b.count - a.count).slice(0, 5);
-  const monthlyHits = periodHits(streams, 'month');
-  const yearlyHits = periodHits(streams, 'year');
-
   const panel = $('#panel-dashboard');
-  panel.innerHTML = `
-    <div class="dashboard-grid">
+  const token = ++chartRenderToken;
 
+  const activityHtml = `
+    <div class="card col-4">
+      <div class="card-title">📈 今月の活動</div>
+      <div style="display:grid;gap:10px;">
+        <div class="activity-row">
+          <span class="a-date">配信</span>
+          <span class="a-meta">今月の歌枠数</span>
+          <strong>${countStreamsThisMonth(streams)}回</strong>
+        </div>
+        <div class="activity-row">
+          <span class="a-date">歌唱</span>
+          <span class="a-meta">今月の総歌唱数</span>
+          <strong>${countSongsThisMonth(streams)}曲</strong>
+        </div>
+        <div class="activity-row">
+          <span class="a-date">新曲</span>
+          <span class="a-meta">今月の初披露曲数</span>
+          <strong>${newSongs}曲</strong>
+        </div>
+        <div class="activity-row">
+          <span class="a-date">最終</span>
+          <span class="a-meta">最新歌枠から</span>
+          <strong>${streams[0] ? Math.floor((Date.now() - streams[0].date.getTime()) / 86400000) + '日前' : '—'}</strong>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const top5Html = `
+    <div class="card col-4">
+      <div class="card-title">🏆 TOP5 楽曲</div>
+      <div class="bar-list">
+        ${top5.length ? top5.map((s, i) => topBarRow(s, i, top5Max)).join('') : '<div class="empty-state">曲データなし</div>'}
+      </div>
+    </div>
+  `;
+
+  if (isMobileDashboard()) {
+    panel.innerHTML = `
+      <div class="dashboard-grid" id="dashboard-grid">
+        ${activityHtml}
+        ${top5Html}
+      </div>
+    `;
+    afterInitialWork(() => {
+      if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
+      appendDeferredDashboard(panel, streams, songs, recent, token);
+    });
+    return;
+  }
+
+  const heatmap = buildHeatmap(streams);
+  panel.innerHTML = `
+    <div class="dashboard-grid" id="dashboard-grid">
       <div class="card col-8">
         <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
         ${renderHeatmap(heatmap)}
       </div>
-
-      <div class="card col-4">
-        <div class="card-title">📈 今月の活動</div>
-        <div style="display:grid;gap:10px;">
-          <div class="activity-row">
-            <span class="a-date">配信</span>
-            <span class="a-meta">今月の歌枠数</span>
-            <strong>${countStreamsThisMonth(streams)}回</strong>
-          </div>
-          <div class="activity-row">
-            <span class="a-date">歌唱</span>
-            <span class="a-meta">今月の総歌唱数</span>
-            <strong>${countSongsThisMonth(streams)}曲</strong>
-          </div>
-          <div class="activity-row">
-            <span class="a-date">新曲</span>
-            <span class="a-meta">今月の初披露曲数</span>
-            <strong>${newSongs}曲</strong>
-          </div>
-          <div class="activity-row">
-            <span class="a-date">最終</span>
-            <span class="a-meta">最新歌枠から</span>
-            <strong>${streams[0] ? Math.floor((Date.now() - streams[0].date.getTime()) / 86400000) + '日前' : '—'}</strong>
-          </div>
-        </div>
-      </div>
-
+      ${activityHtml}
       <div class="card col-8">
         <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
         ${chartCanvas('chart-monthly', { class: '' })}
       </div>
-
-      <div class="card col-4">
-        <div class="card-title">🏆 TOP5 楽曲</div>
-        <div class="bar-list">
-          ${top5.map((s, i) => topBarRow(s, i, top5[0].count)).join('')}
-        </div>
-      </div>
-
-      <div class="card col-6">
-        <div class="card-title">🗳 今月のよく歌われた曲 <span class="pill">軽量版</span></div>
-        <div class="bar-list">
-          ${monthlyHits.length ? monthlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, monthlyHits[0].count)).join('') : '<div class="empty-state">今月の歌唱履歴なし</div>'}
-        </div>
-      </div>
-
-      <div class="card col-6">
-        <div class="card-title">🗳 今年のよく歌われた曲 <span class="pill">軽量版</span></div>
-        <div class="bar-list">
-          ${yearlyHits.length ? yearlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, yearlyHits[0].count)).join('') : '<div class="empty-state">今年の歌唱履歴なし</div>'}
-        </div>
-      </div>
-
-      <div class="card col-6">
-        <div class="card-title">💤 久しぶり候補 <span class="pill">180日以上</span></div>
-        <div class="bar-list">
-          ${stalePicks.length ? stalePicks.map((s, i) => topBarRow(s, i, stalePicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
-        </div>
-      </div>
-
-      <div class="card col-6">
-        <div class="card-title">✨ 最近歌った定番 <span class="pill">30日以内</span></div>
-        <div class="bar-list">
-          ${recentPicks.length ? recentPicks.map((s, i) => topBarRow(s, i, recentPicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
-        </div>
-      </div>
-
-      <div class="card col-12">
-        <div class="card-title">📺 直近の歌枠 <span class="pill">最新${recent.length}件</span></div>
-        ${recent.map(s => `
-          <div class="activity-row">
-            <span class="a-date">${fmtDate(s.date)}</span>
-            <span class="a-title">${s.url ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || '配信')}</a>` : escapeHtml(s.title)}</span>
-            <span class="a-meta">🎤 ${s.songs.length}曲</span>
-          </div>
-        `).join('')}
-      </div>
-
+      ${top5Html}
+      ${deferredDashboardHtml(streams, songs, recent)}
     </div>
   `;
 
-  const token = ++chartRenderToken;
+  const monthly = buildMonthly(streams);
   whenChartVisible('chart-monthly', () => {
     if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
     drawMonthlyChart(monthly);
   });
+}
+
+function appendDeferredDashboard(panel, streams, songs, recent, token) {
+  const grid = panel.querySelector('#dashboard-grid');
+  if (!grid || grid.dataset.deferred === '1') return;
+  grid.dataset.deferred = '1';
+  grid.insertAdjacentHTML('beforeend', `
+    <div class="card col-8">
+      <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
+      ${renderHeatmap(buildHeatmap(streams))}
+    </div>
+    <div class="card col-8">
+      <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
+      ${chartCanvas('chart-monthly', { class: '' })}
+    </div>
+    ${deferredDashboardHtml(streams, songs, recent)}
+  `);
+
+  const monthly = buildMonthly(streams);
+  whenChartVisible('chart-monthly', () => {
+    if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
+    drawMonthlyChart(monthly);
+  });
+}
+
+function deferredDashboardHtml(streams, songs, recent) {
+  const stalePicks = songs.filter(s => s.daysSinceLast >= 180).sort((a, b) => b.count - a.count).slice(0, 5);
+  const recentPicks = songs.filter(s => s.daysSinceLast != null && s.daysSinceLast <= 30).sort((a, b) => b.count - a.count).slice(0, 5);
+  const monthlyHits = periodHits(streams, 'month');
+  const yearlyHits = periodHits(streams, 'year');
+  return `
+    <div class="card col-6">
+      <div class="card-title">🗳 今月のよく歌われた曲 <span class="pill">軽量版</span></div>
+      <div class="bar-list">
+        ${monthlyHits.length ? monthlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, monthlyHits[0].count)).join('') : '<div class="empty-state">今月の歌唱履歴なし</div>'}
+      </div>
+    </div>
+
+    <div class="card col-6">
+      <div class="card-title">🗳 今年のよく歌われた曲 <span class="pill">軽量版</span></div>
+      <div class="bar-list">
+        ${yearlyHits.length ? yearlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, yearlyHits[0].count)).join('') : '<div class="empty-state">今年の歌唱履歴なし</div>'}
+      </div>
+    </div>
+
+    <div class="card col-6">
+      <div class="card-title">💤 久しぶり候補 <span class="pill">180日以上</span></div>
+      <div class="bar-list">
+        ${stalePicks.length ? stalePicks.map((s, i) => topBarRow(s, i, stalePicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
+      </div>
+    </div>
+
+    <div class="card col-6">
+      <div class="card-title">✨ 最近歌った定番 <span class="pill">30日以内</span></div>
+      <div class="bar-list">
+        ${recentPicks.length ? recentPicks.map((s, i) => topBarRow(s, i, recentPicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
+      </div>
+    </div>
+
+    <div class="card col-12">
+      <div class="card-title">📺 直近の歌枠 <span class="pill">最新${recent.length}件</span></div>
+      ${recent.map(s => `
+        <div class="activity-row">
+          <span class="a-date">${fmtDate(s.date)}</span>
+          <span class="a-title">${s.url ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || '配信')}</a>` : escapeHtml(s.title)}</span>
+          <span class="a-meta">🎤 ${s.songs.length}曲</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
 function periodHits(streams, period) {

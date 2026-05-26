@@ -502,10 +502,18 @@
 }
 .hero-sub {
   text-align: center;
-  color: var(--primary-strong);
+  color: var(--ink);
   font-size: 12px;
   letter-spacing: 0.1em;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+}
+.hero-description {
+  max-width: 760px;
+  margin: 0 auto 10px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
 }
 .official-links {
   display: flex;
@@ -586,7 +594,7 @@
 }
 .hero-updated {
   text-align: center;
-  color: var(--ink-mute);
+  color: var(--ink);
   font-size: 12px;
   margin-bottom: 22px;
 }
