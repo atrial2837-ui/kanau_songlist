@@ -631,8 +631,14 @@ function initWelcomeTip() {
   const tip = $('#welcome-tip');
   const close = $('#welcome-close');
   if (!tip || !close) return;
+  if (window.matchMedia('(max-width: 760px)').matches) return;
   if (localStorage.getItem('kanau-welcome-tip-dismissed') === '1') return;
-  tip.hidden = false;
+  const show = () => { tip.hidden = false; };
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(show, { timeout: 5000 });
+  } else {
+    window.setTimeout(show, 2500);
+  }
   close.addEventListener('click', () => {
     tip.hidden = true;
     localStorage.setItem('kanau-welcome-tip-dismissed', '1');
