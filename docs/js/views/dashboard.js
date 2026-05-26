@@ -1,34 +1,25 @@
 import { state } from '../state.js';
 import { $, escapeHtml, fmtDate, monthKey, fmtMonth, daysClass } from '../utils.js';
-import { chartCanvas } from '../charts.js';
+import { chartCanvas, createChart, getColors } from '../charts.js';
 
 let chartRenderToken = 0;
 
-function afterInitialPaint(fn) {
-  const run = () => {
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(fn, { timeout: 2500 });
-    } else {
-      window.setTimeout(fn, 1200);
-    }
-  };
-  if (document.readyState === 'complete') {
-    window.setTimeout(run, 500);
-  } else {
-    window.addEventListener('load', () => window.setTimeout(run, 500), { once: true });
-  }
+function afterNextPaint(fn) {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(fn);
+  });
 }
 
 function whenChartVisible(id, fn) {
   const target = document.getElementById(id)?.parentElement;
   if (!target || !('IntersectionObserver' in window)) {
-    afterInitialPaint(fn);
+    afterNextPaint(fn);
     return;
   }
   const observer = new IntersectionObserver((entries) => {
     if (!entries.some(entry => entry.isIntersecting)) return;
     observer.disconnect();
-    afterInitialPaint(fn);
+    afterNextPaint(fn);
   }, { rootMargin: '160px 0px', threshold: 0.01 });
   observer.observe(target);
 }
@@ -215,8 +206,7 @@ function buildMonthly(streams) {
   return out;
 }
 
-async function drawMonthlyChart(monthly) {
-  const { createChart, getColors } = await import('../charts.js');
+function drawMonthlyChart(monthly) {
   const c = getColors();
   createChart('chart-monthly', 'bar', {
     labels: monthly.map(m => fmtMonth(m.date)),
