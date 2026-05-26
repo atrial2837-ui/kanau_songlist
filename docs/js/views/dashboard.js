@@ -4,22 +4,28 @@ import { chartCanvas, createChart, getColors } from '../charts.js';
 
 let chartRenderToken = 0;
 
-function afterNextPaint(fn) {
+function afterInitialWork(fn) {
   window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(fn);
+    window.setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(fn, { timeout: 1200 });
+      } else {
+        window.setTimeout(fn, 350);
+      }
+    }, 250);
   });
 }
 
 function whenChartVisible(id, fn) {
   const target = document.getElementById(id)?.parentElement;
   if (!target || !('IntersectionObserver' in window)) {
-    afterNextPaint(fn);
+    afterInitialWork(fn);
     return;
   }
   const observer = new IntersectionObserver((entries) => {
     if (!entries.some(entry => entry.isIntersecting)) return;
     observer.disconnect();
-    afterNextPaint(fn);
+    afterInitialWork(fn);
   }, { rootMargin: '160px 0px', threshold: 0.01 });
   observer.observe(target);
 }
