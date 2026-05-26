@@ -752,4 +752,14 @@ onRerenderNeeded(() => {
   if (state.activeTab === 'dashboard' || state.activeTab === 'analytics') renderTab();
 });
 
-init();
+function startApp() {
+  window.requestAnimationFrame(() => {
+    window.setTimeout(init, 0);
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp, { once: true });
+} else {
+  startApp();
+}
