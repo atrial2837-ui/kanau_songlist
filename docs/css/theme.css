@@ -115,10 +115,26 @@
 
 /* === Reset / base === */
 
+@font-face {
+  font-family: "Kanau Noto Sans JP";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("../assets/fonts/noto-sans-jp-kanau-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Kanau Noto Sans JP";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("../assets/fonts/noto-sans-jp-kanau-700.woff2") format("woff2");
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
-  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+  font-family: "Kanau Noto Sans JP", "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Yu Gothic", "Meiryo", system-ui, sans-serif;
   background:
     radial-gradient(circle at 15% 5%, var(--bg-radial-1) 0%, transparent 38%),
     radial-gradient(circle at 85% 95%, var(--bg-radial-2) 0%, transparent 32%),
