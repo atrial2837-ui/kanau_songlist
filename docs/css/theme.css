@@ -123,14 +123,6 @@
   src: url("../assets/fonts/noto-sans-jp-kanau-400.woff2") format("woff2");
 }
 
-@font-face {
-  font-family: "Kanau Noto Sans JP";
-  font-style: normal;
-  font-display: swap;
-  font-weight: 700;
-  src: url("../assets/fonts/noto-sans-jp-kanau-700.woff2") format("woff2");
-}
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
@@ -592,7 +584,7 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   -webkit-backdrop-filter: saturate(140%) blur(10px);
 }
 .page-top-toast[hidden] {
-  display: inline-flex;
+  display: none;
 }
 .page-top-toast span {
   display: inline-flex;
