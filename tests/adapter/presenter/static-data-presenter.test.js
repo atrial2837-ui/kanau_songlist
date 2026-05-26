@@ -146,7 +146,7 @@ describe('formatStaticDataFiles', () => {
     assert.equal(songs.length, 1);
     assert.equal(songs[0].title, 'テスト曲');
     assert.equal(songs[0].artist, 'テストアーティスト');
-    assert.equal(songs[0].keyText, '+2');
+    assert.equal(songs[0].displayKey, '+2');
   });
 
   it('streams.generatedAt が入力から引き継がれる', () => {
@@ -186,6 +186,17 @@ describe('formatStaticDataFiles', () => {
     assert.ok(!('daysSinceLast' in song), 'daysSinceLast は streams から復元するため含まれない');
   });
 
+  it('静的版: songs[] はクライアントで復元できる表示用フィールドを含まない', () => {
+    const result = formatStaticDataFiles(makeStaticData());
+    const song = result.songs.channels.new[0];
+
+    assert.ok(!('sourceIndex' in song), 'sourceIndex は公開表示で使わないため含まれない');
+    assert.ok(!('keyText' in song), 'keyText は displayKey から復元するため含まれない');
+    assert.ok(!('genreText' in song), 'genreText は genre から復元するため含まれない');
+    assert.ok(!('channels' in song), 'channels はチャンネル別ファイル構造から復元するため含まれない');
+    assert.ok(!('rank' in song), 'rank は count から復元するため含まれない');
+  });
+
   it('streams の他のフィールドは動的 API 版と同一', () => {
     const result = formatStaticDataFiles(makeStaticData());
     const stream = result.streams.channels.new[0];
@@ -198,11 +209,11 @@ describe('formatStaticDataFiles', () => {
     assert.equal(stream.dayOfWeek, 2);
   });
 
-  it('songs[].keyText が空のとき空文字列を返す', () => {
+  it('songs[].displayKey が空のとき空文字列を返す', () => {
     const staticData = makeStaticData();
     staticData.songs.channels.new = [makeSong({ displayKey: '', keyText: '' })];
     const result = formatStaticDataFiles(staticData);
-    assert.equal(result.songs.channels.new[0].keyText, '');
+    assert.equal(result.songs.channels.new[0].displayKey, '');
   });
 
   it('複数チャンネルがあれば全チャンネルが含まれる', () => {

@@ -1,4 +1,5 @@
 import { normalize } from './utils.js';
+import { ensureSongsTags } from './data.js';
 
 const fuseOptions = {
   keys: [
@@ -32,6 +33,7 @@ function loadFuse() {
 }
 
 export function buildIndex(songs) {
+  ensureSongsTags(songs);
   songRef = songs;
   fuse = null;
   const token = ++indexToken;
@@ -149,6 +151,7 @@ export function search(rawQuery, fallbackSongs) {
   const songs = songRef || fallbackSongs || [];
   const q = (rawQuery || '').trim();
   if (!q) return { results: songs, tokens: [] };
+  ensureSongsTags(songs);
   const { tokens, filters } = parseQuery(q);
   let pool = applyFieldFilters(songs, filters);
   if (!tokens.length) return { results: pool, tokens: [] };

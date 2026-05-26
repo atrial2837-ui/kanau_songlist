@@ -168,6 +168,29 @@ function trendLabel(song) {
   return '通常';
 }
 
+export function ensureSongTags(song) {
+  if (!song || song.__tagsReady) return song;
+  song.seasonTags = inferSeasonTags(song);
+  song.seasonText = song.seasonTags.join(' ');
+  song.moodTags = inferMoodTags(song);
+  song.moodText = song.moodTags.join(' ');
+  song.trend = trendLabel(song);
+  song.singerTags = singerTags(song);
+  song.tagText = [
+    song.seasonText,
+    song.moodText,
+    song.singerTags.join(' '),
+    song.trend,
+  ].filter(Boolean).join(' ');
+  song.__tagsReady = true;
+  return song;
+}
+
+export function ensureSongsTags(songs) {
+  for (const song of songs || []) ensureSongTags(song);
+  return songs || [];
+}
+
 function hydrateDataset(dataset) {
   if (!dataset) return null;
 
@@ -227,23 +250,19 @@ function hydrateDataset(dataset) {
   for (const song of dataset.songs) {
     const refs = refsBySongKey.get(song.key) || [];
     const dates = refs.map((stream) => stream.date).filter(Boolean).sort((a, b) => b - a);
-    song.seasonTags = inferSeasonTags(song);
-    song.seasonText = song.seasonTags.join(' ');
-    song.moodTags = inferMoodTags(song);
-    song.moodText = song.moodTags.join(' ');
     song.streamRefs = refs;
     song.dates = dates;
     song.lastSung = dates[0] || null;
     song.firstSung = dates[dates.length - 1] || null;
     song.daysSinceLast = daysSince(song.lastSung);
-    song.trend = trendLabel(song);
-    song.singerTags = singerTags(song);
-    song.tagText = [
-      song.seasonText,
-      song.moodText,
-      song.singerTags.join(' '),
-      song.trend,
-    ].filter(Boolean).join(' ');
+    song.seasonTags = [];
+    song.seasonText = '';
+    song.moodTags = [];
+    song.moodText = '';
+    song.singerTags = [];
+    song.tagText = '';
+    song.trend = '';
+    song.__tagsReady = false;
   }
   assignRanks(dataset.songs);
   if (!dataset.artists.length) {
@@ -307,9 +326,13 @@ async function loadStaticSplit(metaPayload = null) {
     ...Object.keys(streams.channels || {}),
   ]);
   for (const code of codes) {
+    const channelSongs = songs.channels?.[code] || [];
+    for (const song of channelSongs) {
+      if (!Array.isArray(song.channels)) song.channels = [code];
+    }
     channels[code] = {
       stats: channelStatsFromMeta(meta, code),
-      songs: songs.channels?.[code] || [],
+      songs: channelSongs,
       streams: streams.channels?.[code] || [],
       orphans: [],
       artists: [],

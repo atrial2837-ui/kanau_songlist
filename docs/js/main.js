@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { loadAll } from './data.js';
+import { ensureSongTags, loadAll } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
@@ -188,6 +188,7 @@ async function renderTab(tab = state.activeTab, options = {}) {
   try {
     const renderer = await getRenderer(tab);
     if (token !== renderToken || tab !== state.activeTab || !state.data) return;
+    if (tab === 'songs') buildIndex(state.data.songs || []);
     renderer();
   } catch (error) {
     console.error(`[${tab}] render failed`, error);
@@ -235,7 +236,6 @@ function switchChannel(channelId, options = {}) {
     state.songsQuery = '';
     state.songsGenre = 'all';
   }
-  buildIndex(ds.songs || []);
   destroyAllCharts();
   $$('#channel-switch [data-channel]').forEach(b => b.classList.toggle('active', b.dataset.channel === channelId));
   updateMobileMenuLabel();
@@ -430,6 +430,7 @@ function openSongDetail(key) {
   const body = $('#song-modal-body');
   const title = $('#song-modal-title');
   if (!song || !modal || !body || !title) return;
+  ensureSongTags(song);
 
   title.textContent = song.title;
   const refs = (song.streamRefs || []).slice(0, 8).map(ref => ({

@@ -1,4 +1,5 @@
 import { state } from '../state.js';
+import { ensureSongsTags } from '../data.js';
 import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText } from '../utils.js';
 import { search, matchReasons } from '../search.js';
 import { writeUrlState } from '../url-state.js';
@@ -9,6 +10,7 @@ let currentFiltered = [];
 
 export function renderSongs() {
   loadSetlist();
+  ensureSongsTags(state.data?.songs || []);
   const panel = $('#panel-songs');
   panel.innerHTML = `
     <div class="section-header">

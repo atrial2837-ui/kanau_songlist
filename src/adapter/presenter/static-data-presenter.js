@@ -68,17 +68,12 @@ function formatStaticStreamRecord(stream) {
  */
 function formatStaticSongRecord(song) {
   return {
-    sourceIndex: song.sourceIndex,
     title: song.title,
     artist: song.artist,
     count: song.count,
     key: song.key,
     displayKey: song.displayKey,
-    keyText: song.keyText,
     genre: song.genre,
-    genreText: song.genreText,
-    channels: song.channels,
-    rank: song.rank,
   };
 }
 
