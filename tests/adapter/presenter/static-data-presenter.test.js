@@ -162,18 +162,28 @@ describe('formatStaticDataFiles', () => {
     assert.equal(streams[0].date, '2026-05-19');
   });
 
-  it('静的版: streams[].songs は { key, raw } のみを含む (title/artist を除く)', () => {
+  it('静的版: streams[].songs は { key } のみを含む (raw/title/artist を除く)', () => {
     // 根拠: admin-server/server.js:619-625 / tools/generate_static_data.mjs:113-118
     // 動的 API 版 (data.js:100-109) では title/artist を含む
     const result = formatStaticDataFiles(makeStaticData());
     const songRef = result.streams.channels.new[0].songs[0];
 
     assert.ok('key' in songRef);
-    assert.ok('raw' in songRef);
+    assert.ok(!('raw' in songRef), 'raw は静的版に含まれない');
     assert.ok(!('title' in songRef), 'title は静的版に含まれない');
     assert.ok(!('artist' in songRef), 'artist は静的版に含まれない');
     assert.equal(songRef.key, 'test_key');
-    assert.equal(songRef.raw, 'テスト曲');
+  });
+
+  it('静的版: songs[] は履歴派生フィールドを含まない', () => {
+    const result = formatStaticDataFiles(makeStaticData());
+    const song = result.songs.channels.new[0];
+
+    assert.ok(!('dates' in song), 'dates は streams から復元するため含まれない');
+    assert.ok(!('streamRefs' in song), 'streamRefs は streams から復元するため含まれない');
+    assert.ok(!('lastSung' in song), 'lastSung は streams から復元するため含まれない');
+    assert.ok(!('firstSung' in song), 'firstSung は streams から復元するため含まれない');
+    assert.ok(!('daysSinceLast' in song), 'daysSinceLast は streams から復元するため含まれない');
   });
 
   it('streams の他のフィールドは動的 API 版と同一', () => {

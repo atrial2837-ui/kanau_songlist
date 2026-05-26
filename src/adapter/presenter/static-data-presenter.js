@@ -8,7 +8,7 @@
  *   - tools/generate_static_data.mjs:252-280 (main)
  *
  * 既存実装との差分:
- *   - 静的版の streams[].songs は { key, raw } のみ (title/artist を含まない)
+ *   - 静的版の streams[].songs は { key } のみ (raw/title/artist を含まない)
  *     根拠: admin-server/server.js:619-625 (buildSiteDataset)
  *            tools/generate_static_data.mjs:113-118 (buildDataset)
  *
@@ -35,7 +35,7 @@
 /**
  * 静的版 StreamRecord を整形する。
  *
- * songs フィールドは { key, raw } のみを含む (title/artist は除く)。
+ * songs フィールドは { key } のみを含む (raw/title/artist は除く)。
  * 根拠: admin-server/server.js:619-625 / tools/generate_static_data.mjs:113-118
  *
  * @param {EnrichedStream} stream
@@ -50,7 +50,7 @@ function formatStaticStreamRecord(stream) {
     title: stream.title,
     url: stream.url,
     songCount: stream.songCount,
-    songs: stream.songs.map(({ key, raw }) => ({ key, raw })),
+    songs: stream.songs.map(({ key }) => ({ key })),
     monthKey: stream.monthKey,
     year: stream.year,
     month: stream.month,
@@ -61,7 +61,7 @@ function formatStaticStreamRecord(stream) {
 /**
  * 静的版 SongRecord を整形する。
  *
- * フィールドは動的 API と同一 (差分なし)。
+ * クライアント側で streams から復元できる履歴フィールドは含めない。
  *
  * @param {EnrichedSong} song
  * @returns {object}
@@ -78,11 +78,6 @@ function formatStaticSongRecord(song) {
     genre: song.genre,
     genreText: song.genreText,
     channels: song.channels,
-    dates: song.dates,
-    streamRefs: song.streamRefs,
-    lastSung: song.lastSung,
-    firstSung: song.firstSung,
-    daysSinceLast: song.daysSinceLast,
     rank: song.rank,
   };
 }
@@ -93,7 +88,7 @@ function formatStaticSongRecord(song) {
  * generateStaticData の出力を docs/data/{meta,songs,streams}.json と同じ構造に整形する。
  *
  * generateStaticData は既に 3 ファイル分の構造を返しているが、
- * 静的版では StreamRecord.songs を { key, raw } のみに絞り込む必要がある。
+ * 静的版では StreamRecord.songs を { key } のみに絞り込む必要がある。
  *
  * 既存実装 (admin-server/server.js:758-798) と同じ構造:
  *   meta.json:    { generatedAt, channels: { [code]: ChannelStats }, combined: ChannelStats }
