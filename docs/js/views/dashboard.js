@@ -5,20 +5,15 @@ import { chartCanvas, createChart, getColors } from '../charts.js';
 let chartRenderToken = 0;
 
 function afterInitialWork(fn) {
-  const schedule = () => window.requestAnimationFrame(() => {
+  window.requestAnimationFrame(() => {
     window.setTimeout(() => {
       if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(fn, { timeout: 3000 });
+        window.requestIdleCallback(fn, { timeout: 1200 });
       } else {
-        window.setTimeout(fn, 1200);
+        window.setTimeout(fn, 350);
       }
-    }, 900);
+    }, 250);
   });
-  if (document.readyState === 'complete') {
-    schedule();
-  } else {
-    window.addEventListener('load', schedule, { once: true });
-  }
 }
 
 function whenChartVisible(id, fn) {
@@ -31,7 +26,7 @@ function whenChartVisible(id, fn) {
     if (!entries.some(entry => entry.isIntersecting)) return;
     observer.disconnect();
     afterInitialWork(fn);
-  }, { rootMargin: '0px 0px', threshold: 0.01 });
+  }, { rootMargin: '160px 0px', threshold: 0.01 });
   observer.observe(target);
 }
 
