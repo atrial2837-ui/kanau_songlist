@@ -18,6 +18,26 @@ function parseApiDate(value) {
   return date;
 }
 
+function parseGeneratedAt(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+  return parseApiDate(value);
+}
+
+function withGeneratedAt(stats, generatedAt) {
+  const source = stats || {};
+  return {
+    ...source,
+    dataGeneratedAt: generatedAt || source.dataGeneratedAt || null,
+    dataGeneratedDate: parseGeneratedAt(generatedAt || source.dataGeneratedAt),
+  };
+}
+
 function assignRanks(songs) {
   const sorted = [...songs].sort((a, b) => b.count - a.count);
   let prev = null;
@@ -295,12 +315,12 @@ async function fetchJson(url) {
 
 function channelStatsFromMeta(meta, code) {
   const item = meta.channels?.[code] || {};
-  return item.stats || item;
+  return withGeneratedAt(item.stats || item, meta.generatedAt);
 }
 
 function combinedStatsFromMeta(meta) {
   const item = meta.combined || {};
-  return item.stats || item;
+  return withGeneratedAt(item.stats || item, meta.generatedAt);
 }
 
 async function loadStaticSplit(metaPayload = null) {
@@ -341,6 +361,8 @@ async function loadStaticSplit(metaPayload = null) {
   return hydratePayload({
     channels,
     combined: { stats: combinedStatsFromMeta(meta) },
+    generatedAt: meta.generatedAt || null,
+    dataGeneratedDate: parseGeneratedAt(meta.generatedAt),
   });
 }
 
@@ -349,7 +371,7 @@ async function loadStaticMeta() {
   const channels = {};
   for (const [code, stats] of Object.entries(meta.channels || {})) {
     channels[code] = hydrateDataset({
-      stats,
+      stats: withGeneratedAt(stats, meta.generatedAt),
       songs: [],
       streams: [],
       orphans: [],
@@ -357,7 +379,7 @@ async function loadStaticMeta() {
     });
   }
   const combined = hydrateDataset({
-    stats: meta.combined || {},
+    stats: withGeneratedAt(meta.combined || {}, meta.generatedAt),
     songs: [],
     streams: [],
     orphans: [],
@@ -366,6 +388,8 @@ async function loadStaticMeta() {
   return {
     channels,
     combined,
+    generatedAt: meta.generatedAt || null,
+    dataGeneratedDate: parseGeneratedAt(meta.generatedAt),
     fullLoaded: false,
   };
 }

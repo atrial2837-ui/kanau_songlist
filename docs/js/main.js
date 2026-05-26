@@ -537,13 +537,14 @@ function renderHero() {
   const { stats, streams = [] } = state.data;
   const latest = streams[0]?.date || null;
   const dSinceLatest = daysSince(latest);
-  const dSinceUpdate = daysSince(stats.updateDate);
+  const dataGeneratedDate = stats.dataGeneratedDate || state.channelData?.dataGeneratedDate || null;
+  const dSinceUpdate = daysSince(dataGeneratedDate);
   const chLabel = stats.channelLabel || stats.channelId || '';
   const chBadge = chLabel ? `<span class="badge accent" style="margin-right:8px;">${escapeHtml(chLabel)}</span>` : '';
 
   $('#updated-info').innerHTML =
     chBadge +
-    `スプレッドシート更新日：<strong>${fmtDate(stats.updateDate) || '—'}</strong>` +
+    `データ更新日：<strong>${fmtDate(dataGeneratedDate) || '—'}</strong>` +
     (dSinceUpdate != null ? ` <span class="badge">${dSinceUpdate}日前</span>` : '');
 
   $('#stats-grid').innerHTML = `
