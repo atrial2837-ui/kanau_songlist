@@ -46,7 +46,7 @@ export class FetchAdminApiGateway {
       body: body == null ? undefined : JSON.stringify(body),
     });
 
-    const data = await response.json();
+    const data = await Response.prototype.json.call(response);
     if (!response.ok) {
       throw new Error(data.error || `Admin API ${path} failed: HTTP ${response.status}`);
     }
@@ -71,7 +71,7 @@ export class FetchAdminApiGateway {
       method: 'GET',
       headers,
     });
-    const data = await response.json();
+    const data = await Response.prototype.json.call(response);
     if (!response.ok) {
       throw new Error(data.error || `Admin API search failed: HTTP ${response.status}`);
     }
