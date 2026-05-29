@@ -1,43 +1,16 @@
-/**
- * @module infra/github/fetch-github-actions-gateway
- * @description fetch を使った GitHubActionsGateway の本番実装。
- */
-
-/**
- * fetch を使用して GitHub Actions workflow_dispatch を発火させる Gateway。
- *
- * @implements {import('../../domain/port/gateways/github-actions-gateway.js').GitHubActionsGateway}
- */
 export class FetchGitHubActionsGateway {
-  /**
-   * @param {{
-   *   token: string,
-   *   fetchImpl?: typeof fetch
-   * }} config
-   * @throws {Error} token が未提供の場合
-   */
-  constructor({ token, fetchImpl = fetch }) {
+  constructor({ token, fetchImpl }) {
     if (!token) {
       throw new Error('GitHub Actions token is required');
     }
+
     this.token = token;
-    this.fetch = fetchImpl;
+    this.fetch = fetchImpl || ((url, options) => globalThis.fetch(url, options));
   }
 
-  /**
-   * GitHub Actions workflow_dispatch イベントを発火させる。
-   *
-   * 根拠: functions/api/admin/[[path]].js:427-456
-   *   POST https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow}/dispatches
-   *   headers: { authorization: `Bearer ${token}`, ... }
-   *   body: { ref, inputs: { ... } }
-   *
-   * @param {import('../../domain/port/gateways/github-actions-gateway.js').WorkflowDispatchInput} input
-   * @returns {Promise<void>}
-   * @throws {Error} HTTP 非 2xx の場合
-   */
   async dispatchWorkflow({ owner, repo, workflow, ref, inputs = {} }) {
     const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`;
+
     const response = await this.fetch(url, {
       method: 'POST',
       headers: {
