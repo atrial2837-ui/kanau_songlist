@@ -16,12 +16,15 @@ export class FetchGitHubActionsGateway {
    * }} config
    * @throws {Error} token が未提供の場合
    */
-  constructor({ token, fetchImpl = fetch }) {
+  constructor({ token, fetchImpl }) {
     if (!token) {
       throw new Error('GitHub Actions token is required');
     }
     this.token = token;
-    this.fetch = fetchImpl;
+    // Bind fetch to globalThis to avoid "Illegal invocation" errors in
+    // environments where the global fetch function expects a specific `this`
+    // context (e.g. Cloudflare Workers runtime).
+    this.fetch = fetchImpl ? fetchImpl.bind(globalThis) : fetch.bind(globalThis);
   }
 
   /**
