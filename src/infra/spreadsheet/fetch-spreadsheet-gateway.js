@@ -10,10 +10,13 @@
  */
 export class FetchSpreadsheetGateway {
   /**
-   * @param {typeof fetch} [fetchImpl=fetch] DI 用 fetch 実装 (テスト時は mock)
+   * @param {typeof fetch} [fetchImpl] DI 用 fetch 実装 (テスト時は mock)
    */
-  constructor(fetchImpl = fetch) {
-    this.fetch = fetchImpl;
+  constructor(fetchImpl) {
+    // Bind fetch to globalThis to avoid "Illegal invocation" errors in
+    // environments where the global fetch function expects a specific `this`
+    // context (e.g. Cloudflare Workers runtime).
+    this.fetch = fetchImpl ? fetchImpl.bind(globalThis) : fetch.bind(globalThis);
   }
 
   /**
