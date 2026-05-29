@@ -38,7 +38,7 @@ export class D1RestClient {
       },
       body: JSON.stringify({ sql, params: bindings }),
     });
-    const payload = await response.json().catch(() => ({}));
+    const payload = await Response.prototype.json.call(response).catch(() => ({}));
     if (!response.ok || payload.success === false) {
       const message =
         payload.errors?.map((item) => item.message).join('; ') ||
