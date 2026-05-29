@@ -11,7 +11,8 @@ export async function onRequest({ request, env, params }) {
     url.pathname = '/' + remainder;
     const fixedRequest = new Request(url.toString(), request);
 
-    return await createPagesAdminRouter(env).dispatch(fixedRequest, env);
+    const router = createPagesAdminRouter(env);
+    return await router.dispatch(fixedRequest, env);
   } catch (error) {
     return mapErrorToResponse(error);
   }
