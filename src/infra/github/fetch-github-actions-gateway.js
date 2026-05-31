@@ -21,10 +21,13 @@ export class FetchGitHubActionsGateway {
       throw new Error('GitHub Actions token is required');
     }
     this.token = token;
-    // Bind fetch to globalThis to avoid "Illegal invocation" errors in
-    // environments where the global fetch function expects a specific `this`
-    // context (e.g. Cloudflare Workers runtime).
-    this.fetch = fetchImpl ? fetchImpl.bind(globalThis) : fetch.bind(globalThis);
+    // Wrap fetch in an arrow function to avoid "Illegal invocation" errors.
+    // `bind(globalThis)` breaks Node.js 20's undici-based fetch (used in
+    // GitHub Actions), while a bare `this.fetch = fetch` breaks in Cloudflare
+    // Workers. The arrow wrapper is safe in both environments.
+    this.fetch = fetchImpl
+      ? (...args) => fetchImpl(...args)
+      : (...args) => fetch(...args);
   }
 
   /**
