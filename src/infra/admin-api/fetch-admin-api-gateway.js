@@ -25,9 +25,7 @@ export class FetchAdminApiGateway {
     // `bind(globalThis)` breaks Node.js 20's undici-based fetch (used in
     // GitHub Actions), while a bare `this.fetch = fetch` breaks in Cloudflare
     // Workers. The arrow wrapper is safe in both environments.
-    this.fetch = fetchImpl
-      ? (...args) => fetchImpl(...args)
-      : (...args) => fetch(...args);
+    this.fetch = fetchImpl || ((...args) => fetch(...args));
   }
 
   /**
@@ -52,7 +50,7 @@ export class FetchAdminApiGateway {
       body: body == null ? undefined : JSON.stringify(body),
     });
 
-    const data = await Response.prototype.json.call(response);
+    const data = await response.json();
     if (!response.ok) {
       throw new Error(data.error || `Admin API ${path} failed: HTTP ${response.status}`);
     }
@@ -77,7 +75,7 @@ export class FetchAdminApiGateway {
       method: 'GET',
       headers,
     });
-    const data = await Response.prototype.json.call(response);
+    const data = await response.json();
     if (!response.ok) {
       throw new Error(data.error || `Admin API search failed: HTTP ${response.status}`);
     }
