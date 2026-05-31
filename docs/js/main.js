@@ -318,11 +318,17 @@ function initMobileMenu() {
 function initPageTopToast() {
   const button = $('#page-top-toast');
   if (!button) return;
+  const image = button.querySelector('img[data-src]');
   let ticking = false;
   const threshold = 420;
+  const loadImage = () => {
+    if (!image || image.src) return;
+    image.src = image.dataset.src || '';
+  };
   const update = () => {
     ticking = false;
     const visible = window.scrollY > threshold;
+    if (visible) loadImage();
     button.hidden = !visible;
     button.classList.toggle('is-visible', visible);
     button.setAttribute('aria-hidden', String(!visible));
