@@ -1,6 +1,8 @@
-import { state } from '../state.js';
-import { $, escapeHtml, fmtDate, monthKey, fmtMonth, daysClass } from '../utils.js';
+import { state } from '../store.js';
+import { $, escapeHtml, fmtDate, fmtMonth, daysSince, daysClass, monthKey } from '../utils.js';
 import { chartCanvas, createChart, getColors } from '../charts.js';
+import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsThisMonth, buildMonthly, buildHeatmap, heatLevel, isoDate } from '../../../src/domain/analytics/dashboard.js';
+import { getToday } from '../store.js';
 
 let chartRenderToken = 0;
 
@@ -45,7 +47,8 @@ export function renderDashboard() {
   const top5 = sorted.slice(0, 5);
   const top5Max = top5[0]?.count || 1;
   const recent = streams.slice(0, 5);
-  const newSongs = countNewSongsThisMonth(songs);
+  const today = getToday();
+  const newSongs = countNewSongsThisMonth(songs, today);
   const panel = $('#panel-dashboard');
   const token = ++chartRenderToken;
 
@@ -56,12 +59,12 @@ export function renderDashboard() {
         <div class="activity-row">
           <span class="a-date">配信</span>
           <span class="a-meta">今月の歌枠数</span>
-          <strong>${countStreamsThisMonth(streams)}回</strong>
+          <strong>${countStreamsThisMonth(streams, today)}回</strong>
         </div>
         <div class="activity-row">
           <span class="a-date">歌唱</span>
           <span class="a-meta">今月の総歌唱数</span>
-          <strong>${countSongsThisMonth(streams)}曲</strong>
+          <strong>${countSongsThisMonth(streams, today)}曲</strong>
         </div>
         <div class="activity-row">
           <span class="a-date">新曲</span>
@@ -71,7 +74,7 @@ export function renderDashboard() {
         <div class="activity-row">
           <span class="a-date">最終</span>
           <span class="a-meta">最新歌枠から</span>
-          <strong>${streams[0] ? Math.floor((Date.now() - streams[0].date.getTime()) / 86400000) + '日前' : '—'}</strong>
+          <strong>${streams[0] ? `${daysSince(streams[0].date)}日前` : '—'}</strong>
         </div>
       </div>
     </div>
@@ -100,7 +103,7 @@ export function renderDashboard() {
     return;
   }
 
-  const heatmap = buildHeatmap(streams);
+  const heatmap = buildHeatmap(streams, today);
   panel.innerHTML = `
     <div class="dashboard-grid" id="dashboard-grid">
       <div class="card col-8">
@@ -131,7 +134,7 @@ function appendDeferredDashboard(panel, streams, songs, recent, token) {
   grid.insertAdjacentHTML('beforeend', `
     <div class="card col-8">
       <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
-      ${renderHeatmap(buildHeatmap(streams))}
+      ${renderHeatmap(buildHeatmap(streams, getToday()))}
     </div>
     <div class="card col-8">
       <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
@@ -150,8 +153,8 @@ function appendDeferredDashboard(panel, streams, songs, recent, token) {
 function deferredDashboardHtml(streams, songs, recent) {
   const stalePicks = songs.filter(s => s.daysSinceLast >= 180).sort((a, b) => b.count - a.count).slice(0, 5);
   const recentPicks = songs.filter(s => s.daysSinceLast != null && s.daysSinceLast <= 30).sort((a, b) => b.count - a.count).slice(0, 5);
-  const monthlyHits = periodHits(streams, 'month');
-  const yearlyHits = periodHits(streams, 'year');
+  const monthlyHits = periodHits(streams, 'month', getToday());
+  const yearlyHits = periodHits(streams, 'year', getToday());
   return `
     <div class="card col-6">
       <div class="card-title">🗳 今月のよく歌われた曲 <span class="pill">軽量版</span></div>
@@ -194,10 +197,10 @@ function deferredDashboardHtml(streams, songs, recent) {
   `;
 }
 
-function periodHits(streams, period) {
-  const now = new Date();
-  const month = monthKey(now);
-  const year = now.getFullYear();
+function periodHitsLocal(streams, period) {
+  const today = getToday();
+  const month = monthKey(today);
+  const year = today.getFullYear();
   const counts = new Map();
   for (const stream of streams) {
     const inPeriod = period === 'month'
@@ -228,42 +231,20 @@ function topBarRow(s, i, max) {
   `;
 }
 
-function countStreamsThisMonth(streams) {
-  const now = new Date();
-  const ym = monthKey(now);
+function countStreamsThisMonthLocal(streams) {
+  const today = getToday();
+  const ym = monthKey(today);
   return streams.filter(s => s.monthKey === ym).length;
 }
-function countSongsThisMonth(streams) {
-  const now = new Date();
-  const ym = monthKey(now);
+function countSongsThisMonthLocal(streams) {
+  const today = getToday();
+  const ym = monthKey(today);
   return streams.filter(s => s.monthKey === ym).reduce((n, s) => n + s.songs.length, 0);
 }
-function countNewSongsThisMonth(songs) {
-  const now = new Date();
-  const ym = monthKey(now);
+function countNewSongsThisMonthLocal(songs) {
+  const today = getToday();
+  const ym = monthKey(today);
   return songs.filter(s => s.firstSung && monthKey(s.firstSung) === ym).length;
-}
-
-function buildMonthly(streams) {
-  const months = new Map();
-  for (const s of streams) {
-    if (!months.has(s.monthKey)) months.set(s.monthKey, { key: s.monthKey, date: new Date(s.date.getFullYear(), s.date.getMonth(), 1), streams: 0, songs: 0 });
-    const m = months.get(s.monthKey);
-    m.streams += 1;
-    m.songs += s.songs.length;
-  }
-  // fill gaps
-  const all = Array.from(months.values()).sort((a, b) => a.date - b.date);
-  if (!all.length) return [];
-  const out = [];
-  let cur = new Date(all[0].date);
-  const end = new Date(all[all.length - 1].date);
-  while (cur <= end) {
-    const k = monthKey(cur);
-    out.push(months.get(k) || { key: k, date: new Date(cur), streams: 0, songs: 0 });
-    cur.setMonth(cur.getMonth() + 1);
-  }
-  return out;
 }
 
 function drawMonthlyChart(monthly) {
@@ -301,9 +282,8 @@ function drawMonthlyChart(monthly) {
   });
 }
 
-function buildHeatmap(streams) {
-  // last 365 days
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+function buildHeatmapLocal(streams) {
+  const today = getToday();
   const start = new Date(today); start.setDate(start.getDate() - 364);
   const cellByISO = new Map();
   for (const s of streams) {
@@ -312,7 +292,6 @@ function buildHeatmap(streams) {
     cellByISO.set(k, (cellByISO.get(k) || 0) + s.songs.length);
   }
   const cells = [];
-  // pad to align with Sunday at top
   const startDow = start.getDay();
   const cur = new Date(start); cur.setDate(cur.getDate() - startDow);
   for (let i = 0; i < 53 * 7; i++) {
@@ -328,11 +307,7 @@ function buildHeatmap(streams) {
   return cells;
 }
 
-function isoDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-function heatLevel(v) {
+function heatLevelLocal(v) {
   if (v <= 0) return '';
   if (v < 8) return 'l1';
   if (v < 16) return 'l2';
@@ -345,7 +320,7 @@ function renderHeatmap(cells) {
   const rowsHtml = dow.map(d => `<div>${d}</div>`).join('');
   const cellsHtml = cells.map(c => {
     if (!c.inRange) return `<div class="heatmap-cell" style="visibility:hidden"></div>`;
-    const lvl = heatLevel(c.value);
+    const lvl = heatLevelLocal(c.value);
     return `<div class="heatmap-cell ${lvl}" title="${c.iso}: ${c.value}曲"></div>`;
   }).join('');
   return `

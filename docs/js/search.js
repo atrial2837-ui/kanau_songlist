@@ -1,5 +1,5 @@
-import { normalize } from './utils.js';
-import { ensureSongsTags } from './data.js';
+import { normalize, parseQuery, matchReasons } from '../../src/domain/index.js';
+import { ensureSongsTags } from './tagging.js';
 
 const fuseOptions = {
   keys: [
@@ -32,6 +32,8 @@ function loadFuse() {
   return fusePromise;
 }
 
+export { parseQuery, matchReasons };
+
 export function buildIndex(songs) {
   ensureSongsTags(songs);
   songRef = songs;
@@ -53,7 +55,7 @@ export function buildIndex(songs) {
 
 const FIELD_RE = /(?<key>title|artist|genre|tag|mood|season|key|count|last|days)\s*(?<op>:|<=|>=|=|<|>)\s*(?<val>"[^"]*"|\S+)/gi;
 
-function parseQuery(raw) {
+function parseQueryLocal(raw) {
   const filters = [];
   let rest = raw;
   rest = rest.replace(FIELD_RE, (m, key, op, val, ..._args) => {
@@ -179,24 +181,4 @@ export function search(rawQuery, fallbackSongs) {
     : new fuseCtor(pool, fuseOptions);
   const fuseResults = fuseLocal.search(phrase);
   return { results: fuseResults.map(r => r.item), tokens };
-}
-
-export function matchReasons(song, query) {
-  const q = normalize(query).toLowerCase();
-  if (!q) return [];
-  const { tokens, filters } = parseQuery(q);
-  const reasons = [];
-  for (const f of filters) {
-    if (!reasons.includes(f.key)) reasons.push(f.key);
-  }
-  const phrase = tokens.join(' ');
-  if (phrase) {
-    const contains = (value) => normalize(value).toLowerCase().includes(phrase);
-    if (contains(song.title)) reasons.push('曲名');
-    if (contains(song.artist)) reasons.push('アーティスト');
-    if (contains(song.genreText || song.genre)) reasons.push('ジャンル');
-    if (contains(song.tagText)) reasons.push('タグ');
-    if (contains(song.keyText)) reasons.push('キー');
-  }
-  return Array.from(new Set(reasons)).slice(0, 4);
 }

@@ -1,4 +1,4 @@
-import { state } from '../state.js';
+import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, daysClass } from '../utils.js';
 import { RANKING_LIST_LIMIT } from '../config.js';
 

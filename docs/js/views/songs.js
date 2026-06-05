@@ -1,8 +1,9 @@
-import { state } from '../state.js';
-import { ensureSongsTags } from '../data.js';
+import { state } from '../store.js';
+import { ensureSongsTags } from '../tagging.js';
 import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText } from '../utils.js';
 import { search, matchReasons } from '../search.js';
 import { writeUrlState } from '../url-state.js';
+import { applyGenreFilter, applyTagFilter, applySingerMode, sortSongs } from '../../../src/domain/index.js';
 
 let searchInputEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
 const SETLIST_STORAGE_KEY = 'kanau-setlist-v1';
@@ -54,8 +55,7 @@ export function renderSongs() {
           <button class="btn ghost" data-singer-preset="stale" type="button">久しぶり</button>
           <button class="btn ghost" data-singer-preset="rare" type="button">レア</button>
           <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
-          <button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button>
-          <button class="btn ghost" id="setlist-toggle-btn" type="button" aria-controls="setlist-planner" aria-expanded="${state.setlistExpanded ? 'true' : 'false'}">${state.setlistExpanded ? 'セトリ制作を閉じる' : 'セトリ制作を開く'}</button>
+          <button class="btn primary" id="setlist-toggle-btn" type="button" aria-controls="setlist-planner" aria-expanded="${state.setlistExpanded ? 'true' : 'false'}">${state.setlistExpanded ? 'セトリ制作を閉じる' : 'セトリ制作を開く'}</button>
         </div>
       ` : ''}
       <div id="recommend-box" class="recommend-box" hidden></div>
@@ -280,48 +280,15 @@ function refreshFilterButtons() {
   }
 }
 
-function applyGenreFilter(songs) {
-  if (!state.songsGenre || state.songsGenre === 'all') return songs;
-  return songs.filter(s => genreLabel(s) === state.songsGenre);
-}
-
-function applyTagFilter(songs) {
-  switch (state.songsFilter) {
-    case 'fresh':
-      return songs.filter(s => s.daysSinceLast != null && s.daysSinceLast <= 30);
-    case 'stale':
-      return songs.filter(s => s.daysSinceLast != null && s.daysSinceLast >= 180);
-    case 'never':
-      return songs.filter(s => !s.lastSung);
-    default:
-      return songs;
-  }
-}
-
-function applySingerMode(songs) {
-  if (!state.singerMode) return songs;
-  const base = songs.filter(s => s.lastSung);
-  switch (state.singerPreset) {
-    case 'keyed':
-      return base.filter(s => s.displayKey);
-    case 'classic':
-      return base.filter(s => s.count >= 8);
-    case 'stale':
-      return base.filter(s => s.daysSinceLast >= 180);
-    case 'rare':
-      return base.filter(s => s.count <= 2);
-    default:
-      return base.filter(s =>
-        s.displayKey || !state.data.stats.keyPublished || s.count >= 5 || s.daysSinceLast >= 120
-      );
-  }
-}
-
 function refresh() {
   const { songs } = state.data;
-  const genreFiltered = applyGenreFilter(songs);
-  const modeFiltered = applySingerMode(genreFiltered);
-  const tagFiltered = applyTagFilter(modeFiltered);
+  const genreFiltered = applyGenreFilter(songs, state.songsGenre, genreLabel);
+  const modeFiltered = applySingerMode(genreFiltered, {
+    singerMode: state.singerMode,
+    preset: state.singerPreset,
+    keyPublished: state.data?.stats?.keyPublished,
+  });
+  const tagFiltered = applyTagFilter(modeFiltered, state.songsFilter);
   const { results, tokens } = search(state.songsQuery, tagFiltered);
   let filtered = state.songsQuery.trim()
     ? results.filter(s => tagFiltered.includes(s))
@@ -363,7 +330,11 @@ function refresh() {
 function showRecommendation() {
   const box = $('#recommend-box');
   const pool = sortSongs(
-    applySingerMode(applyTagFilter(applyGenreFilter(state.data.songs)))
+    applySingerMode(applyTagFilter(applyGenreFilter(state.data.songs, 'all', genreLabel), state.songsFilter), {
+      singerMode: state.singerMode,
+      preset: state.singerPreset,
+      keyPublished: state.data?.stats?.keyPublished,
+    })
       .filter(song => song.lastSung && (song.displayKey || !state.data.stats.keyPublished)),
     'oldest',
     false
@@ -639,25 +610,6 @@ async function copySetlistItem(index) {
   } catch (_) {
     renderSetlistPlanner('コピーに失敗しました');
   }
-}
-
-function sortSongs(songs, sort, isFuzzy) {
-  const cmpDate = (a, b, dir) => {
-    const av = a.lastSung ? a.lastSung.getTime() : (dir === 'desc' ? -Infinity : Infinity);
-    const bv = b.lastSung ? b.lastSung.getTime() : (dir === 'desc' ? -Infinity : Infinity);
-    return dir === 'desc' ? bv - av : av - bv;
-  };
-  const list = [...songs];
-  switch (sort) {
-    case 'count-asc': list.sort((a, b) => a.count - b.count || a.title.localeCompare(b.title, 'ja')); break;
-    case 'recent':    list.sort((a, b) => cmpDate(a, b, 'desc')); break;
-    case 'oldest':    list.sort((a, b) => cmpDate(a, b, 'asc')); break;
-    case 'title':     list.sort((a, b) => a.title.localeCompare(b.title, 'ja')); break;
-    case 'artist':    list.sort((a, b) => a.artist.localeCompare(b.artist, 'ja') || b.count - a.count); break;
-    case 'count-desc':
-    default:          if (!isFuzzy) list.sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, 'ja')); break;
-  }
-  return list;
 }
 
 function rowHtml(song, tokens) {

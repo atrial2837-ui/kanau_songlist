@@ -1,61 +1,22 @@
-export const $ = (sel, root = document) => root.querySelector(sel);
-export const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+import { $, $$ } from './utils-dom.js';
+import { normalize, escapeHtml, escapeRegExp, parseDateIso, formatDateRaw, formatMonth, monthKey, daysSince as domainDaysSince, daysClass } from '../../src/domain/index.js';
+import { buildSongKey } from '../../src/domain/song/song-key.js';
+
+export { $, $$, normalize, escapeHtml, escapeRegExp, parseDateIso, formatDateRaw, formatMonth, monthKey, daysClass };
 
 export const TODAY = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
 
-export const normalize = (s) =>
-  (s == null ? '' : String(s)).trim().replace(/\s+/g, ' ').normalize('NFKC');
+export const songKey = (title, artist) => buildSongKey(title, artist);
 
-export const songKey = (title, artist) =>
-  `${normalize(title).toLowerCase()}__${normalize(artist).toLowerCase()}`;
+export const daysSince = (date, today = TODAY) => domainDaysSince(date, today);
 
-export const parseDate = (s) => {
-  if (!s) return null;
-  const m = String(s).trim().match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
-  if (!m) return null;
-  const d = new Date(+m[1], +m[2] - 1, +m[3]);
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
+export const parseDate = parseDateIso;
 
-export const fmtDate = (d) => {
-  if (!d) return '—';
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-};
+export const fmtDate = formatDateRaw;
 
-export const fmtMonth = (d) =>
-  `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+export const fmtMonth = formatMonth;
 
-export const streamKey = (stream) =>
-  [
-    stream?.channel || '',
-    stream?.dateRaw || fmtDate(stream?.date),
-    stream?.index || '',
-    stream?.url || '',
-  ].join('|');
-
-export const monthKey = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-
-export const daysSince = (d) => {
-  if (!d) return null;
-  return Math.floor((TODAY - d) / 86400000);
-};
-
-export const daysClass = (d) => {
-  if (d == null) return 'never';
-  if (d <= 30) return 'fresh';
-  if (d >= 180) return 'stale';
-  return '';
-};
-
-export const escapeHtml = (s) =>
-  String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-
-export const escapeRegExp = (s) =>
-  String(s == null ? '' : s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const streamKey = (stream) => `${stream?.channelCode || stream?.channel || ''}:${stream?.dateText || stream?.streamedOn || stream?.dateRaw || ''}:${stream?.url || stream?.title || ''}`;
 
 export const debounce = (fn, ms = 150) => {
   let t;

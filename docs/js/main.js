@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { state, initStore } from './store.js';
 import { ensureSongTags, loadAll } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
@@ -8,6 +8,7 @@ import { DEFAULT_CHANNEL } from './config.js';
 import { readUrlState, writeUrlState } from './url-state.js';
 
 initTheme();
+initStore();
 
 const VIEW_LOADERS = {
   dashboard: () => import('./views/dashboard.js').then(m => m.renderDashboard),

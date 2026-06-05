@@ -1,4 +1,4 @@
-import { state } from '../state.js';
+import { state } from '../store.js';
 import { TIMELINE_INITIAL, TIMELINE_STEP } from '../config.js';
 import { $, $$, escapeHtml, fmtDate, streamKey } from '../utils.js';
 
@@ -173,6 +173,11 @@ function sortTimelineStreams(streams, sort) {
 
 function formatStreamSetlist(stream) {
   return (stream.songs || [])
-    .map((song) => `00:00 ${song.title} / ${song.artist}`)
+    .map((song) => {
+      const title = String(song?.title || '').trim();
+      const artist = String(song?.artist || '').trim();
+      return artist ? `${title} / ${artist}` : title;
+    })
+    .filter(Boolean)
     .join('\n');
 }

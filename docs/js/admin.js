@@ -2,6 +2,7 @@ import { initTheme } from './theme.js';
 import { $, fmtDate, formatNumber } from './utils.js';
 import { loadAll } from './data.js';
 import { CHANNELS, DEFAULT_CHANNEL } from './config.js';
+import { state } from './store.js';
 
 initTheme();
 
