@@ -7,8 +7,10 @@ import { sortSongs } from '../../../src/domain/search/sort.js';
 import { matchReasons } from '../../../src/domain/search/match.js';
 
 const songs = [
-  { title: '青と夏', artist: 'test', count: 5, genre: 'J-POP', genreText: 'J-POP', keyText: '', tagText: '', moodText: '', seasonText: '', daysSinceLast: 10, lastSung: '2026-05-01' },
-  { title: 'lemon', artist: '米津玄師', count: 12, genre: 'J-POP', genreText: 'J-POP', keyText: '+2', tagText: '', moodText: 'しっとり', seasonText: '', daysSinceLast: 200, lastSung: '2025-10-01' },
+  { title: '青と夏', artist: 'test', count: 5, genre: 'J-POP', genreText: 'J-POP', keyText: '', tagText: '夏 明るい', moodText: '明るい', seasonText: '夏', daysSinceLast: 10, lastSung: '2026-05-01' },
+  { title: 'lemon', artist: '米津玄師', count: 12, genre: 'J-POP', genreText: 'J-POP', keyText: '+2', tagText: 'しっとり キー確認済み 定番', moodText: 'しっとり', seasonText: '', daysSinceLast: 200, lastSung: '2025-10-01' },
+  { title: '少女レイ', artist: 'みきとP', count: 3, genre: 'ボカロ', genreText: 'ボカロ', keyText: '', tagText: '夏 切ない', moodText: '切ない', seasonText: '夏', daysSinceLast: 80, lastSung: '2026-03-01' },
+  { title: 'メルト', artist: 'ryo', count: 9, genre: 'ボカロ', genreText: 'ボカロ', keyText: '', tagText: 'かわいい 定番', moodText: 'かわいい', seasonText: '', daysSinceLast: 5, lastSung: '2026-05-25' },
 ];
 
 describe('search domain', () => {
@@ -16,6 +18,46 @@ describe('search domain', () => {
     const q = parseQuery('title:青 count:>3');
     assert.equal(q.filters.length, 2);
     assert.deepEqual(q.tokens, []);
+  });
+
+  it('parseQuery: natural language stale genre filter', () => {
+    const q = parseQuery('最近歌っていないボカロ');
+    assert.deepEqual(q.tokens, []);
+    assert.deepEqual(q.filters, [
+      { key: 'genre', op: ':', val: 'ボカロ' },
+      { key: 'days', op: '>', val: '30' },
+    ]);
+  });
+
+  it('applyFieldFilters: natural language filters can find stale vocaloid songs', () => {
+    const q = parseQuery('最近歌っていないボカロ');
+    const result = applyFieldFilters(songs, q.filters);
+    assert.deepEqual(result.map((song) => song.title), ['少女レイ']);
+  });
+
+  it('parseQuery: natural language fresh genre filter', () => {
+    const q = parseQuery('最近歌ったJ-POP');
+    assert.deepEqual(q.tokens, []);
+    assert.deepEqual(q.filters, [
+      { key: 'genre', op: ':', val: 'J-POP' },
+      { key: 'last', op: ':', val: 'fresh' },
+    ]);
+  });
+
+  it('parseQuery: natural language mood and season filters', () => {
+    const q = parseQuery('夏の切ないボカロ');
+    assert.deepEqual(q.tokens, []);
+    assert.deepEqual(q.filters, [
+      { key: 'genre', op: ':', val: 'ボカロ' },
+      { key: 'mood', op: ':', val: '切ない' },
+      { key: 'season', op: ':', val: '夏' },
+    ]);
+  });
+
+  it('applyFieldFilters: natural language facets can find songs', () => {
+    const q = parseQuery('しっとりキーありJ-POP');
+    const result = applyFieldFilters(songs, q.filters);
+    assert.deepEqual(result.map((song) => song.title), ['lemon']);
   });
 
   it('applyFieldFilters: count', () => {
@@ -26,7 +68,7 @@ describe('search domain', () => {
 
   it('applyGenreFilter', () => {
     assert.equal(applyGenreFilter(songs, 'J-POP').length, 2);
-    assert.equal(applyGenreFilter(songs, 'all').length, 2);
+    assert.equal(applyGenreFilter(songs, 'all').length, 4);
   });
 
   it('filterByTextIncludes', () => {

@@ -162,6 +162,8 @@ export function filterByTextIncludes(songs, phrase) {
     song.artist,
     song.genreText || song.genre,
     song.tagText,
+    song.moodText,
+    song.seasonText,
     song.keyText,
   ].some((value) => normalize(value).toLowerCase().includes(needle)));
 }
