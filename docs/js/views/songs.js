@@ -581,7 +581,7 @@ function formatSetlistLine(item) {
   const title = String(item?.title || '').trim();
   const artist = String(item?.artist || '').trim();
   const body = artist ? `${title} / ${artist}` : title;
-  return state.setlist.copyFormat === 'timestamp' ? `00:00 ${body}` : body;
+  return state.setlist.copyFormat === 'timestamp' ? `00:00　${body}　00:00` : body;
 }
 
 async function copySetlist() {
