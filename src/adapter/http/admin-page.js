@@ -123,7 +123,7 @@ export function renderAdminPage() {
 
     function renderSongMeta(rows) {
       $('songMetaBox').innerHTML = '<table><thead><tr><th>曲</th><th>歌手</th><th>キー</th><th>ジャンル</th><th></th></tr></thead><tbody>' +
-        rows.map(row => '<tr data-song-id="' + row.id + '"><td>' + escapeHtml(row.title) + '</td><td>' + escapeHtml(row.artist || '') + '</td><td><input class="compact-input" data-field="displayKey" value="' + escapeHtml(row.display_key || '') + '"></td><td><input class="compact-input" data-field="genre" value="' + escapeHtml(row.genre || '') + '"></td><td><button class="ghost" type="button" data-save-meta>保存</button></td></tr>').join('') +
+        rows.map(row => '<tr data-song-id="' + row.id + '"><td><input class="compact-input" data-field="title" value="' + escapeHtml(row.title || '') + '"></td><td><input class="compact-input" data-field="artist" value="' + escapeHtml(row.artist || '') + '"></td><td><input class="compact-input" data-field="displayKey" value="' + escapeHtml(row.display_key || '') + '"></td><td><input class="compact-input" data-field="genre" value="' + escapeHtml(row.genre || '') + '"></td><td><button class="ghost" type="button" data-save-meta>保存</button></td></tr>').join('') +
         '</tbody></table>';
     }
 
@@ -187,6 +187,8 @@ export function renderAdminPage() {
       try {
         await api('/api/songs/metadata', {
           songId: row.dataset.songId,
+          title: row.querySelector('[data-field="title"]').value,
+          artist: row.querySelector('[data-field="artist"]').value,
           displayKey: row.querySelector('[data-field="displayKey"]').value,
           genre: row.querySelector('[data-field="genre"]').value,
         });
