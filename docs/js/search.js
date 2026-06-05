@@ -24,7 +24,7 @@ let indexToken = 0;
 function loadFuse() {
   if (fuseCtor) return Promise.resolve(fuseCtor);
   if (!fusePromise) {
-    fusePromise = import('fuse').then((module) => {
+    fusePromise = import('fuse.js').then((module) => {
       fuseCtor = module.default;
       return fuseCtor;
     });

@@ -18,7 +18,7 @@ const common = {
   minify: true,
   sourcemap: false,
   treeShaking: true,
-  external: ['fuse', 'chart.js'],
+  external: ['chart.js'],
 };
 
 async function buildMain() {
