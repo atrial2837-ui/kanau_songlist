@@ -1,45 +1,7 @@
 import { state } from '../store.js';
-import { $, escapeHtml, fmtDate, fmtMonth, daysSince, daysClass, monthKey } from '../utils.js';
-import { chartCanvas, createChart, getColors } from '../charts.js';
+import { $, escapeHtml, fmtDate, fmtMonth, daysSince } from '../utils.js';
 import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsThisMonth, buildMonthly, buildHeatmap, heatLevel, isoDate } from '../domain-compat.js';
 import { getToday } from '../store.js';
-
-let chartRenderToken = 0;
-
-function afterInitialWork(fn) {
-  const schedule = () => window.requestAnimationFrame(() => {
-    window.setTimeout(() => {
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(fn, { timeout: 3000 });
-      } else {
-        window.setTimeout(fn, 1200);
-      }
-    }, 900);
-  });
-  if (document.readyState === 'complete') {
-    schedule();
-  } else {
-    window.addEventListener('load', schedule, { once: true });
-  }
-}
-
-function whenChartVisible(id, fn) {
-  const target = document.getElementById(id)?.parentElement;
-  if (!target || !('IntersectionObserver' in window)) {
-    afterInitialWork(fn);
-    return;
-  }
-  const observer = new IntersectionObserver((entries) => {
-    if (!entries.some(entry => entry.isIntersecting)) return;
-    observer.disconnect();
-    afterInitialWork(fn);
-  }, { rootMargin: '0px 0px', threshold: 0.01 });
-  observer.observe(target);
-}
-
-function isMobileDashboard() {
-  return window.matchMedia('(max-width: 760px)').matches;
-}
 
 export function renderDashboard() {
   const { songs, streams } = state.data;
@@ -50,10 +12,12 @@ export function renderDashboard() {
   const today = getToday();
   const newSongs = countNewSongsThisMonth(songs, today);
   const panel = $('#panel-dashboard');
-  const token = ++chartRenderToken;
+  const heatmap = buildHeatmap(streams, today);
+  const monthly = buildMonthly(streams).slice(-12);
+  const monthlyMax = Math.max(1, ...monthly.map(m => m.songs));
 
   const activityHtml = `
-    <div class="card col-4 dashboard-card dashboard-activity-card">
+    <div class="card dashboard-card dashboard-activity-card">
       <div class="card-title">📈 今月の活動</div>
       <div class="dashboard-metric-list">
         <div class="activity-row">
@@ -81,7 +45,7 @@ export function renderDashboard() {
   `;
 
   const top5Html = `
-    <div class="card col-4 dashboard-card dashboard-top-card">
+    <div class="card dashboard-card dashboard-top-card">
       <div class="card-title">🏆 TOP5 楽曲</div>
       <div class="bar-list">
         ${top5.length ? top5.map((s, i) => topBarRow(s, i, top5Max)).join('') : '<div class="empty-state">曲データなし</div>'}
@@ -89,81 +53,27 @@ export function renderDashboard() {
     </div>
   `;
 
-  if (isMobileDashboard()) {
-    panel.innerHTML = `
-      <div class="dashboard-grid" id="dashboard-grid">
+  panel.innerHTML = `
+    <div class="dashboard-grid" id="dashboard-grid">
+      <div class="dashboard-lead">
         ${activityHtml}
         ${top5Html}
       </div>
-    `;
-    afterInitialWork(() => {
-      if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
-      appendDeferredDashboard(panel, streams, songs, recent, token);
-    });
-    return;
-  }
-
-  const heatmap = buildHeatmap(streams, today);
-  panel.innerHTML = `
-    <div class="dashboard-grid" id="dashboard-grid">
-      ${activityHtml}
-      ${top5Html}
-      <div class="card col-4 dashboard-card dashboard-chart-card">
+      <div class="card dashboard-card dashboard-genre-card">
         <div class="card-title">🎸 ジャンル分布 <span class="pill">楽曲数</span></div>
-        ${chartCanvas('chart-genre', { class: 'short' })}
+        ${renderGenreChart(songs)}
       </div>
-      <div class="card col-12 dashboard-card dashboard-heatmap-card">
+      <div class="card dashboard-card dashboard-monthly-card">
+        <div class="card-title">🎶 月別 歌唱数 <span class="pill">直近12か月</span></div>
+        ${renderMonthlyBars(monthly, monthlyMax)}
+      </div>
+      <div class="card dashboard-card dashboard-heatmap-card">
         <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
         ${renderHeatmap(heatmap)}
-      </div>
-      <div class="card col-8 dashboard-card dashboard-chart-card">
-        <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
-        ${chartCanvas('chart-monthly', { class: '' })}
       </div>
       ${deferredDashboardHtml(streams, songs, recent)}
     </div>
   `;
-
-  const monthly = buildMonthly(streams);
-  whenChartVisible('chart-monthly', () => {
-    if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
-    drawMonthlyChart(monthly);
-  });
-  whenChartVisible('chart-genre', () => {
-    if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
-    drawGenreChart(songs);
-  });
-}
-
-function appendDeferredDashboard(panel, streams, songs, recent, token) {
-  const grid = panel.querySelector('#dashboard-grid');
-  if (!grid || grid.dataset.deferred === '1') return;
-  grid.dataset.deferred = '1';
-  grid.insertAdjacentHTML('beforeend', `
-    <div class="card col-8 dashboard-card dashboard-heatmap-card">
-      <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
-      ${renderHeatmap(buildHeatmap(streams, getToday()))}
-    </div>
-    <div class="card col-8 dashboard-card dashboard-chart-card">
-      <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
-      ${chartCanvas('chart-monthly', { class: '' })}
-    </div>
-    <div class="card col-8 dashboard-card dashboard-chart-card">
-      <div class="card-title">🎸 ジャンル分布 <span class="pill">楽曲数</span></div>
-      ${chartCanvas('chart-genre', { class: 'short' })}
-    </div>
-    ${deferredDashboardHtml(streams, songs, recent)}
-  `);
-
-  const monthly = buildMonthly(streams);
-  whenChartVisible('chart-monthly', () => {
-    if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
-    drawMonthlyChart(monthly);
-  });
-  whenChartVisible('chart-genre', () => {
-    if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
-    drawGenreChart(songs);
-  });
 }
 
 function deferredDashboardHtml(streams, songs, recent) {
@@ -172,35 +82,35 @@ function deferredDashboardHtml(streams, songs, recent) {
   const monthlyHits = periodHits(streams, 'month', getToday());
   const yearlyHits = periodHits(streams, 'year', getToday());
   return `
-    <div class="card col-6 dashboard-card">
+    <div class="card dashboard-card dashboard-list-card dashboard-list-month">
       <div class="card-title">🗳 今月のよく歌われた曲 <span class="pill">軽量版</span></div>
       <div class="bar-list">
         ${monthlyHits.length ? monthlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, monthlyHits[0].count)).join('') : '<div class="empty-state">今月の歌唱履歴なし</div>'}
       </div>
     </div>
 
-    <div class="card col-6 dashboard-card">
+    <div class="card dashboard-card dashboard-list-card dashboard-list-year">
       <div class="card-title">🗳 今年のよく歌われた曲 <span class="pill">軽量版</span></div>
       <div class="bar-list">
         ${yearlyHits.length ? yearlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, yearlyHits[0].count)).join('') : '<div class="empty-state">今年の歌唱履歴なし</div>'}
       </div>
     </div>
 
-    <div class="card col-6 dashboard-card">
+    <div class="card dashboard-card dashboard-list-card dashboard-list-stale">
       <div class="card-title">💤 久しぶり候補 <span class="pill">180日以上</span></div>
       <div class="bar-list">
         ${stalePicks.length ? stalePicks.map((s, i) => topBarRow(s, i, stalePicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
       </div>
     </div>
 
-    <div class="card col-6 dashboard-card">
+    <div class="card dashboard-card dashboard-list-card dashboard-list-recent">
       <div class="card-title">✨ 最近歌った定番 <span class="pill">30日以内</span></div>
       <div class="bar-list">
         ${recentPicks.length ? recentPicks.map((s, i) => topBarRow(s, i, recentPicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
       </div>
     </div>
 
-    <div class="card col-12 dashboard-card">
+    <div class="card dashboard-card dashboard-recent-card">
       <div class="card-title">📺 直近の歌枠 <span class="pill">最新${recent.length}件</span></div>
       ${recent.map(s => `
         <div class="activity-row">
@@ -211,26 +121,6 @@ function deferredDashboardHtml(streams, songs, recent) {
       `).join('')}
     </div>
   `;
-}
-
-function periodHitsLocal(streams, period) {
-  const today = getToday();
-  const month = monthKey(today);
-  const year = today.getFullYear();
-  const counts = new Map();
-  for (const stream of streams) {
-    const inPeriod = period === 'month'
-      ? stream.monthKey === month
-      : stream.date && stream.date.getFullYear() === year;
-    if (!inPeriod) continue;
-    for (const song of stream.songs || []) {
-      if (!counts.has(song.key)) {
-        counts.set(song.key, { ...song, count: 0 });
-      }
-      counts.get(song.key).count += 1;
-    }
-  }
-  return Array.from(counts.values()).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, 'ja'));
 }
 
 function topBarRow(s, i, max) {
@@ -247,122 +137,52 @@ function topBarRow(s, i, max) {
   `;
 }
 
-function countStreamsThisMonthLocal(streams) {
-  const today = getToday();
-  const ym = monthKey(today);
-  return streams.filter(s => s.monthKey === ym).length;
-}
-function countSongsThisMonthLocal(streams) {
-  const today = getToday();
-  const ym = monthKey(today);
-  return streams.filter(s => s.monthKey === ym).reduce((n, s) => n + s.songs.length, 0);
-}
-function countNewSongsThisMonthLocal(songs) {
-  const today = getToday();
-  const ym = monthKey(today);
-  return songs.filter(s => s.firstSung && monthKey(s.firstSung) === ym).length;
-}
-
-function drawGenreChart(songs) {
-  const c = getColors();
+function renderGenreChart(songs) {
   const genreCounts = new Map();
   for (const s of songs) {
     const genre = s.genre || s.genreText || '未分類';
     if (!genre || genre === '未分類') continue;
     genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
   }
-  const sorted = Array.from(genreCounts.entries()).sort((a, b) => b[1] - a[1]);
-  const labels = sorted.map(([g]) => g);
-  const data = sorted.map(([, count]) => count);
-  if (!labels.length) return;
-  const colors = [
-    c.primary, c.accent, c.gold, c.primaryStrong, c.accentStrong,
-    '#6cc6ec', '#ff9eb5', '#f4c44a', '#9bdcf7', '#ffb8d4',
-  ];
-  createChart('chart-genre', 'doughnut', {
-    labels,
-    datasets: [{
-      data,
-      backgroundColor: labels.map((_, i) => colors[i % colors.length] + 'cc'),
-      borderColor: labels.map((_, i) => colors[i % colors.length]),
-      borderWidth: 1,
-    }],
-  }, {
-    plugins: {
-      legend: {
-        position: 'right',
-        labels: { color: c.inkSoft, font: { size: 10 }, padding: 8 },
-      },
-    },
-  });
+  const rows = Array.from(genreCounts.entries()).sort((a, b) => b[1] - a[1]);
+  const total = rows.reduce((sum, [, count]) => sum + count, 0);
+  if (!rows.length) return '<div class="empty-state">ジャンルデータなし</div>';
+  return `
+    <div class="genre-meter" aria-label="ジャンル分布">
+      <div class="genre-meter-track">
+        ${rows.map(([genre, count], index) => `
+          <span class="genre-meter-segment g${index % 8}" style="width:${Math.max(3, (count / total) * 100)}%" title="${escapeHtml(genre)}: ${count}曲"></span>
+        `).join('')}
+      </div>
+      <div class="genre-breakdown">
+        ${rows.slice(0, 8).map(([genre, count], index) => `
+          <div class="genre-row">
+            <span class="genre-dot g${index % 8}"></span>
+            <span class="genre-name">${escapeHtml(genre)}</span>
+            <strong>${count}</strong>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
 }
 
-function drawMonthlyChart(monthly) {
-  const c = getColors();
-  createChart('chart-monthly', 'bar', {
-    labels: monthly.map(m => fmtMonth(m.date)),
-    datasets: [
-      {
-        type: 'line',
-        label: '歌枠数',
-        data: monthly.map(m => m.streams),
-        borderColor: c.accentStrong,
-        backgroundColor: c.accentStrong + '88',
-        yAxisID: 'y2',
-        tension: 0.3,
-        fill: false,
-        pointRadius: 3,
-        borderWidth: 2,
-      },
-      {
-        label: '歌唱数',
-        data: monthly.map(m => m.songs),
-        backgroundColor: c.primary + 'cc',
-        borderColor: c.primaryStrong,
-        borderWidth: 1,
-        yAxisID: 'y',
-        borderRadius: 4,
-      },
-    ],
-  }, {
-    scales: {
-      y:  { position: 'left',  title: { display: true, text: '歌唱数', color: c.inkMute, font: { size: 10 } } },
-      y2: { position: 'right', title: { display: true, text: '歌枠数', color: c.inkMute, font: { size: 10 } }, grid: { display: false }, beginAtZero: true },
-    },
-  });
-}
-
-function buildHeatmapLocal(streams) {
-  const today = getToday();
-  const start = new Date(today); start.setDate(start.getDate() - 364);
-  const cellByISO = new Map();
-  for (const s of streams) {
-    if (s.date < start || s.date > today) continue;
-    const k = isoDate(s.date);
-    cellByISO.set(k, (cellByISO.get(k) || 0) + s.songs.length);
-  }
-  const cells = [];
-  const startDow = start.getDay();
-  const cur = new Date(start); cur.setDate(cur.getDate() - startDow);
-  for (let i = 0; i < 53 * 7; i++) {
-    const inRange = cur >= start && cur <= today;
-    cells.push({
-      date: new Date(cur),
-      value: inRange ? (cellByISO.get(isoDate(cur)) || 0) : -1,
-      inRange,
-      iso: isoDate(cur),
-    });
-    cur.setDate(cur.getDate() + 1);
-  }
-  return cells;
-}
-
-function heatLevelLocal(v) {
-  if (v <= 0) return '';
-  if (v < 8) return 'l1';
-  if (v < 16) return 'l2';
-  if (v < 25) return 'l3';
-  return 'l4';
+function renderMonthlyBars(monthly, max) {
+  if (!monthly.length) return '<div class="empty-state">月別データなし</div>';
+  return `
+    <div class="monthly-bars" aria-label="月別歌唱数">
+      ${monthly.map((m) => {
+        const pct = Math.max(5, Math.round((m.songs / max) * 100));
+        return `
+          <div class="month-bar" title="${fmtMonth(m.date)}: ${m.songs}曲 / ${m.streams}枠">
+            <div class="month-bar-track"><span style="height:${pct}%"></span></div>
+            <div class="month-label">${fmtMonth(m.date).replace(/^\d{4}\//, '')}</div>
+            <strong>${m.songs}</strong>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
 }
 
 function renderHeatmap(cells) {
@@ -370,7 +190,7 @@ function renderHeatmap(cells) {
   const rowsHtml = dow.map(d => `<div>${d}</div>`).join('');
   const cellsHtml = cells.map(c => {
     if (!c.inRange) return `<div class="heatmap-cell" style="visibility:hidden"></div>`;
-    const lvl = heatLevelLocal(c.value);
+    const lvl = heatLevel(c.value);
     return `<div class="heatmap-cell ${lvl}" title="${c.iso}: ${c.value}曲"></div>`;
   }).join('');
   return `

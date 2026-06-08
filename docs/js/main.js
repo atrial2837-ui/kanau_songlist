@@ -1,5 +1,5 @@
 import { state, initStore, toggleFavorite, isFavorite } from './store.js';
-import { ensureSongTags, loadAll, loadInitial } from './data.js';
+import { ensureSongTags, loadAll } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
@@ -39,51 +39,7 @@ function requiresFullData(tab) {
   return ['dashboard', 'ranking', 'songs', 'timeline', 'analytics'].includes(tab);
 }
 
-function renderInitialDashboard() {
-  const panel = $('#panel-dashboard');
-  if (!panel || !state.channelData) return;
-  const channels = Object.values(state.channelData.channels || {})
-    .map(dataset => dataset.stats || {})
-    .filter(stats => stats.channelLabel || stats.channelId);
-  const rows = channels.length ? channels : [state.channelData.combined?.stats || {}];
-  panel.innerHTML = `
-    <div class="dashboard-grid dashboard-grid-initial">
-      ${rows.map(stats => `
-        <div class="card dashboard-summary-card">
-          <div class="card-title">${escapeHtml(stats.channelLabel || stats.channelId || '全期間')}</div>
-          <div class="dashboard-metric-list">
-            <div class="activity-row">
-              <span class="a-date">歌唱</span>
-              <span class="a-meta">総歌唱数</span>
-              <strong>${formatNumber(stats.total || 0)}回</strong>
-            </div>
-            <div class="activity-row">
-              <span class="a-date">曲数</span>
-              <span class="a-meta">持ち曲数</span>
-              <strong>${formatNumber(stats.repertoire || 0)}曲</strong>
-            </div>
-            <div class="activity-row">
-              <span class="a-date">歌枠</span>
-              <span class="a-meta">配信回数</span>
-              <strong>${formatNumber(stats.streams || 0)}回</strong>
-            </div>
-            <div class="activity-row">
-              <span class="a-date">平均</span>
-              <span class="a-meta">1枠平均</span>
-              <strong>${stats.avgPerStream ?? '—'}曲</strong>
-            </div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
 function renderDeferredPanel(tab, options = {}) {
-  if (tab === 'dashboard' && options.initial) {
-    renderInitialDashboard();
-    return;
-  }
   const panel = $(`#panel-${tab}`);
   if (!panel) return;
   const labels = {
@@ -127,31 +83,6 @@ async function ensureFullData() {
     updateUrl: false,
     render: false,
   });
-}
-
-function scheduleFullDataPreload() {
-  if (state.channelData?.fullLoaded || fullDataPromise) return;
-  const preload = async () => {
-    try {
-      await ensureFullData();
-      renderTab(state.activeTab, { autoLoad: false });
-    } catch (error) {
-      console.warn('[data] background preload failed', error);
-    }
-  };
-  const runWhenIdle = () => {
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(preload, { timeout: 4000 });
-    } else {
-      window.setTimeout(preload, 1200);
-    }
-  };
-  const scheduleAfterInitialPaint = () => window.setTimeout(runWhenIdle, 1800);
-  if (document.readyState === 'complete') {
-    scheduleAfterInitialPaint();
-  } else {
-    window.addEventListener('load', scheduleAfterInitialPaint, { once: true });
-  }
 }
 
 async function renderTab(tab = state.activeTab, options = {}) {
@@ -736,7 +667,7 @@ function initWelcomeTip() {
 async function init() {
   showLoading();
   try {
-    const channelData = await loadInitial();
+    const channelData = await loadAll();
     state.channelData = channelData;
     const url = readUrlState();
     state.songsQuery = url.q;
@@ -754,10 +685,8 @@ async function init() {
     switchChannel(initialChannel, {
       resetSearch: false,
       updateUrl: false,
-      autoLoad: false,
-      initial: true,
+      autoLoad: true,
     });
-    scheduleFullDataPreload();
   } catch (e) {
     console.error('[init] failed:', e);
     showError(e);
