@@ -1,5 +1,5 @@
 import { state, initStore, toggleFavorite, isFavorite } from './store.js';
-import { ensureSongTags, loadAll } from './data.js';
+import { ensureSongTags, loadAll, loadInitial } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
@@ -681,7 +681,7 @@ function initWelcomeTip() {
 async function init() {
   showLoading();
   try {
-    const channelData = await loadAll();
+    const channelData = await loadInitial();
     state.channelData = channelData;
     const url = readUrlState();
     state.songsQuery = url.q;
@@ -700,6 +700,7 @@ async function init() {
       resetSearch: false,
       updateUrl: false,
       autoLoad: true,
+      initial: true,
     });
   } catch (e) {
     console.error('[init] failed:', e);
