@@ -54,8 +54,8 @@ function podiumCard(s, i, medal) {
 function rowHtml(song) {
   const rankClass = song.rank === 1 ? 'r1' : song.rank === 2 ? 'r2' : song.rank === 3 ? 'r3' : '';
   const lastHtml = song.lastSung
-    ? `<div>${fmtDate(song.lastSung)}</div><span class="badge ${daysClass(song.daysSinceLast)}">${song.daysSinceLast}日前</span>`
-    : `<div>未披露</div><span class="badge never">—</span>`;
+    ? `<span class="last-date">${fmtDate(song.lastSung)}</span><span class="badge ${daysClass(song.daysSinceLast)}">${song.daysSinceLast}日前</span>`
+    : `<span class="last-date">未披露</span><span class="badge never">—</span>`;
   return `
     <div class="song-row" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="クリックで配信タイムラインに絞り込み">
       <div class="rank ${rankClass}">${song.rank}</div>

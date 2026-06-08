@@ -378,6 +378,10 @@ function youtubeThumbTiny(url) {
 function playYouTubeInline(url) {
   const id = youtubeVideoId(url);
   if (!id) return;
+  if (window.matchMedia('(max-width: 600px)').matches) {
+    window.open(String(url || ''), '_blank', 'noopener');
+    return;
+  }
   initYouTubePlayer();
   const container = $('#yt-player-container');
   const panel = $('#yt-player-panel');
@@ -743,7 +747,6 @@ document.body.addEventListener('click', (e) => {
     searchArtistName(artist.dataset.artistSearch || artist.textContent || '');
     return;
   }
-  if (isLink(e.target)) return;
   const inlineYt = e.target.closest('[data-inline-youtube]');
   if (inlineYt) {
     e.preventDefault();
@@ -751,6 +754,7 @@ document.body.addEventListener('click', (e) => {
     playYouTubeInline(inlineYt.dataset.inlineYoutube);
     return;
   }
+  if (isLink(e.target)) return;
   const target = e.target.closest('[data-songkey]');
   if (!target) return;
   openSongDetail(target.dataset.songkey);

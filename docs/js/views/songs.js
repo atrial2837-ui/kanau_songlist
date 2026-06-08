@@ -232,6 +232,7 @@ export function renderSongs() {
     }
     const favBtn = e.target.closest('[data-fav-toggle]');
     if (favBtn) {
+      e.preventDefault();
       e.stopPropagation();
       const key = favBtn.dataset.favToggle;
       toggleFavorite(key);
@@ -827,8 +828,8 @@ async function copySetlistItem(index) {
 function rowHtml(song, tokens) {
   const rankClass = song.rank === 1 ? 'r1' : song.rank === 2 ? 'r2' : song.rank === 3 ? 'r3' : '';
   const lastHtml = song.lastSung
-    ? `<div>${fmtDate(song.lastSung)}</div><span class="badge ${daysClass(song.daysSinceLast)}">${song.daysSinceLast}日前</span>`
-    : `<div>履歴未確認</div><span class="badge never">要確認</span>`;
+    ? `<span class="last-date">${fmtDate(song.lastSung)}</span><span class="badge ${daysClass(song.daysSinceLast)}">${song.daysSinceLast}日前</span>`
+    : `<span class="last-date">履歴未確認</span><span class="badge never">要確認</span>`;
   const titleHtml = highlightText(song.title, tokens);
   const artistHtml = highlightText(song.artist, tokens);
   const reasons = matchReasons(song, state.songsQuery);
@@ -837,7 +838,7 @@ function rowHtml(song, tokens) {
     <div class="song-row" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="クリックで曲詳細を表示">
       <div class="rank ${rankClass}">${song.rank}</div>
       <div class="info">
-        <div class="title">${titleHtml}</div>
+        <div class="title song-title-line"><span class="song-title-text">${titleHtml}</span><button class="fav-btn ${favActive ? 'is-active' : ''}" type="button" data-fav-toggle="${escapeHtml(song.key)}" aria-label="お気に入り" aria-pressed="${favActive ? 'true' : 'false'}" title="お気に入り">${favActive ? '♥' : '♡'}</button></div>
         <button class="artist artist-search-btn" type="button" data-artist-search="${escapeHtml(song.artist)}">${artistHtml}</button>
         <div class="song-meta-line">
           <span class="genre-badge">${escapeHtml(genreLabel(song))}</span>
@@ -850,7 +851,6 @@ function rowHtml(song, tokens) {
         <div class="count">${song.count}<small>回</small></div>
         <div class="last">${lastHtml}</div>
       </div>
-      <button class="fav-btn ${favActive ? 'is-active' : ''}" type="button" data-fav-toggle="${escapeHtml(song.key)}" aria-label="お気に入り" aria-pressed="${favActive ? 'true' : 'false'}" title="お気に入り">${favActive ? '♥' : '♡'}</button>
     </div>
   `;
 }
