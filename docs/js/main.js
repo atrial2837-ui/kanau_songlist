@@ -73,10 +73,13 @@ function renderPanelLoading(tab) {
 function applyPartialData(partial) {
   if (state.channelData?.fullLoaded) return;
   state.channelData = partial; // partialLoaded: true, fullLoaded: false
+  // state.data を常に最新の channelData に合わせる（タブ問わず）
+  const ch = getDataset(state.channel) ? state.channel : DEFAULT_CHANNEL;
+  const newData = getDataset(ch);
+  if (newData) state.data = newData;
+  // streams 不要なタブのみ即時描画（dashboard 等は full 待ち）
   if (!needsStreams(state.activeTab) && state.data) {
-    const ch = getDataset(state.channel) ? state.channel : DEFAULT_CHANNEL;
-    state.data = getDataset(ch);
-    if (state.data) renderTab(state.activeTab, { autoLoad: false });
+    renderTab(state.activeTab, { autoLoad: false });
   }
 }
 
