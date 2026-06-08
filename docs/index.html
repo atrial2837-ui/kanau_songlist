@@ -268,8 +268,13 @@
 <!-- Dependencies -->
 <script type="module" src="js/main.js"></script>
 <script>
+// Unregister old service workers to prevent stale cache issues
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js');
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for (var registration of registrations) {
+      registration.unregister();
+    }
+  });
 }
 </script>
 

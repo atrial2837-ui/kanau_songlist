@@ -742,29 +742,13 @@ async function init() {
     if (!getDataset(initialChannel)) throw new Error('No channel data could be loaded');
     refreshChannelButtons();
     hideLoading();
-    const initialTab = isValidTab(url.tab) ? url.tab : state.activeTab;
-    const initialAutoLoad = initialTab !== 'dashboard';
     switchChannel(initialChannel, {
       resetSearch: false,
       updateUrl: false,
-      autoLoad: initialAutoLoad,
+      autoLoad: true,
     });
-    activateTab(initialTab, {
-      updateUrl: false,
-      autoLoad: initialAutoLoad,
-      initial: true,
-    });
-    switchAudience(state.audience, {
-      autoLoad: initialAutoLoad,
-      initial: true,
-    });
-    for (const ch of Object.values(channelData.channels)) {
-      if (ch.orphans?.length) {
-        console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
-      }
-    }
   } catch (e) {
-    console.error(e);
+    console.error('[init] failed:', e);
     showError(e);
   }
 }
