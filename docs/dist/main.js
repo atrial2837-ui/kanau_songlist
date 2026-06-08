@@ -33,9 +33,15 @@ var Un=Object.defineProperty;var T=(t,e)=>()=>(t&&(e=t(t=0)),e);var tt=(t,e)=>{f
     </div>
   `;c.innerHTML=`
     <div class="dashboard-grid" id="dashboard-grid">
-      <div class="dashboard-lead">
-        ${y}
-        ${v}
+      <div class="dashboard-main-stack">
+        <div class="dashboard-lead">
+          ${y}
+          ${v}
+        </div>
+        <div class="card dashboard-card dashboard-monthly-card">
+          <div class="card-title">\u{1F3B6} \u6708\u5225 \u6B4C\u5531\u6570 <span class="pill">\u76F4\u8FD112\u304B\u6708</span></div>
+          ${oi(u,f)}
+        </div>
       </div>
       <div class="card dashboard-card dashboard-side-card">
         <section class="dashboard-side-section">
@@ -46,10 +52,6 @@ var Un=Object.defineProperty;var T=(t,e)=>()=>(t&&(e=t(t=0)),e);var tt=(t,e)=>{f
           <div class="card-title">\u{1F4C5} \u914D\u4FE1\u30D2\u30FC\u30C8\u30DE\u30C3\u30D7 <span class="pill">\u76F4\u8FD11\u5E74</span></div>
           ${li(d)}
         </section>
-      </div>
-      <div class="card dashboard-card dashboard-monthly-card">
-        <div class="card-title">\u{1F3B6} \u6708\u5225 \u6B4C\u5531\u6570 <span class="pill">\u76F4\u8FD112\u304B\u6708</span></div>
-        ${oi(u,f)}
       </div>
       ${ii(e,t,i)}
     </div>

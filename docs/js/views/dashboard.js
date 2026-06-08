@@ -55,9 +55,15 @@ export function renderDashboard() {
 
   panel.innerHTML = `
     <div class="dashboard-grid" id="dashboard-grid">
-      <div class="dashboard-lead">
-        ${activityHtml}
-        ${top5Html}
+      <div class="dashboard-main-stack">
+        <div class="dashboard-lead">
+          ${activityHtml}
+          ${top5Html}
+        </div>
+        <div class="card dashboard-card dashboard-monthly-card">
+          <div class="card-title">🎶 月別 歌唱数 <span class="pill">直近12か月</span></div>
+          ${renderMonthlyBars(monthly, monthlyMax)}
+        </div>
       </div>
       <div class="card dashboard-card dashboard-side-card">
         <section class="dashboard-side-section">
@@ -68,10 +74,6 @@ export function renderDashboard() {
           <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
           ${renderHeatmap(heatmap)}
         </section>
-      </div>
-      <div class="card dashboard-card dashboard-monthly-card">
-        <div class="card-title">🎶 月別 歌唱数 <span class="pill">直近12か月</span></div>
-        ${renderMonthlyBars(monthly, monthlyMax)}
       </div>
       ${deferredDashboardHtml(streams, songs, recent)}
     </div>
