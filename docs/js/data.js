@@ -9,7 +9,7 @@ import {
   singerTags,
   trendLabel,
   withDenseRank,
-} from '../../src/domain/index.js';
+} from './domain-compat.js';
 import { ensureSongsTags } from './tagging.js';
 
 const STATIC_URLS = {

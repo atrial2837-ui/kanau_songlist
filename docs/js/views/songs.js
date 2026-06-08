@@ -3,7 +3,7 @@ import { ensureSongsTags } from '../tagging.js';
 import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText } from '../utils.js';
 import { search, matchReasons, getSearchHistory, addSearchHistory, removeSearchHistory, clearSearchHistory } from '../search.js';
 import { writeUrlState } from '../url-state.js';
-import { applyGenreFilter, applyTagFilter, applySingerMode, sortSongs } from '../../../src/domain/index.js';
+import { applyGenreFilter, applyTagFilter, applySingerMode, sortSongs } from '../domain-compat.js';
 
 let searchInputEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
 let searchHistoryDropdown = null;

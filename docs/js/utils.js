@@ -1,6 +1,5 @@
 import { $, $$ } from './utils-dom.js';
-import { normalize, escapeHtml, escapeRegExp, parseDateIso, formatDateRaw, formatMonth, monthKey, daysSince as domainDaysSince, daysClass } from '../../src/domain/index.js';
-import { buildSongKey } from '../../src/domain/song/song-key.js';
+import { normalize, escapeHtml, escapeRegExp, parseDateIso, formatDateRaw, formatMonth, monthKey, daysSince as domainDaysSince, daysClass, buildSongKey } from './domain-compat.js';
 
 export { $, $$, normalize, escapeHtml, escapeRegExp, parseDateIso, formatDateRaw, formatMonth, monthKey, daysClass };
 

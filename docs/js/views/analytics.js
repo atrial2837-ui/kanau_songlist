@@ -2,8 +2,7 @@ import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, fmtMonth, monthKey } from '../utils.js';
 import { TOP_ARTISTS_LIMIT } from '../config.js';
 import { createChart, chartCanvas, getColors } from '../charts.js';
-import { deriveArtists } from '../../../src/domain/analytics/artist-stats.js';
-import { computeComebacks } from '../../../src/domain/analytics/comeback.js';
+import { deriveArtists, computeComebacks } from '../domain-compat.js';
 
 export function renderAnalytics() {
   const { songs, streams, artists } = state.data;

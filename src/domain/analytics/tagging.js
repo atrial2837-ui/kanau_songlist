@@ -77,6 +77,11 @@ export function inferGenreMoodTags(genre) {
   }
 }
 
+export function inferGenreTags(songOrGenre) {
+  const genre = typeof songOrGenre === 'string' ? songOrGenre : songOrGenre?.genre;
+  return inferGenreMoodTags(genre || '');
+}
+
 // ---------------------------------------------------------------------------
 // 季節タグ
 // ---------------------------------------------------------------------------
@@ -182,6 +187,16 @@ export function inferCompositeTags(existingTags) {
   return composite;
 }
 
+export function inferCompoundTags(songOrTags) {
+  if (Array.isArray(songOrTags)) return inferCompositeTags(songOrTags);
+  return inferCompositeTags([
+    ...(songOrTags?.moodTags || []),
+    ...(songOrTags?.seasonTags || []),
+    ...(songOrTags?.statsTags || []),
+    ...(songOrTags?.genreTags || []),
+  ]);
+}
+
 // ---------------------------------------------------------------------------
 // 配信者タグ
 // ---------------------------------------------------------------------------
@@ -229,10 +244,21 @@ export function trendLabel(song) {
  */
 export function inferAllTags(song) {
   const allTags = [];
-  allTags.push(...inferStatsTags(song));
-  allTags.push(...inferGenreMoodTags(song.genre || ''));
-  allTags.push(...inferSeasonTags(song));
-  allTags.push(...inferMoodTags(song));
-  allTags.push(...inferCompositeTags(allTags));
-  return Array.from(new Set(allTags.filter(Boolean)));
+  const statsTags = inferStatsTags(song);
+  const genreTags = inferGenreTags(song);
+  const seasonTags = inferSeasonTags(song);
+  const moodTags = inferMoodTags(song);
+  allTags.push(...statsTags);
+  allTags.push(...genreTags);
+  allTags.push(...seasonTags);
+  allTags.push(...moodTags);
+  const compoundTags = inferCompositeTags(allTags);
+  allTags.push(...compoundTags);
+  const tags = Array.from(new Set(allTags.filter(Boolean)));
+  tags.statsTags = statsTags;
+  tags.genreTags = genreTags;
+  tags.seasonTags = seasonTags;
+  tags.moodTags = moodTags;
+  tags.compoundTags = compoundTags;
+  return tags;
 }

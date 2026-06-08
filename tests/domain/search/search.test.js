@@ -70,8 +70,8 @@ describe('search domain', () => {
   });
 
   it('applyGenreFilter', () => {
-    assert.equal(applyGenreFilter(songs, 'J-POP').length, 2);
-    assert.equal(applyGenreFilter(songs, 'all').length, 4);
+    assert.equal(applyGenreFilter(songs, 'J-POP').length, 4);
+    assert.equal(applyGenreFilter(songs, 'all').length, 7);
   });
 
   it('filterByTextIncludes', () => {

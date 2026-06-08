@@ -67,6 +67,12 @@ function applyNaturalLanguageFilters(raw, filters) {
     }
   }
 
+  for (const rule of NATURAL_PRIORITY_RULES) {
+    if (!rule.pattern.test(rest)) continue;
+    addFilter(filters, rule.key, rule.op, rule.val);
+    rest = rest.replace(rule.pattern, ' ');
+  }
+
   for (const { key, label, patterns } of NATURAL_FACETS) {
     for (const pattern of patterns) {
       if (!pattern.test(rest)) continue;
@@ -106,6 +112,12 @@ function addFilter(filters, key, op, val) {
   if (filters.some((filter) => filter.key === key && filter.op === op && filter.val === val)) return;
   filters.push({ key, op, val });
 }
+
+const NATURAL_PRIORITY_RULES = [
+  { pattern: /(1週間以内|7日以内|超最近)/i, key: 'last', op: ':', val: 'fresh' },
+  { pattern: /(15回以上|殿堂入り)/i, key: 'count', op: '>=', val: '15' },
+  { pattern: /(3回以下|準レア)/i, key: 'count', op: '<=', val: '3' },
+];
 
 const NATURAL_GENRES = [
   ...GENRE_LIST.map((genre) => ({

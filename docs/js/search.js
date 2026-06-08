@@ -1,4 +1,4 @@
-import { normalize, parseQuery, matchReasons } from '../../src/domain/index.js';
+import { normalize, parseQuery, matchReasons } from './domain-compat.js';
 import { ensureSongsTags } from './tagging.js';
 
 const SEARCH_HISTORY_KEY = 'kanau-search-history-v1';

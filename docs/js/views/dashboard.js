@@ -1,7 +1,7 @@
 import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, fmtMonth, daysSince, daysClass, monthKey } from '../utils.js';
 import { chartCanvas, createChart, getColors } from '../charts.js';
-import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsThisMonth, buildMonthly, buildHeatmap, heatLevel, isoDate } from '../../../src/domain/analytics/dashboard.js';
+import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsThisMonth, buildMonthly, buildHeatmap, heatLevel, isoDate } from '../domain-compat.js';
 import { getToday } from '../store.js';
 
 let chartRenderToken = 0;
