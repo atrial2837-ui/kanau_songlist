@@ -112,4 +112,34 @@ describe('search domain', () => {
     const q = parseQuery('100日以上歌ってない曲');
     assert.ok(q.filters.some(f => f.key === 'days' && f.op === '>' && f.val === '100'));
   });
+
+  it('parseQuery: natural language fresh filter', () => {
+    const q = parseQuery('超最近歌った曲');
+    assert.ok(q.filters.some(f => f.key === 'last' && f.val === 'fresh'));
+  });
+
+  it('parseQuery: natural language 殿堂入り filter', () => {
+    const q = parseQuery('殿堂入り曲');
+    assert.ok(q.filters.some(f => f.key === 'count' && f.op === '>=' && f.val === '15'));
+  });
+
+  it('parseQuery: natural language 準レア filter', () => {
+    const q = parseQuery('準レア曲');
+    assert.ok(q.filters.some(f => f.key === 'count' && f.op === '<=' && f.val === '3'));
+  });
+
+  it('parseQuery: natural language 定番 filter', () => {
+    const q = parseQuery('定番曲');
+    assert.ok(q.filters.some(f => f.key === 'tag' && f.val === '定番'));
+  });
+
+  it('parseQuery: natural language レア filter', () => {
+    const q = parseQuery('レア曲');
+    assert.ok(q.filters.some(f => f.key === 'tag' && f.val === 'レア'));
+  });
+
+  it('parseQuery: natural language 久しぶり filter', () => {
+    const q = parseQuery('久しぶりの曲');
+    assert.ok(q.filters.some(f => f.key === 'last' && f.val === 'stale'));
+  });
 });

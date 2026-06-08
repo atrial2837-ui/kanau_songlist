@@ -6,6 +6,10 @@ import {
   inferMoodTags,
   singerTags,
   trendLabel,
+  inferGenreTags,
+  inferStatsTags,
+  inferCompoundTags,
+  inferAllTags,
 } from '../../../src/domain/analytics/tagging.js';
 
 describe('tagging', () => {
@@ -54,5 +58,104 @@ describe('tagging', () => {
   it('inferMoodTags: アコースティック', () => {
     const tags = inferMoodTags({ title: 'アコースティックギター', artist: 'Acoustic', genre: 'J-POP' });
     assert.ok(tags.includes('アコースティック'));
+  });
+
+  // --- Genre-based tags ---
+  it('inferGenreTags: ボカロ', () => {
+    const tags = inferGenreTags({ genre: 'ボカロ' });
+    assert.ok(tags.includes('ボカロ'));
+  });
+
+  it('inferGenreTags: アニソン', () => {
+    const tags = inferGenreTags({ genre: 'アニソン' });
+    assert.ok(tags.includes('アニソン'));
+    assert.ok(tags.includes('盛り上がる'));
+  });
+
+  it('inferGenreTags: K-POP', () => {
+    const tags = inferGenreTags({ genre: 'K-POP' });
+    assert.ok(tags.includes('K-POP'));
+    assert.ok(tags.includes('かわいい'));
+  });
+
+  it('inferGenreTags: ディズニー', () => {
+    const tags = inferGenreTags({ genre: 'ディズニー' });
+    assert.ok(tags.includes('ディズニー'));
+    assert.ok(tags.includes('明るい'));
+  });
+
+  it('inferGenreTags: 童謡・唱歌', () => {
+    const tags = inferGenreTags({ genre: '童謡・唱歌' });
+    assert.ok(tags.includes('童謡'));
+    assert.ok(tags.includes('ノスタルジック'));
+  });
+
+  it('inferGenreTags: アイドル', () => {
+    const tags = inferGenreTags({ genre: 'アイドル' });
+    assert.ok(tags.includes('アイドル'));
+    assert.ok(tags.includes('盛り上がる'));
+  });
+
+  // --- Stats-based tags ---
+  it('inferStatsTags: 定番 (count >= 10)', () => {
+    const tags = inferStatsTags({ count: 12 });
+    assert.ok(tags.includes('定番'));
+  });
+
+  it('inferStatsTags: レア (count <= 2)', () => {
+    const tags = inferStatsTags({ count: 1 });
+    assert.ok(tags.includes('レア'));
+  });
+
+  it('inferStatsTags: 超久しぶり (daysSinceLast >= 365)', () => {
+    const tags = inferStatsTags({ daysSinceLast: 400 });
+    assert.ok(tags.includes('超久しぶり'));
+  });
+
+  it('inferStatsTags: 久しぶり (daysSinceLast >= 180)', () => {
+    const tags = inferStatsTags({ daysSinceLast: 200 });
+    assert.ok(tags.includes('久しぶり'));
+  });
+
+  it('inferStatsTags: 最近 (daysSinceLast <= 30)', () => {
+    const tags = inferStatsTags({ daysSinceLast: 10 });
+    assert.ok(tags.includes('最近'));
+  });
+
+  it('inferStatsTags: キー確認済み', () => {
+    const tags = inferStatsTags({ displayKey: '+2' });
+    assert.ok(tags.includes('キー確認済み'));
+  });
+
+  // --- Compound tags ---
+  it('inferCompoundTags: chill + 夜', () => {
+    const tags = inferCompoundTags({ moodTags: ['chill'], seasonTags: ['夜'] });
+    assert.ok(tags.includes('夜chill'));
+  });
+
+  it('inferCompoundTags: しっとり + 恋愛', () => {
+    const tags = inferCompoundTags({ moodTags: ['しっとり'], seasonTags: ['恋愛'] });
+    assert.ok(tags.includes('ラブソング'));
+  });
+
+  it('inferCompoundTags: 盛り上がる + 夏', () => {
+    const tags = inferCompoundTags({ moodTags: ['盛り上がる'], seasonTags: ['夏'] });
+    assert.ok(tags.includes('夏フェス'));
+  });
+
+  // --- inferAllTags integration ---
+  it('inferAllTags: ボカロ曲に複数タグが付与される', () => {
+    const result = inferAllTags({
+      title: 'メルト',
+      artist: 'ryo',
+      genre: 'ボカロ',
+      count: 15,
+      daysSinceLast: 400,
+      displayKey: '+2',
+    });
+    assert.ok(result.genreTags.includes('ボカロ'));
+    assert.ok(result.statsTags.includes('定番'));
+    assert.ok(result.statsTags.includes('超久しぶり'));
+    assert.ok(result.statsTags.includes('キー確認済み'));
   });
 });
