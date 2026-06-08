@@ -34,6 +34,7 @@ function readCssVars() {
     accentStrong: cs.getPropertyValue('--accent-strong').trim(),
     border: cs.getPropertyValue('--border').trim(),
     borderSoft: cs.getPropertyValue('--border-soft').trim(),
+    borderStrong: cs.getPropertyValue('--border-strong').trim(),
     surface: cs.getPropertyValue('--surface').trim(),
     gold: cs.getPropertyValue('--gold').trim(),
   };
@@ -57,8 +58,8 @@ function defaults() {
       tooltip: {
         backgroundColor: c.surface,
         titleColor: c.ink,
-        bodyColor: c.inkSoft,
-        borderColor: c.border,
+        bodyColor: c.ink,
+        borderColor: c.borderStrong,
         borderWidth: 1,
         padding: 10,
         boxPadding: 4,
@@ -69,12 +70,12 @@ function defaults() {
     },
     scales: {
       x: {
-        ticks: { color: c.inkMute, font: { size: 10 } },
-        grid: { color: c.borderSoft, drawBorder: false },
+        ticks: { color: c.inkSoft, font: { size: 10 } },
+        grid: { color: c.border, drawBorder: false },
       },
       y: {
-        ticks: { color: c.inkMute, font: { size: 10 } },
-        grid: { color: c.borderSoft, drawBorder: false },
+        ticks: { color: c.inkSoft, font: { size: 10 } },
+        grid: { color: c.border, drawBorder: false },
         beginAtZero: true,
       },
     },

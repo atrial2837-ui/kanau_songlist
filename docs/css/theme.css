@@ -16,8 +16,8 @@
   --border-soft: #e2f1f9;
   --border-strong: #9bdcf7;
   --ink: #1f4861;
-  --ink-soft: #3f6f87;
-  --ink-mute: #4f748b;
+  --ink-soft: #2f5d75;
+  --ink-mute: #3d6273;
   --primary: #4ab2dc;
   --primary-strong: #1f789f;
   --primary-soft: #dff5ff;
@@ -369,9 +369,23 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 .guide-section ul {
   margin: 0;
   padding-left: 18px;
-  color: var(--ink-soft);
+  color: var(--ink);
   font-size: 12.5px;
   line-height: 1.75;
+}
+kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.6;
+  vertical-align: baseline;
 }
 .help-item {
   display: grid;
