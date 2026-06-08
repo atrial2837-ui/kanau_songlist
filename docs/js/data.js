@@ -125,7 +125,6 @@ function fmtApiDate(date) {
 export function ensureSongTags(song) {
   if (!song || song.__tagsReady) return song;
 
-  // 個別タグ（表示用に分離）
   song.seasonTags = inferSeasonTags(song);
   song.seasonText = song.seasonTags.join(' ');
   song.moodTags = inferMoodTags(song);
@@ -135,28 +134,43 @@ export function ensureSongTags(song) {
   song.singerTagText = song.singerTags.join(' ');
   song.moodTagText = song.moodTags.join(' ');
 
-  // 統合タグ（統計 + ジャンル + 複合タグを含む全タグ）
-  const allTags = inferAllTags(song);
-  song.compositeTags = allTags.filter(t =>
-    !song.seasonTags.includes(t) &&
-    !song.moodTags.includes(t) &&
-    !song.singerTags.includes(t) &&
-    t !== song.trend
-  );
-  song.compositeTagText = song.compositeTags.join(' ');
-
-  // 検索用タグテキスト（全タグを結合）
+  // 統合タグは遅延計算（検索インデックス構築時のみ必要）
+  song.compositeTags = [];
+  song.compositeTagText = '';
   song.tagText = [
     song.seasonText,
     song.moodText,
     song.singerTagText,
     song.trend,
     song.moodTagText,
-    song.compositeTagText,
   ].filter(Boolean).join(' ');
 
-  song.allTags = allTags;
   song.__tagsReady = true;
+  return song;
+}
+
+export function ensureSongTagsFull(song) {
+  if (!song) return song;
+  // 統合タグを遅延計算
+  if (song.compositeTagText === undefined) {
+    const allTags = inferAllTags(song);
+    song.compositeTags = allTags.filter(t =>
+      !song.seasonTags.includes(t) &&
+      !song.moodTags.includes(t) &&
+      !song.singerTags.includes(t) &&
+      t !== song.trend
+    );
+    song.compositeTagText = song.compositeTags.join(' ');
+    song.tagText = [
+      song.seasonText,
+      song.moodText,
+      song.singerTagText,
+      song.trend,
+      song.moodTagText,
+      song.compositeTagText,
+    ].filter(Boolean).join(' ');
+    song.allTags = allTags;
+  }
   return song;
 }
 
@@ -173,20 +187,6 @@ function hydrateDataset(dataset) {
   dataset.orphans = dataset.orphans || [];
   if (!Array.isArray(dataset.artists)) dataset.artists = [];
 
-  for (const stream of dataset.streams) {
-    stream.date = parseApiDate(stream.date);
-    stream.monthKey = stream.monthKey || (
-      stream.date
-        ? `${stream.date.getFullYear()}-${String(stream.date.getMonth() + 1).padStart(2, '0')}`
-        : ''
-    );
-    stream.year = stream.year || stream.date?.getFullYear() || null;
-    stream.month = stream.month || (stream.date ? stream.date.getMonth() + 1 : null);
-    stream.dayOfWeek = stream.dayOfWeek ?? (stream.date ? stream.date.getDay() : null);
-    stream.songs = stream.songs || [];
-  }
-  dataset.streams.sort((a, b) => (b.date || 0) - (a.date || 0));
-
   const songByKey = new Map();
   for (const song of dataset.songs) {
     song.displayKey = song.displayKey || '';
@@ -198,29 +198,37 @@ function hydrateDataset(dataset) {
     songByKey.set(song.key, song);
   }
 
+  const refsBySongKey = new Map();
   for (const stream of dataset.streams) {
+    stream.date = parseApiDate(stream.date);
+    stream.monthKey = stream.monthKey || (
+      stream.date
+        ? `${stream.date.getFullYear()}-${String(stream.date.getMonth() + 1).padStart(2, '0')}`
+        : ''
+    );
+    stream.year = stream.year || stream.date?.getFullYear() || null;
+    stream.month = stream.month || (stream.date ? stream.date.getMonth() + 1 : null);
+    stream.dayOfWeek = stream.dayOfWeek ?? (stream.date ? stream.date.getDay() : null);
     stream.songs = (stream.songs || []).map((item) => {
       const song = songByKey.get(item.key);
-      return {
+      const mapped = {
         title: item.title || song?.title || '',
         artist: item.artist || song?.artist || '',
         key: item.key || song?.key || '',
         raw: item.raw || '',
       };
+      if (mapped.key) {
+        if (!refsBySongKey.has(mapped.key)) refsBySongKey.set(mapped.key, []);
+        refsBySongKey.get(mapped.key).push(stream);
+      }
+      return mapped;
     });
   }
-
-  const refsBySongKey = new Map();
-  for (const stream of dataset.streams) {
-    for (const song of stream.songs) {
-      if (!refsBySongKey.has(song.key)) refsBySongKey.set(song.key, []);
-      refsBySongKey.get(song.key).push(stream);
-    }
-  }
+  dataset.streams.sort((a, b) => (b.date || 0) - (a.date || 0));
 
   for (const song of dataset.songs) {
     const refs = refsBySongKey.get(song.key) || [];
-    const dates = refs.map((stream) => stream.date).filter(Boolean).sort((a, b) => b - a);
+    const dates = refs.map((s) => s.date).filter(Boolean).sort((a, b) => b - a);
     song.streamRefs = refs;
     song.dates = dates;
     song.lastSung = dates[0] || null;
