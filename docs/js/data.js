@@ -2,6 +2,7 @@ import { daysSince } from './utils.js';
 import {
   deriveArtists,
   formatDateRaw,
+  inferAllTags,
   inferMoodTags,
   inferSeasonTags,
   parseDateIso,
@@ -123,6 +124,8 @@ function fmtApiDate(date) {
 
 export function ensureSongTags(song) {
   if (!song || song.__tagsReady) return song;
+
+  // 個別タグ（表示用に分離）
   song.seasonTags = inferSeasonTags(song);
   song.seasonText = song.seasonTags.join(' ');
   song.moodTags = inferMoodTags(song);
@@ -131,13 +134,28 @@ export function ensureSongTags(song) {
   song.singerTags = singerTags(song);
   song.singerTagText = song.singerTags.join(' ');
   song.moodTagText = song.moodTags.join(' ');
+
+  // 統合タグ（統計 + ジャンル + 複合タグを含む全タグ）
+  const allTags = inferAllTags(song);
+  song.compositeTags = allTags.filter(t =>
+    !song.seasonTags.includes(t) &&
+    !song.moodTags.includes(t) &&
+    !song.singerTags.includes(t) &&
+    t !== song.trend
+  );
+  song.compositeTagText = song.compositeTags.join(' ');
+
+  // 検索用タグテキスト（全タグを結合）
   song.tagText = [
     song.seasonText,
     song.moodText,
-    song.singerTags.join(' '),
+    song.singerTagText,
     song.trend,
     song.moodTagText,
+    song.compositeTagText,
   ].filter(Boolean).join(' ');
+
+  song.allTags = allTags;
   song.__tagsReady = true;
   return song;
 }
