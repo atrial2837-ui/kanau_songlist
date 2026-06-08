@@ -89,7 +89,13 @@ export function writeUrlState(next = {}, options = {}) {
 
 // ─── デフォルト値 ────────────────────────────────────────────────────────────
 
+const _initialUrl = readUrlState();
+
 const DEFAULT_IN_MEMORY = {
+  // URL由来の状態。set() のガード (!(key in memState)) を通すため
+  // 必ず初期キーを定義しておく（未定義だと set('activeTab') が無視される）
+  activeTab: _initialUrl.tab,
+  channel: _initialUrl.channel,
   audience: 'listener',
   timelineLimit: 12,
   timelineFilter: null,
