@@ -1,5 +1,5 @@
 import { state, initStore, toggleFavorite, isFavorite } from './store.js';
-import { ensureSongTags, loadAll } from './data.js';
+import { ensureSongTags, loadAll, loadInitial } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
@@ -47,11 +47,11 @@ function renderInitialDashboard() {
     .filter(stats => stats.channelLabel || stats.channelId);
   const rows = channels.length ? channels : [state.channelData.combined?.stats || {}];
   panel.innerHTML = `
-    <div class="dashboard-grid">
+    <div class="dashboard-grid dashboard-grid-initial">
       ${rows.map(stats => `
-        <div class="card col-6">
+        <div class="card dashboard-summary-card">
           <div class="card-title">${escapeHtml(stats.channelLabel || stats.channelId || '全期間')}</div>
-          <div style="display:grid;gap:10px;">
+          <div class="dashboard-metric-list">
             <div class="activity-row">
               <span class="a-date">歌唱</span>
               <span class="a-meta">総歌唱数</span>
@@ -134,9 +134,7 @@ function scheduleFullDataPreload() {
   const preload = async () => {
     try {
       await ensureFullData();
-      if (state.activeTab === 'dashboard') {
-        renderTab('dashboard', { autoLoad: false });
-      }
+      renderTab(state.activeTab, { autoLoad: false });
     } catch (error) {
       console.warn('[data] background preload failed', error);
     }
@@ -208,13 +206,17 @@ async function renderTab(tab = state.activeTab, options = {}) {
 function activateTab(tab, options = {}) {
   if (!isValidTab(tab)) tab = 'dashboard';
   state.activeTab = tab;
-  $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+  syncActiveTabUi(tab);
   if (options.updateUrl !== false) writeUrlState({ tab });
   renderTab(tab, {
     autoLoad: options.autoLoad !== false,
     initial: !!options.initial,
   });
+}
+
+function syncActiveTabUi(tab) {
+  $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
 }
 
 function getDataset(channelId) {
@@ -248,7 +250,12 @@ function switchChannel(channelId, options = {}) {
     });
   }
   renderHero();
-  if (options.render !== false) renderTab(state.activeTab, { autoLoad: options.autoLoad !== false });
+  if (options.render !== false) {
+    renderTab(state.activeTab, {
+      autoLoad: options.autoLoad !== false,
+      initial: !!options.initial,
+    });
+  }
 }
 
 function switchAudience(audience, options = {}) {
@@ -729,10 +736,12 @@ function initWelcomeTip() {
 async function init() {
   showLoading();
   try {
-    const channelData = await loadAll();
+    const channelData = await loadInitial();
     state.channelData = channelData;
     const url = readUrlState();
     state.songsQuery = url.q;
+    state.activeTab = isValidTab(url.tab) ? url.tab : 'dashboard';
+    syncActiveTabUi(state.activeTab);
     let initialChannel = url.channel || state.channel || DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) initialChannel = DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) {
@@ -745,8 +754,10 @@ async function init() {
     switchChannel(initialChannel, {
       resetSearch: false,
       updateUrl: false,
-      autoLoad: true,
+      autoLoad: false,
+      initial: true,
     });
+    scheduleFullDataPreload();
   } catch (e) {
     console.error('[init] failed:', e);
     showError(e);

@@ -2,10 +2,53 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 16px;
+  align-items: start;
 }
-.dashboard-grid > .card { grid-column: span 12; }
+.dashboard-grid > .card {
+  grid-column: span 12;
+  min-width: 0;
+}
+.dashboard-grid-initial {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.dashboard-grid-initial > .dashboard-summary-card {
+  grid-column: auto;
+}
+.dashboard-card {
+  height: 100%;
+}
+.dashboard-card .card-title {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1.35;
+}
+.dashboard-card .card-title .pill {
+  flex: 0 0 auto;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.dashboard-metric-list {
+  display: grid;
+  gap: 8px;
+}
+.dashboard-activity-card .activity-row,
+.dashboard-summary-card .activity-row {
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+}
+.dashboard-activity-card .activity-row strong,
+.dashboard-summary-card .activity-row strong {
+  color: var(--primary-strong);
+  font-feature-settings: var(--tnum);
+  white-space: nowrap;
+}
+.dashboard-top-card .bar-list,
+.dashboard-card .bar-list {
+  display: grid;
+  gap: 2px;
+}
 @media (min-width: 760px) {
   .col-6 { grid-column: span 6 !important; }
   .col-4 { grid-column: span 4 !important; }
@@ -14,13 +57,19 @@
 
 /* Heatmap (calendar) */
 
-.heatmap-wrap { overflow-x: auto; padding-bottom: 6px; }
+.heatmap-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
 .heatmap {
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(7, 14px);
   gap: 3px;
   min-height: 110px;
+  width: max-content;
 }
 .heatmap-cell {
   width: 14px;
@@ -90,6 +139,7 @@
 .heatmap-flex {
   display: flex;
   align-items: flex-start;
+  min-width: 0;
 }
 
 /* === Podium === */
@@ -690,7 +740,27 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     font-size: 11px;
   }
   .dashboard-grid {
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .dashboard-grid-initial {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-grid > .card,
+  .dashboard-grid-initial > .dashboard-summary-card {
+    grid-column: 1 / -1 !important;
+  }
+  .dashboard-card .card-title {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .dashboard-card .card-title .pill {
+    font-size: 10px;
+    padding: 1px 7px;
+  }
+  .dashboard-activity-card .activity-row,
+  .dashboard-summary-card .activity-row {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
   }
   .podium {
     grid-template-columns: repeat(3, minmax(0, 1fr));

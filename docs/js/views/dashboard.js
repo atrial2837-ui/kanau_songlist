@@ -53,9 +53,9 @@ export function renderDashboard() {
   const token = ++chartRenderToken;
 
   const activityHtml = `
-    <div class="card col-4">
+    <div class="card col-4 dashboard-card dashboard-activity-card">
       <div class="card-title">📈 今月の活動</div>
-      <div style="display:grid;gap:10px;">
+      <div class="dashboard-metric-list">
         <div class="activity-row">
           <span class="a-date">配信</span>
           <span class="a-meta">今月の歌枠数</span>
@@ -81,7 +81,7 @@ export function renderDashboard() {
   `;
 
   const top5Html = `
-    <div class="card col-4">
+    <div class="card col-4 dashboard-card dashboard-top-card">
       <div class="card-title">🏆 TOP5 楽曲</div>
       <div class="bar-list">
         ${top5.length ? top5.map((s, i) => topBarRow(s, i, top5Max)).join('') : '<div class="empty-state">曲データなし</div>'}
@@ -106,20 +106,20 @@ export function renderDashboard() {
   const heatmap = buildHeatmap(streams, today);
   panel.innerHTML = `
     <div class="dashboard-grid" id="dashboard-grid">
-      <div class="card col-8">
-        <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
-        ${renderHeatmap(heatmap)}
-      </div>
       ${activityHtml}
-      <div class="card col-8">
-        <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
-        ${chartCanvas('chart-monthly', { class: '' })}
-      </div>
-      <div class="card col-4">
+      ${top5Html}
+      <div class="card col-4 dashboard-card dashboard-chart-card">
         <div class="card-title">🎸 ジャンル分布 <span class="pill">楽曲数</span></div>
         ${chartCanvas('chart-genre', { class: 'short' })}
       </div>
-      ${top5Html}
+      <div class="card col-12 dashboard-card dashboard-heatmap-card">
+        <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
+        ${renderHeatmap(heatmap)}
+      </div>
+      <div class="card col-8 dashboard-card dashboard-chart-card">
+        <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
+        ${chartCanvas('chart-monthly', { class: '' })}
+      </div>
       ${deferredDashboardHtml(streams, songs, recent)}
     </div>
   `;
@@ -140,15 +140,15 @@ function appendDeferredDashboard(panel, streams, songs, recent, token) {
   if (!grid || grid.dataset.deferred === '1') return;
   grid.dataset.deferred = '1';
   grid.insertAdjacentHTML('beforeend', `
-    <div class="card col-8">
+    <div class="card col-8 dashboard-card dashboard-heatmap-card">
       <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
       ${renderHeatmap(buildHeatmap(streams, getToday()))}
     </div>
-    <div class="card col-8">
+    <div class="card col-8 dashboard-card dashboard-chart-card">
       <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
       ${chartCanvas('chart-monthly', { class: '' })}
     </div>
-    <div class="card col-8">
+    <div class="card col-8 dashboard-card dashboard-chart-card">
       <div class="card-title">🎸 ジャンル分布 <span class="pill">楽曲数</span></div>
       ${chartCanvas('chart-genre', { class: 'short' })}
     </div>
@@ -172,35 +172,35 @@ function deferredDashboardHtml(streams, songs, recent) {
   const monthlyHits = periodHits(streams, 'month', getToday());
   const yearlyHits = periodHits(streams, 'year', getToday());
   return `
-    <div class="card col-6">
+    <div class="card col-6 dashboard-card">
       <div class="card-title">🗳 今月のよく歌われた曲 <span class="pill">軽量版</span></div>
       <div class="bar-list">
         ${monthlyHits.length ? monthlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, monthlyHits[0].count)).join('') : '<div class="empty-state">今月の歌唱履歴なし</div>'}
       </div>
     </div>
 
-    <div class="card col-6">
+    <div class="card col-6 dashboard-card">
       <div class="card-title">🗳 今年のよく歌われた曲 <span class="pill">軽量版</span></div>
       <div class="bar-list">
         ${yearlyHits.length ? yearlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, yearlyHits[0].count)).join('') : '<div class="empty-state">今年の歌唱履歴なし</div>'}
       </div>
     </div>
 
-    <div class="card col-6">
+    <div class="card col-6 dashboard-card">
       <div class="card-title">💤 久しぶり候補 <span class="pill">180日以上</span></div>
       <div class="bar-list">
         ${stalePicks.length ? stalePicks.map((s, i) => topBarRow(s, i, stalePicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
       </div>
     </div>
 
-    <div class="card col-6">
+    <div class="card col-6 dashboard-card">
       <div class="card-title">✨ 最近歌った定番 <span class="pill">30日以内</span></div>
       <div class="bar-list">
         ${recentPicks.length ? recentPicks.map((s, i) => topBarRow(s, i, recentPicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
       </div>
     </div>
 
-    <div class="card col-12">
+    <div class="card col-12 dashboard-card">
       <div class="card-title">📺 直近の歌枠 <span class="pill">最新${recent.length}件</span></div>
       ${recent.map(s => `
         <div class="activity-row">
