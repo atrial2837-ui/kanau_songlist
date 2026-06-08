@@ -23,7 +23,7 @@ export function renderSongs() {
     </div>
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="controls">
-        <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・artist:miwa などで検索" value="${escapeHtml(state.songsQuery)}">
+        <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・artist:miwa ・chill ・久しぶり などで検索" value="${escapeHtml(state.songsQuery)}">
         <select id="songs-sort" class="select-input">
           <option value="count-desc">回数（多）</option>
           <option value="count-asc">回数（少）</option>
@@ -54,11 +54,13 @@ export function renderSongs() {
           <button class="btn ghost" data-singer-preset="classic" type="button">定番</button>
           <button class="btn ghost" data-singer-preset="stale" type="button">久しぶり</button>
           <button class="btn ghost" data-singer-preset="rare" type="button">レア</button>
+          <button class="btn ghost" data-singer-preset="chill" type="button">Chill</button>
+          <button class="btn ghost" data-singer-preset="energetic" type="button">激しい</button>
+          <button class="btn ghost" data-singer-preset="nostalgic" type="button">ノスタルジック</button>
           <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
           <button class="btn primary" id="setlist-toggle-btn" type="button" aria-controls="setlist-planner" aria-expanded="${state.setlistExpanded ? 'true' : 'false'}">${state.setlistExpanded ? 'セトリ制作を閉じる' : 'セトリ制作を開く'}</button>
         </div>
       ` : ''}
-      <div id="recommend-box" class="recommend-box" hidden></div>
     </div>
     ${state.singerMode ? '<div id="setlist-planner" class="setlist-planner mobile-panel mobile-panel-setlist"></div>' : ''}
     <div class="genre-strip" id="songs-genre-chips">${genreChipsHtml()}</div>

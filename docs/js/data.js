@@ -129,11 +129,14 @@ export function ensureSongTags(song) {
   song.moodText = song.moodTags.join(' ');
   song.trend = trendLabel(song);
   song.singerTags = singerTags(song);
+  song.singerTagText = song.singerTags.join(' ');
+  song.moodTagText = song.moodTags.join(' ');
   song.tagText = [
     song.seasonText,
     song.moodText,
     song.singerTags.join(' '),
     song.trend,
+    song.moodTagText,
   ].filter(Boolean).join(' ');
   song.__tagsReady = true;
   return song;

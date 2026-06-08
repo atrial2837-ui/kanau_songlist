@@ -11,6 +11,9 @@ const songs = [
   { title: 'lemon', artist: '米津玄師', count: 12, genre: 'J-POP', genreText: 'J-POP', keyText: '+2', tagText: 'しっとり キー確認済み 定番', moodText: 'しっとり', seasonText: '', daysSinceLast: 200, lastSung: '2025-10-01' },
   { title: '少女レイ', artist: 'みきとP', count: 3, genre: 'ボカロ', genreText: 'ボカロ', keyText: '', tagText: '夏 切ない', moodText: '切ない', seasonText: '夏', daysSinceLast: 80, lastSung: '2026-03-01' },
   { title: 'メルト', artist: 'ryo', count: 9, genre: 'ボカロ', genreText: 'ボカロ', keyText: '', tagText: 'かわいい 定番', moodText: 'かわいい', seasonText: '', daysSinceLast: 5, lastSung: '2026-05-25' },
+  { title: 'チルいカフェ', artist: 'Lofi Artist', count: 4, genre: 'J-POP', genreText: 'J-POP', keyText: '', tagText: 'chill', moodText: 'chill', seasonText: '', daysSinceLast: 60, lastSung: '2026-04-01' },
+  { title: '激ロック', artist: 'Metal Band', count: 7, genre: 'アニソン', genreText: 'アニソン', keyText: '', tagText: '激しい', moodText: '激しい', seasonText: '', daysSinceLast: 45, lastSung: '2026-04-15' },
+  { title: 'あの日の青春', artist: 'Nostalgic', count: 6, genre: 'J-POP', genreText: 'J-POP', keyText: '', tagText: 'ノスタルジック', moodText: 'ノスタルジック', seasonText: '', daysSinceLast: 90, lastSung: '2026-03-01' },
 ];
 
 describe('search domain', () => {
@@ -83,5 +86,30 @@ describe('search domain', () => {
   it('matchReasons', () => {
     const reasons = matchReasons(songs[0], '青');
     assert.ok(reasons.includes('曲名'));
+  });
+
+  it('parseQuery: natural language chill mood filter', () => {
+    const q = parseQuery('chillな曲');
+    assert.ok(q.filters.some(f => f.key === 'mood' && f.val === 'chill'));
+  });
+
+  it('parseQuery: natural language energetic mood filter', () => {
+    const q = parseQuery('激しい曲');
+    assert.ok(q.filters.some(f => f.key === 'mood' && f.val === '激しい'));
+  });
+
+  it('parseQuery: natural language nostalgic mood filter', () => {
+    const q = parseQuery('ノスタルジックな曲');
+    assert.ok(q.filters.some(f => f.key === 'mood' && f.val === 'ノスタルジック'));
+  });
+
+  it('parseQuery: natural language count filter', () => {
+    const q = parseQuery('10回以上歌った曲');
+    assert.ok(q.filters.some(f => f.key === 'count' && f.op === '>=' && f.val === '10'));
+  });
+
+  it('parseQuery: natural language 100 days filter', () => {
+    const q = parseQuery('100日以上歌ってない曲');
+    assert.ok(q.filters.some(f => f.key === 'days' && f.op === '>' && f.val === '100'));
   });
 });
