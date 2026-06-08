@@ -447,6 +447,7 @@ function playYouTubeInline(url) {
   container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1" frameborder="0" allowfullscreen allow="autoplay"></iframe>`;
   panel.hidden = false;
 }
+window.playYouTubeInline = playYouTubeInline;
 
 function initYouTubePlayer() {
   if ($('#yt-player-panel')) return;

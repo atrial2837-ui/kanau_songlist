@@ -93,6 +93,18 @@ export function renderTimeline() {
     }
   };
 
+  // Handle inline YouTube playback
+  $('#timeline').addEventListener('click', (event) => {
+    const ytBtn = event.target.closest('[data-inline-youtube]');
+    if (!ytBtn) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const fn = window.playYouTubeInline || (typeof playYouTubeInline === 'function' ? playYouTubeInline : null);
+    if (fn) {
+      fn(ytBtn.dataset.inlineYoutube);
+    }
+  });
+
   const ctrl = $('#timeline-controls');
   if (state.timelineLimit < visible.length) {
     ctrl.innerHTML = `<button class="load-more-btn" id="load-more">▼ もっと見る (残り${visible.length - state.timelineLimit}枠)</button>`;

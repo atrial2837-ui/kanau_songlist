@@ -1,4 +1,4 @@
-import { state } from '../store.js';
+import { state, isFavorite } from '../store.js';
 import { $, escapeHtml, fmtDate, daysClass } from '../utils.js';
 import { RANKING_LIST_LIMIT } from '../config.js';
 
@@ -56,11 +56,15 @@ function rowHtml(song) {
   const lastHtml = song.lastSung
     ? `<div>${fmtDate(song.lastSung)}</div><span class="badge ${daysClass(song.daysSinceLast)}">${song.daysSinceLast}日前</span>`
     : `<div>未披露</div><span class="badge never">—</span>`;
+  const favActive = isFavorite(song.key);
   return `
-    <div class="song-row" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="クリックで配信タイムラインに絞り込み">
+    <div class="song-row song-row--ranking" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="クリックで配信タイムラインに絞り込み">
       <div class="rank ${rankClass}">${song.rank}</div>
       <div class="info">
-        <div class="title">${escapeHtml(song.title)}</div>
+        <div class="title">
+          ${escapeHtml(song.title)}
+          <button class="fav-btn ${favActive ? 'is-active' : ''}" type="button" data-fav-toggle="${escapeHtml(song.key)}" aria-label="お気に入り" title="お気に入り">${favActive ? '♥' : '♡'}</button>
+        </div>
         <button class="artist artist-search-btn" type="button" data-artist-search="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</button>
       </div>
       <div class="song-row-side">
