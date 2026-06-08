@@ -1350,3 +1350,125 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   color: var(--primary-strong);
   font-feature-settings: var(--tnum);
 }
+
+/* === Today's Song (今日の一曲) === */
+
+.todays-song-box {
+  margin: 8px 0 12px;
+}
+
+.todays-song-card {
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface));
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.todays-song-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.todays-song-label {
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.todays-song-dismiss {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-mute);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.todays-song-dismiss:hover {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.todays-song-info {
+  margin-bottom: 12px;
+}
+
+.todays-song-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.todays-song-artist {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+.todays-song-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.todays-song-count,
+.todays-song-last,
+.todays-song-key {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.todays-song-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 600px) {
+  .todays-song-card {
+    padding: 12px;
+  }
+
+  .todays-song-title {
+    font-size: 15px;
+  }
+
+  .todays-song-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .todays-song-actions .btn {
+    justify-content: center;
+  }
+}

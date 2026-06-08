@@ -1,0 +1,17 @@
+{
+  "name": "夢川かなう 歌唱データベース",
+  "short_name": "かなうDB",
+  "description": "夢川かなうさんの歌った曲リスト、ランキング、歌枠タイムライン",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0fbff",
+  "theme_color": "#4ab2dc",
+  "icons": [
+    {
+      "src": "assets/site-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
