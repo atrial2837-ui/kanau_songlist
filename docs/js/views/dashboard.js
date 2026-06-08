@@ -55,21 +55,25 @@ export function renderDashboard() {
 
   panel.innerHTML = `
     <div class="dashboard-grid" id="dashboard-grid">
-      <div class="dashboard-lead">
-        ${activityHtml}
-        ${top5Html}
+      <div class="dashboard-main-stack">
+        <div class="dashboard-lead">
+          ${activityHtml}
+          ${top5Html}
+        </div>
+        <div class="card dashboard-card dashboard-monthly-card">
+          <div class="card-title">🎶 月別 歌唱数 <span class="pill">直近12か月</span></div>
+          ${renderMonthlyBars(monthly, monthlyMax)}
+        </div>
       </div>
-      <div class="card dashboard-card dashboard-genre-card">
-        <div class="card-title">🎸 ジャンル分布 <span class="pill">楽曲数</span></div>
-        ${renderGenreChart(songs)}
-      </div>
-      <div class="card dashboard-card dashboard-monthly-card">
-        <div class="card-title">🎶 月別 歌唱数 <span class="pill">直近12か月</span></div>
-        ${renderMonthlyBars(monthly, monthlyMax)}
-      </div>
-      <div class="card dashboard-card dashboard-heatmap-card">
-        <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
-        ${renderHeatmap(heatmap)}
+      <div class="dashboard-side-stack">
+        <div class="card dashboard-card dashboard-genre-card">
+          <div class="card-title">🎸 ジャンル分布 <span class="pill">楽曲数</span></div>
+          ${renderGenreChart(songs)}
+        </div>
+        <div class="card dashboard-card dashboard-heatmap-card">
+          <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
+          ${renderHeatmap(heatmap)}
+        </div>
       </div>
       ${deferredDashboardHtml(streams, songs, recent)}
     </div>
