@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kanau-songlist-v1';
+const CACHE_NAME = 'kanau-songlist-v2';
 
 const ASSETS = [
   '/',
@@ -6,14 +6,22 @@ const ASSETS = [
   '/css/theme.css',
   '/css/components.css',
   '/css/views.css',
+  '/js/main.js',
   '/assets/site-icon.svg',
-  '/dist/main.js',
   '/data/meta.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
   );
 });
 
