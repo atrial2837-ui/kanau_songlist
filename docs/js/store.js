@@ -109,6 +109,7 @@ const DEFAULT_IN_MEMORY = {
   rankingLimit: 50,
   favorites: loadFavorites(),
   favoritesFilter: false,
+  fullLoaded: false,
   channelData: null,
   data: null,
 };
@@ -140,59 +141,13 @@ function syncMemToUrl(fields) {
 }
 
 export function get(key) {
-  if (key === 'activeTab') return memState.activeTab;
-  if (key === 'channel') return memState.channel;
-  if (key === 'songsQuery') return memState.songsQuery;
-  if (key === 'channelData') return memState.channelData;
-  if (key === 'data') return memState.data;
-  if (key === 'audience') return memState.audience;
-  if (key === 'singerMode') return memState.singerMode;
-  if (key === 'singerPreset') return memState.singerPreset;
-  if (key === 'timelineLimit') return memState.timelineLimit;
-  if (key === 'timelineFilter') return memState.timelineFilter;
-  if (key === 'timelineFocus') return memState.timelineFocus;
-  if (key === 'timelineSort') return memState.timelineSort;
-  if (key === 'songsSort') return memState.songsSort;
-  if (key === 'songsLimit') return memState.songsLimit;
-  if (key === 'songsFilter') return memState.songsFilter;
-  if (key === 'songsGenre') return memState.songsGenre;
-  if (key === 'songsSeason') return memState.songsSeason;
-  if (key === 'songsView') return memState.songsView;
-  if (key === 'setlist') return memState.setlist;
-  if (key === 'setlistExpanded') return memState.setlistExpanded;
-  if (key === 'rankingLimit') return memState.rankingLimit;
-  if (key === 'favorites') return memState.favorites;
-  if (key === 'favoritesFilter') return memState.favoritesFilter;
-  if (key === 'fullLoaded') return memState.fullLoaded;
-  return undefined;
+  return memState[key];
 }
 
 export function set(key, value, options = {}) {
+  if (!(key in memState)) return;
   const prev = get(key);
-  if (key === 'activeTab') memState.activeTab = value;
-  else if (key === 'channel') memState.channel = value;
-  else if (key === 'songsQuery') memState.songsQuery = value;
-  else if (key === 'channelData') memState.channelData = value;
-  else if (key === 'data') memState.data = value;
-  else if (key === 'audience') memState.audience = value;
-  else if (key === 'singerMode') memState.singerMode = value;
-  else if (key === 'singerPreset') memState.singerPreset = value;
-  else if (key === 'timelineLimit') memState.timelineLimit = value;
-  else if (key === 'timelineFilter') memState.timelineFilter = value;
-  else if (key === 'timelineFocus') memState.timelineFocus = value;
-  else if (key === 'timelineSort') memState.timelineSort = value;
-  else if (key === 'songsSort') memState.songsSort = value;
-  else if (key === 'songsLimit') memState.songsLimit = value;
-  else if (key === 'songsFilter') memState.songsFilter = value;
-  else if (key === 'songsGenre') memState.songsGenre = value;
-  else if (key === 'songsSeason') memState.songsSeason = value;
-  else if (key === 'songsView') memState.songsView = value;
-  else if (key === 'setlist') memState.setlist = value;
-  else if (key === 'setlistExpanded') memState.setlistExpanded = value;
-  else if (key === 'rankingLimit') memState.rankingLimit = value;
-  else if (key === 'fullLoaded') memState.fullLoaded = value;
-  else if (key === 'favoritesFilter') memState.favoritesFilter = value;
-  else return;
+  memState[key] = value;
 
   if (prev !== value) {
     emit({ key, prev, next: value });
@@ -220,7 +175,11 @@ export function loadFavorites() {
 }
 
 export function saveFavorites(favorites) {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
+  } catch (e) {
+    console.warn('Failed to save favorites:', e);
+  }
 }
 
 export function toggleFavorite(key) {

@@ -45,16 +45,11 @@ function formatStaticStreamRecord(stream) {
   return {
     index: stream.index,
     channel: stream.channel,
-    dateRaw: stream.dateRaw,
     date: stream.date,
     title: stream.title,
     url: stream.url,
     songCount: stream.songCount,
     songs: stream.songs.map(({ key }) => ({ key })),
-    monthKey: stream.monthKey,
-    year: stream.year,
-    month: stream.month,
-    dayOfWeek: stream.dayOfWeek,
   };
 }
 

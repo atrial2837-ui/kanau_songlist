@@ -58,7 +58,7 @@ export function periodHits(streams, period, today) {
       counts.get(song.key).count += 1;
     }
   }
-  return Array.from(counts.values()).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, 'ja'));
+  return Array.from(counts.values()).sort((a, b) => b.count - a.count || (a.title || '').localeCompare(b.title || '', 'ja'));
 }
 
 /**

@@ -226,16 +226,11 @@ export function buildChannelDataset(channel, raw, today) {
       return {
         index: stream.source_index || 0,
         channel: channel.code,
-        dateRaw: date ? date.replaceAll('-', '/') : '',
         date,
         title: normalize(stream.title),
         url: stream.url || '',
         songCount: stream.song_count || songRefs.length,
         songs: songRefs,
-        monthKey: monthKey(date),
-        year: date ? Number(date.slice(0, 4)) : null,
-        month: date ? Number(date.slice(5, 7)) : null,
-        dayOfWeek: parseDayOfWeek(date),
       };
     })
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));

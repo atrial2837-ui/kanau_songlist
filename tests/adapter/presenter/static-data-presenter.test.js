@@ -59,7 +59,6 @@ function makeStream(overrides = {}) {
   return {
     index: 10,
     channel: 'new',
-    dateRaw: '2026/05/19',
     date: '2026-05-19',
     title: '歌枠 #10',
     url: 'https://youtube.com/watch?v=abc',
@@ -67,10 +66,6 @@ function makeStream(overrides = {}) {
     songs: [
       { key: 'test_key', raw: 'テスト曲', title: '表示タイトル', artist: 'アーティスト名' },
     ],
-    monthKey: '2026-05',
-    year: 2026,
-    month: 5,
-    dayOfWeek: 2,
     ...overrides,
   };
 }
@@ -202,11 +197,15 @@ describe('formatStaticDataFiles', () => {
     const stream = result.streams.channels.new[0];
     assert.equal(stream.index, 10);
     assert.equal(stream.channel, 'new');
-    assert.equal(stream.dateRaw, '2026/05/19');
-    assert.equal(stream.monthKey, '2026-05');
-    assert.equal(stream.year, 2026);
-    assert.equal(stream.month, 5);
-    assert.equal(stream.dayOfWeek, 2);
+    assert.equal(stream.date, '2026-05-19');
+    assert.equal(stream.title, '歌枠 #10');
+    assert.equal(stream.url, 'https://youtube.com/watch?v=abc');
+    assert.equal(stream.songCount, 15);
+    assert.ok(!('dateRaw' in stream), 'dateRaw はクライアントで復元するため含まれない');
+    assert.ok(!('monthKey' in stream), 'monthKey はクライアントで復元するため含まれない');
+    assert.ok(!('year' in stream), 'year はクライアントで復元するため含まれない');
+    assert.ok(!('month' in stream), 'month はクライアントで復元するため含まれない');
+    assert.ok(!('dayOfWeek' in stream), 'dayOfWeek はクライアントで復元するため含まれない');
   });
 
   it('songs[].displayKey が空のとき空文字列を返す', () => {

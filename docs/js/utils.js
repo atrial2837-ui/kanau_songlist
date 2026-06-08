@@ -15,7 +15,7 @@ export const fmtDate = formatDateRaw;
 
 export const fmtMonth = formatMonth;
 
-export const streamKey = (stream) => `${stream?.channelCode || stream?.channel || ''}:${stream?.dateText || stream?.streamedOn || stream?.dateRaw || ''}:${stream?.url || stream?.title || ''}`;
+export const streamKey = (stream) => `${stream?.channelCode || stream?.channel || ''}:${stream?.dateText || stream?.streamedOn || stream?.date || ''}:${stream?.url || stream?.title || ''}`;
 
 export const debounce = (fn, ms = 150) => {
   let t;

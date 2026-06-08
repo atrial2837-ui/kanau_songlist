@@ -35,8 +35,10 @@ async function getRenderer(tab) {
   }
 }
 
-function requiresFullData(tab) {
-  return ['dashboard', 'ranking', 'songs', 'timeline', 'analytics'].includes(tab);
+// ストリームデータが必要なタブ（dashboard/timeline/analytics）
+// ranking/songs は songs.json だけで描画できる
+function needsStreams(tab) {
+  return ['dashboard', 'timeline', 'analytics'].includes(tab);
 }
 
 function renderDeferredPanel(tab, options = {}) {
@@ -67,27 +69,47 @@ function renderPanelLoading(tab) {
   `;
 }
 
-async function ensureFullData() {
+// songs.json が届いた時点で ranking/songs を早期描画
+function applyPartialData(partial) {
   if (state.channelData?.fullLoaded) return;
-  if (!fullDataPromise) {
-    fullDataPromise = loadAll({ meta: state.channelData }).finally(() => {
-      fullDataPromise = null;
-    });
+  state.channelData = partial; // partialLoaded: true, fullLoaded: false
+  if (!needsStreams(state.activeTab) && state.data) {
+    const ch = getDataset(state.channel) ? state.channel : DEFAULT_CHANNEL;
+    state.data = getDataset(ch);
+    if (state.data) renderTab(state.activeTab, { autoLoad: false });
   }
-  const fullData = await fullDataPromise;
+}
+
+// streams.json まで揃ったときに全タブを更新
+function applyFullData(fullData) {
   state.channelData = fullData;
   state.channelData.fullLoaded = true;
-  const channel = getDataset(state.channel) ? state.channel : DEFAULT_CHANNEL;
-  switchChannel(channel, {
-    resetSearch: false,
-    updateUrl: false,
-    render: false,
-  });
+  const ch = getDataset(state.channel) ? state.channel : DEFAULT_CHANNEL;
+  switchChannel(ch, { resetSearch: false, updateUrl: false, render: false });
+  renderTab(state.activeTab, { autoLoad: false });
+}
+
+function startFullDataLoad() {
+  fullDataPromise = loadAll({
+    meta: state.channelData,
+    onSongsReady: applyPartialData,
+  }).then(applyFullData).finally(() => { fullDataPromise = null; });
+  return fullDataPromise;
+}
+
+async function ensureFullData() {
+  if (state.channelData?.fullLoaded) return;
+  if (!fullDataPromise) startFullDataLoad();
+  await fullDataPromise;
 }
 
 async function renderTab(tab = state.activeTab, options = {}) {
   if (!state.data || !isValidTab(tab)) return;
-  if (requiresFullData(tab) && !state.channelData?.fullLoaded) {
+  const hasPartial = state.channelData?.partialLoaded || state.channelData?.fullLoaded;
+  const hasFull    = state.channelData?.fullLoaded;
+  const waitNeeded = needsStreams(tab) ? !hasFull : !hasPartial;
+
+  if (waitNeeded) {
     if (options.autoLoad) {
       renderPanelLoading(tab);
       try {
@@ -683,6 +705,10 @@ async function init() {
   try {
     const channelData = await loadInitial();
     state.channelData = channelData;
+    // meta.json 完了直後に songs/streams の fetch を開始（ヒーロー描画処理を待たない）
+    if (!fullDataPromise && !channelData.fullLoaded) {
+      startFullDataLoad();
+    }
     const url = readUrlState();
     state.songsQuery = url.q;
     state.activeTab = isValidTab(url.tab) ? url.tab : 'dashboard';

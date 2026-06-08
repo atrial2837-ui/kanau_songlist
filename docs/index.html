@@ -25,6 +25,8 @@
 <link rel="preload" href="assets/site-icon.svg" as="image" fetchpriority="high">
 <link rel="preload" href="assets/fonts/noto-sans-jp-kanau-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/data/meta.json" as="fetch" type="application/json" crossorigin>
+<link rel="preload" href="/data/songs.json" as="fetch" type="application/json" crossorigin fetchpriority="low">
+<link rel="preload" href="/data/streams.json" as="fetch" type="application/json" crossorigin fetchpriority="low">
 <link rel="modulepreload" href="dist/main.js?v=ui-20260608d">
 <link rel="preload" href="css/theme.css?v=ui-20260608d" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <style>
@@ -266,13 +268,8 @@
 <!-- Dependencies -->
 <script type="module" src="dist/main.js?v=ui-20260608d"></script>
 <script>
-// Unregister old service workers to prevent stale cache issues
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    for (var registration of registrations) {
-      registration.unregister();
-    }
-  });
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 </script>
 
