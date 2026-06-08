@@ -141,6 +141,21 @@ export function applySingerMode(songs, options) {
       return base.filter((s) => s.daysSinceLast >= 180);
     case 'rare':
       return base.filter((s) => s.count <= 2);
+    case 'chill':
+      return base.filter((s) => {
+        const text = `${s.moodText || ''} ${s.tagText || ''}`.toLowerCase();
+        return /chill|チル|のんびり|リラックス|ほっこり|まったり|しっとり/.test(text);
+      });
+    case 'energetic':
+      return base.filter((s) => {
+        const text = `${s.moodText || ''} ${s.tagText || ''}`.toLowerCase();
+        return /激しい|アグレッシブ|パンク|メタル|盛り上がる|アップテンポ/.test(text);
+      });
+    case 'nostalgic':
+      return base.filter((s) => {
+        const text = `${s.moodText || ''} ${s.tagText || ''}`.toLowerCase();
+        return /ノスタルジ|レトロ|昭和|平成|青春|初恋|懐かしい/.test(text);
+      });
     default:
       return base.filter((s) =>
         s.displayKey || !options.keyPublished || s.count >= 5 || s.daysSinceLast >= 120,

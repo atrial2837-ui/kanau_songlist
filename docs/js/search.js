@@ -10,6 +10,8 @@ const fuseOptions = {
     { name: 'moodText', weight: 0.12 },
     { name: 'seasonText', weight: 0.1 },
     { name: 'keyText', weight: 0.1 },
+    { name: 'moodTagText', weight: 0.1 },
+    { name: 'singerTagText', weight: 0.08 },
   ],
   threshold: 0.38,
   ignoreLocation: true,
@@ -176,6 +178,8 @@ export function search(rawQuery, fallbackSongs) {
         song.moodText,
         song.seasonText,
         song.keyText,
+        song.moodTagText || '',
+        song.singerTagText || '',
       ].some((value) => normalize(value).toLowerCase().includes(needle))),
       tokens,
     };
