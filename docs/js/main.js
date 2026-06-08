@@ -1,5 +1,5 @@
 import { state, initStore } from './store.js';
-import { ensureSongTags, loadAll } from './data.js';
+import { ensureSongTags, loadAll, loadInitial } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
@@ -143,12 +143,12 @@ function scheduleFullDataPreload() {
   };
   const runWhenIdle = () => {
     if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(preload, { timeout: 4000 });
+      window.requestIdleCallback(preload, { timeout: 2000 });
     } else {
-      window.setTimeout(preload, 1200);
+      window.setTimeout(preload, 600);
     }
   };
-  const scheduleAfterInitialPaint = () => window.setTimeout(runWhenIdle, 1800);
+  const scheduleAfterInitialPaint = () => window.setTimeout(runWhenIdle, 400);
   if (document.readyState === 'complete') {
     scheduleAfterInitialPaint();
   } else {
@@ -540,7 +540,20 @@ function initSongModal() {
   });
 }
 
+function renderHeroPlaceholder() {
+  $('#stats-grid').innerHTML = Array.from({ length: 6 }, () => `
+    <div class="stat-card placeholder">
+      <div class="stat-label">&nbsp;</div>
+      <div class="stat-value">&nbsp;</div>
+    </div>
+  `).join('');
+}
+
 function renderHero() {
+  if (!state.data) {
+    renderHeroPlaceholder();
+    return;
+  }
   const { stats, streams = [] } = state.data;
   const latest = streams[0]?.date || null;
   const dSinceLatest = daysSince(latest);
@@ -658,44 +671,62 @@ function initWelcomeTip() {
 
 async function init() {
   showLoading();
+  renderHeroPlaceholder();
   try {
-    const channelData = await loadAll();
-    state.channelData = channelData;
+    const initialData = await loadInitial();
+    state.channelData = initialData;
     const url = readUrlState();
     state.songsQuery = url.q;
     let initialChannel = url.channel || state.channel || DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) initialChannel = DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) {
-      const fallback = Object.keys(channelData.channels)[0];
+      const fallback = Object.keys(initialData.channels)[0];
       if (fallback) initialChannel = fallback;
     }
     if (!getDataset(initialChannel)) throw new Error('No channel data could be loaded');
     refreshChannelButtons();
     hideLoading();
     const initialTab = isValidTab(url.tab) ? url.tab : state.activeTab;
-    const initialAutoLoad = initialTab !== 'dashboard';
     switchChannel(initialChannel, {
       resetSearch: false,
       updateUrl: false,
-      autoLoad: initialAutoLoad,
+      autoLoad: false,
     });
     activateTab(initialTab, {
       updateUrl: false,
-      autoLoad: initialAutoLoad,
+      autoLoad: false,
       initial: true,
     });
     switchAudience(state.audience, {
-      autoLoad: initialAutoLoad,
+      autoLoad: false,
       initial: true,
     });
-    for (const ch of Object.values(channelData.channels)) {
+    loadFullDataInBackground();
+  } catch (e) {
+    console.error(e);
+    showError(e);
+  }
+}
+
+async function loadFullDataInBackground() {
+  try {
+    const fullData = await loadAll({ meta: state.channelData });
+    state.channelData = fullData;
+    state.channelData.fullLoaded = true;
+    const channel = getDataset(state.channel) ? state.channel : DEFAULT_CHANNEL;
+    switchChannel(channel, {
+      resetSearch: false,
+      updateUrl: false,
+      render: false,
+    });
+    for (const ch of Object.values(fullData.channels)) {
       if (ch.orphans?.length) {
         console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
       }
     }
-  } catch (e) {
-    console.error(e);
-    showError(e);
+    scheduleFullDataPreload();
+  } catch (error) {
+    console.warn('[data] background full load failed', error);
   }
 }
 
@@ -761,9 +792,7 @@ onRerenderNeeded(() => {
 });
 
 function startApp() {
-  window.requestAnimationFrame(() => {
-    window.setTimeout(init, 0);
-  });
+  init();
 }
 
 if (document.readyState === 'loading') {
