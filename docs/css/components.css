@@ -247,6 +247,17 @@
 .panel { display: none; animation: fadeIn 0.3s ease; }
 .panel.active { display: block; }
 
+/* CLS対策: パネル初期表示時に高さを確保 */
+#panel-songs:not(.active),
+#panel-ranking:not(.active),
+#panel-timeline:not(.active),
+#panel-analytics:not(.active) {
+  display: none;
+}
+#panel-dashboard:not(.active) {
+  display: none;
+}
+
 /* === Cards === */
 
 .card {
@@ -316,9 +327,16 @@
   text-align: center;
   transition: transform 0.15s ease;
   min-height: 88px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 .stat-card:hover { transform: translateY(-2px); }
-.stat-card.placeholder { opacity: 0.4; }
+.stat-card.placeholder {
+  opacity: 0.4;
+  animation: pulse 1.5s ease-in-out infinite;
+}
 .stat-card .stat-label {
   font-size: 11px;
   color: var(--ink-soft);
@@ -473,6 +491,7 @@
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
+  contain: layout style;
 }
 .hero::before {
   content: "";

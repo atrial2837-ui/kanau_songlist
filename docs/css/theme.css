@@ -118,7 +118,7 @@
 @font-face {
   font-family: "Kanau Noto Sans JP";
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
   font-weight: 400;
   src: url("../assets/fonts/noto-sans-jp-kanau-400.woff2") format("woff2");
 }
@@ -488,6 +488,7 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   border-radius: 6px;
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
+  height: auto;
 }
 .song-detail-thumb.placeholder {
   display: block;
@@ -584,6 +585,7 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: 150 / 51;
 }
 .page-top-toast.is-visible {
   opacity: 0.98;
@@ -813,3 +815,8 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.25; }
+}
