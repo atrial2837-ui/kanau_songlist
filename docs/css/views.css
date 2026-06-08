@@ -5,7 +5,7 @@
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
   grid-template-areas:
     "lead side"
-    "monthly side"
+    "monthly monthly"
     "list1 list2"
     "list3 list4"
     "recent recent";
