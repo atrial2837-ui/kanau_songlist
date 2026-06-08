@@ -115,6 +115,10 @@ export function renderDashboard() {
         <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
         ${chartCanvas('chart-monthly', { class: '' })}
       </div>
+      <div class="card col-4">
+        <div class="card-title">🎸 ジャンル分布 <span class="pill">楽曲数</span></div>
+        ${chartCanvas('chart-genre', { class: 'short' })}
+      </div>
       ${top5Html}
       ${deferredDashboardHtml(streams, songs, recent)}
     </div>
@@ -124,6 +128,10 @@ export function renderDashboard() {
   whenChartVisible('chart-monthly', () => {
     if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
     drawMonthlyChart(monthly);
+  });
+  whenChartVisible('chart-genre', () => {
+    if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
+    drawGenreChart(songs);
   });
 }
 
@@ -140,6 +148,10 @@ function appendDeferredDashboard(panel, streams, songs, recent, token) {
       <div class="card-title">🎶 月別 歌唱数 / 歌枠数 <span class="pill">時系列</span></div>
       ${chartCanvas('chart-monthly', { class: '' })}
     </div>
+    <div class="card col-8">
+      <div class="card-title">🎸 ジャンル分布 <span class="pill">楽曲数</span></div>
+      ${chartCanvas('chart-genre', { class: 'short' })}
+    </div>
     ${deferredDashboardHtml(streams, songs, recent)}
   `);
 
@@ -147,6 +159,10 @@ function appendDeferredDashboard(panel, streams, songs, recent, token) {
   whenChartVisible('chart-monthly', () => {
     if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
     drawMonthlyChart(monthly);
+  });
+  whenChartVisible('chart-genre', () => {
+    if (token !== chartRenderToken || state.activeTab !== 'dashboard') return;
+    drawGenreChart(songs);
   });
 }
 
@@ -245,6 +261,40 @@ function countNewSongsThisMonthLocal(songs) {
   const today = getToday();
   const ym = monthKey(today);
   return songs.filter(s => s.firstSung && monthKey(s.firstSung) === ym).length;
+}
+
+function drawGenreChart(songs) {
+  const c = getColors();
+  const genreCounts = new Map();
+  for (const s of songs) {
+    const genre = s.genre || s.genreText || '未分類';
+    if (!genre || genre === '未分類') continue;
+    genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+  }
+  const sorted = Array.from(genreCounts.entries()).sort((a, b) => b[1] - a[1]);
+  const labels = sorted.map(([g]) => g);
+  const data = sorted.map(([, count]) => count);
+  if (!labels.length) return;
+  const colors = [
+    c.primary, c.accent, c.gold, c.primaryStrong, c.accentStrong,
+    '#6cc6ec', '#ff9eb5', '#f4c44a', '#9bdcf7', '#ffb8d4',
+  ];
+  createChart('chart-genre', 'doughnut', {
+    labels,
+    datasets: [{
+      data,
+      backgroundColor: labels.map((_, i) => colors[i % colors.length] + 'cc'),
+      borderColor: labels.map((_, i) => colors[i % colors.length]),
+      borderWidth: 1,
+    }],
+  }, {
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: { color: c.inkSoft, font: { size: 10 }, padding: 8 },
+      },
+    },
+  });
 }
 
 function drawMonthlyChart(monthly) {

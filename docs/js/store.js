@@ -15,6 +15,7 @@
 // ─── URL直列化可能な状態 (SSoT = URL) ────────────────────────────────────────
 
 const VALID_TABS = new Set(['dashboard', 'ranking', 'songs', 'timeline', 'analytics']);
+const FAVORITES_KEY = 'kanau-favorites-v1';
 const VALID_CHANNELS = new Set(['new', 'old', 'all']);
 
 /**
@@ -45,6 +46,8 @@ const VALID_CHANNELS = new Set(['new', 'old', 'all']);
  * @property {object} setlist
  * @property {boolean} setlistExpanded
  * @property {number} rankingLimit
+ * @property {Set<string>} favorites
+ * @property {boolean} favoritesFilter
  */
 
 let listeners = new Set();
@@ -104,6 +107,8 @@ const DEFAULT_IN_MEMORY = {
   setlist: { theme: '', copyFormat: 'simple', items: [] },
   setlistExpanded: false,
   rankingLimit: 50,
+  favorites: loadFavorites(),
+  favoritesFilter: false,
   channelData: null,
   data: null,
 };
@@ -156,6 +161,8 @@ export function get(key) {
   if (key === 'setlist') return memState.setlist;
   if (key === 'setlistExpanded') return memState.setlistExpanded;
   if (key === 'rankingLimit') return memState.rankingLimit;
+  if (key === 'favorites') return memState.favorites;
+  if (key === 'favoritesFilter') return memState.favoritesFilter;
   if (key === 'fullLoaded') return memState.fullLoaded;
   return undefined;
 }
@@ -184,6 +191,7 @@ export function set(key, value, options = {}) {
   else if (key === 'setlistExpanded') memState.setlistExpanded = value;
   else if (key === 'rankingLimit') memState.rankingLimit = value;
   else if (key === 'fullLoaded') memState.fullLoaded = value;
+  else if (key === 'favoritesFilter') memState.favoritesFilter = value;
   else return;
 
   if (prev !== value) {
@@ -199,6 +207,38 @@ export function set(key, value, options = {}) {
 }
 
 // ─── 初期化 ──────────────────────────────────────────────────────────────────
+
+export function loadFavorites() {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch (_) {
+    return new Set();
+  }
+}
+
+export function saveFavorites(favorites) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
+}
+
+export function toggleFavorite(key) {
+  const favorites = loadFavorites();
+  if (favorites.has(key)) {
+    favorites.delete(key);
+  } else {
+    favorites.add(key);
+  }
+  saveFavorites(favorites);
+  memState.favorites = favorites;
+  emit({ key: 'favorites', prev: null, next: favorites });
+  return favorites;
+}
+
+export function isFavorite(key) {
+  return memState.favorites.has(key);
+}
 
 export function initStore() {
   if (syncUrlToMem()) {
@@ -283,4 +323,8 @@ export const state = {
 
   get fullLoaded() { return get('fullLoaded'); },
   set fullLoaded(v) { set('fullLoaded', v); },
+
+  get favorites() { return get('favorites'); },
+  get favoritesFilter() { return get('favoritesFilter'); },
+  set favoritesFilter(v) { set('favoritesFilter', v); },
 };

@@ -1,6 +1,37 @@
 import { normalize, parseQuery, matchReasons } from '../../src/domain/index.js';
 import { ensureSongsTags } from './tagging.js';
 
+const SEARCH_HISTORY_KEY = 'kanau-search-history-v1';
+const MAX_HISTORY = 10;
+
+export function getSearchHistory() {
+  try {
+    const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_HISTORY) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+export function addSearchHistory(query) {
+  const q = (query || '').trim();
+  if (!q) return;
+  const history = getSearchHistory().filter(item => item !== q);
+  history.unshift(q);
+  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
+}
+
+export function removeSearchHistory(query) {
+  const history = getSearchHistory().filter(item => item !== query);
+  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+}
+
+export function clearSearchHistory() {
+  localStorage.removeItem(SEARCH_HISTORY_KEY);
+}
+
 const fuseOptions = {
   keys: [
     { name: 'title', weight: 0.65 },

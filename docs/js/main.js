@@ -1,4 +1,4 @@
-import { state, initStore } from './store.js';
+import { state, initStore, toggleFavorite, isFavorite } from './store.js';
 import { ensureSongTags, loadAll } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange } from './theme.js';
@@ -289,7 +289,10 @@ function initMobileMenu() {
     menu.classList.toggle('is-open', open);
     toggle.setAttribute('aria-expanded', String(open));
   };
-  const close = () => setOpen(false);
+  const close = () => {
+    setOpen(false);
+    toggle.focus();
+  };
   toggle.addEventListener('click', (event) => {
     event.stopPropagation();
     requestAnimationFrame(() => setOpen(checkbox.checked));
@@ -434,6 +437,31 @@ function youtubeThumbTiny(url) {
   return id ? `https://i.ytimg.com/vi/${id}/default.jpg` : '';
 }
 
+function playYouTubeInline(url) {
+  const id = youtubeVideoId(url);
+  if (!id) return;
+  initYouTubePlayer();
+  const container = $('#yt-player-container');
+  const panel = $('#yt-player-panel');
+  if (!container || !panel) return;
+  container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1" frameborder="0" allowfullscreen allow="autoplay"></iframe>`;
+  panel.hidden = false;
+}
+
+function initYouTubePlayer() {
+  if ($('#yt-player-panel')) return;
+  const panel = document.createElement('div');
+  panel.id = 'yt-player-panel';
+  panel.hidden = true;
+  panel.innerHTML = `<button id="yt-player-close" type="button" aria-label="閉じる">×</button><div id="yt-player-container"></div>`;
+  document.body.appendChild(panel);
+  $('#yt-player-close').addEventListener('click', () => {
+    panel.hidden = true;
+    const container = $('#yt-player-container');
+    if (container) container.innerHTML = '';
+  });
+}
+
 function openSongDetail(key) {
   const song = findSong(key);
   const modal = $('#song-modal');
@@ -456,6 +484,7 @@ function openSongDetail(key) {
     ...(song.moodTags || []),
     ...(song.singerTags || []),
   ].filter(Boolean);
+  const favActive = isFavorite(song.key);
   body.innerHTML = `
     <div class="song-detail-main">
       <div>
@@ -469,6 +498,7 @@ function openSongDetail(key) {
       </div>
     </div>
     <div class="song-detail-actions">
+      <button class="btn ${favActive ? 'primary' : 'ghost'}" type="button" data-detail-action="favorite" data-songkey="${escapeHtml(song.key)}">${favActive ? '♥ お気に入り解除' : '♡ お気に入りに追加'}</button>
       <button class="btn primary" type="button" data-detail-action="timeline" data-songkey="${escapeHtml(song.key)}">歌枠を見る</button>
       <button class="btn ghost" type="button" data-detail-action="close">閉じる</button>
     </div>
@@ -477,7 +507,7 @@ function openSongDetail(key) {
       ${refs.length ? refs.map(ref => `
         <div class="song-detail-stream">
           ${ref.thumbnail && ref.url
-            ? `<a class="song-detail-thumb-link" href="${escapeHtml(ref.url)}" target="_blank" rel="noopener" aria-label="YouTubeで歌枠を開く"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" data-fallback="${escapeHtml(ref.thumbnailFallback)}" data-tiny="${escapeHtml(ref.thumbnailTiny)}" alt="" loading="lazy" referrerpolicy="no-referrer"></a>`
+            ? `<span class="song-detail-thumb-link" data-inline-youtube="${escapeHtml(ref.url)}" role="button" tabindex="0" aria-label="YouTubeで再生"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" data-fallback="${escapeHtml(ref.thumbnailFallback)}" data-tiny="${escapeHtml(ref.thumbnailTiny)}" alt="" loading="lazy" referrerpolicy="no-referrer"></span>`
             : '<div class="song-detail-thumb placeholder"></div>'}
           <button class="song-detail-frame" type="button" data-detail-action="stream" data-songkey="${escapeHtml(song.key)}" data-streamkey="${escapeHtml(ref.detailKey)}">
             <span>${fmtDate(ref.date)}</span>
@@ -503,6 +533,14 @@ function initSongModal() {
     if (!action) return;
     event.stopPropagation();
     if (action.dataset.detailAction === 'close') close();
+    if (action.dataset.detailAction === 'favorite') {
+      const key = action.dataset.songkey;
+      toggleFavorite(key);
+      const nowActive = isFavorite(key);
+      action.textContent = nowActive ? '♥ お気に入り解除' : '♡ お気に入りに追加';
+      action.classList.toggle('primary', nowActive);
+      action.classList.toggle('ghost', !nowActive);
+    }
     if (action.dataset.detailAction === 'timeline') {
       const song = findSong(action.dataset.songkey);
       close();
@@ -518,6 +556,12 @@ function initSongModal() {
       const song = findSong(action.dataset.songkey);
       close();
       if (song) searchArtistFromDetail(song);
+    }
+    const inlineYt = event.target.closest('[data-inline-youtube]');
+    if (inlineYt) {
+      event.preventDefault();
+      event.stopPropagation();
+      playYouTubeInline(inlineYt.dataset.inlineYoutube);
     }
   });
   modal.addEventListener('error', (event) => {
@@ -540,7 +584,10 @@ function initSongModal() {
   });
 }
 
+let _heroCardsReady = false;
+
 function renderHero() {
+  if (!state.data) return;
   const { stats, streams = [] } = state.data;
   const latest = streams[0]?.date || null;
   const dSinceLatest = daysSince(latest);
@@ -554,32 +601,52 @@ function renderHero() {
     `データ更新日：<strong>${fmtDate(dataGeneratedDate) || '—'}</strong>` +
     (dSinceUpdate != null ? ` <span class="badge">${dSinceUpdate}日前</span>` : '');
 
-  $('#stats-grid').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">総歌唱数</div>
-      <div class="stat-value">${formatNumber(stats.total)}<span class="stat-unit">回</span></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">持ち曲数</div>
-      <div class="stat-value">${formatNumber(stats.repertoire)}<span class="stat-unit">曲</span></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">歌枠回数</div>
-      <div class="stat-value">${formatNumber(stats.streams)}<span class="stat-unit">回</span></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">1枠平均</div>
-      <div class="stat-value">${stats.avgPerStream}<span class="stat-unit">曲</span></div>
-    </div>
-    <div class="stat-card accent">
-      <div class="stat-label">最新歌枠から</div>
-      <div class="stat-value">${dSinceLatest != null ? dSinceLatest : '—'}<span class="stat-unit">日</span></div>
-    </div>
-    <div class="stat-card gold">
-      <div class="stat-label">活動期間</div>
-      <div class="stat-value">${activeDays(state.data)}<span class="stat-unit">日</span></div>
-    </div>
-  `;
+  const statsGrid = $('#stats-grid');
+  if (!_heroCardsReady) {
+    statsGrid.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">総歌唱数</div>
+        <div class="stat-value">${formatNumber(stats.total)}<span class="stat-unit">回</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">持ち曲数</div>
+        <div class="stat-value">${formatNumber(stats.repertoire)}<span class="stat-unit">曲</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">歌枠回数</div>
+        <div class="stat-value">${formatNumber(stats.streams)}<span class="stat-unit">回</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">1枠平均</div>
+        <div class="stat-value">${stats.avgPerStream}<span class="stat-unit">曲</span></div>
+      </div>
+      <div class="stat-card accent">
+        <div class="stat-label">最新歌枠から</div>
+        <div class="stat-value">${dSinceLatest != null ? dSinceLatest : '—'}<span class="stat-unit">日</span></div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-label">活動期間</div>
+        <div class="stat-value">${activeDays(state.data)}<span class="stat-unit">日</span></div>
+      </div>
+    `;
+    _heroCardsReady = true;
+  } else {
+    const values = statsGrid.querySelectorAll('.stat-value');
+    if (values.length >= 6) {
+      values[0].textContent = formatNumber(stats.total);
+      values[0].innerHTML += '<span class="stat-unit">回</span>';
+      values[1].textContent = formatNumber(stats.repertoire);
+      values[1].innerHTML += '<span class="stat-unit">曲</span>';
+      values[2].textContent = formatNumber(stats.streams);
+      values[2].innerHTML += '<span class="stat-unit">回</span>';
+      values[3].textContent = stats.avgPerStream;
+      values[3].innerHTML += '<span class="stat-unit">曲</span>';
+      values[4].textContent = dSinceLatest != null ? dSinceLatest : '—';
+      values[4].innerHTML += '<span class="stat-unit">日</span>';
+      values[5].textContent = activeDays(state.data);
+      values[5].innerHTML += '<span class="stat-unit">日</span>';
+    }
+  }
 }
 
 function activeDays(data) {
@@ -592,9 +659,12 @@ function activeDays(data) {
 function showLoading() { $('#loading').hidden = false; $('#error').hidden = true; }
 function hideLoading() { $('#loading').hidden = true; }
 function showError(err) {
-  $('#loading').hidden = true;
-  $('#error').hidden = false;
-  $('#err-detail').textContent = err && err.message ? err.message : String(err);
+  const loading = $('#loading');
+  const error = $('#error');
+  const errDetail = $('#err-detail');
+  if (loading) loading.hidden = true;
+  if (error) error.hidden = false;
+  if (errDetail) errDetail.textContent = err && err.message ? err.message : String(err);
 }
 
 function updatePageTitle(mode) {
@@ -740,6 +810,13 @@ document.body.addEventListener('click', (e) => {
     return;
   }
   if (isLink(e.target)) return;
+  const inlineYt = e.target.closest('[data-inline-youtube]');
+  if (inlineYt) {
+    e.preventDefault();
+    e.stopPropagation();
+    playYouTubeInline(inlineYt.dataset.inlineYoutube);
+    return;
+  }
   const target = e.target.closest('[data-songkey]');
   if (!target) return;
   openSongDetail(target.dataset.songkey);
@@ -748,6 +825,7 @@ document.body.addEventListener('click', (e) => {
 $('#retry-btn').addEventListener('click', init);
 $('#reload-btn').addEventListener('click', init);
 initHelpModal();
+initYouTubePlayer();
 initSongModal();
 initMobileMenu();
 initPageTopToast();
@@ -761,13 +839,7 @@ onRerenderNeeded(() => {
 });
 
 function startApp() {
-  window.requestAnimationFrame(() => {
-    window.setTimeout(init, 0);
-  });
+  init();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startApp, { once: true });
-} else {
-  startApp();
-}
+startApp();

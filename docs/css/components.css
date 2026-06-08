@@ -631,6 +631,7 @@
 .controls .text-input { flex: 1 1 280px; min-width: 220px; }
 .controls .select-input { flex: 0 0 auto; }
 .controls .genre-select { min-width: 170px; }
+.controls .search-input-wrap { flex: 1 1 280px; min-width: 220px; }
 
 .mobile-panel-switch {
   display: none;
@@ -699,6 +700,113 @@ mark.hl {
   border-radius: 3px;
 }
 
+/* === Search History === */
+
+.search-input-wrap {
+  position: relative;
+  flex: 1 1 280px;
+  min-width: 220px;
+}
+
+.search-input-wrap .text-input {
+  width: 100%;
+}
+
+.search-history-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  margin-top: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.search-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.search-history-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--ink-mute);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.search-history-clear-btn:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.search-history-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--ink-mute);
+  font-size: 12px;
+}
+
+.search-history-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.search-history-item:hover {
+  background: var(--surface-2);
+}
+
+.search-history-query {
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-history-remove {
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  color: var(--ink-mute);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.search-history-remove:hover {
+  background: var(--surface-3);
+  color: var(--red);
+}
+
+@media (max-width: 600px) {
+  .search-input-wrap {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
 /* === Responsive === */
 
 @media (max-width: 600px) {
@@ -763,7 +871,8 @@ mark.hl {
   }
   .controls .text-input,
   .controls .select-input,
-  .controls .genre-select {
+  .controls .genre-select,
+  .controls .search-input-wrap {
     flex: 1 1 100%;
     width: 100%;
     min-width: 0;
@@ -807,5 +916,98 @@ mark.hl {
   .tab-btn {
     padding: 8px 7px;
     font-size: 11px;
+  }
+}
+
+/* === YouTube Inline Player === */
+
+#yt-player-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--surface);
+  border-top: 2px solid var(--border-strong);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.18);
+  padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  align-items: start;
+}
+
+#yt-player-panel[hidden] {
+  display: none;
+}
+
+#yt-player-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 60vh;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+
+#yt-player-container iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+#yt-player-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex: 0 0 auto;
+}
+
+#yt-player-close:hover {
+  border-color: var(--red);
+  color: var(--red);
+  transform: translateY(-1px);
+}
+
+@media (min-width: 768px) {
+  #yt-player-panel {
+    left: auto;
+    right: 16px;
+    bottom: 16px;
+    width: min(560px, calc(100vw - 32px));
+    border-radius: 14px;
+    border: 2px solid var(--border-strong);
+    padding: 8px;
+  }
+
+  #yt-player-container {
+    max-height: min(315px, 50vh);
+  }
+}
+
+@media (max-width: 420px) {
+  #yt-player-panel {
+    padding: 6px 6px max(6px, env(safe-area-inset-bottom));
+    gap: 4px;
+  }
+
+  #yt-player-close {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
   }
 }
