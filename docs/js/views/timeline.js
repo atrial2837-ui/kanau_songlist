@@ -114,7 +114,7 @@ function renderItem(s, idx, filter) {
     ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || '配信')}</a>`
     : escapeHtml(s.title || '配信');
   const watchHtml = s.url
-    ? `<a class="watch-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener">▶ YouTube</a>`
+    ? `<span class="watch-link" data-inline-youtube="${escapeHtml(s.url)}" role="button" tabindex="0">▶ YouTube</span>`
     : '';
   const copyHtml = state.singerMode
     ? `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}">セトリコピー</button>`

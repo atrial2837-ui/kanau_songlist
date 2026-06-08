@@ -1,16 +1,18 @@
-import { state } from '../store.js';
+import { state, toggleFavorite, isFavorite } from '../store.js';
 import { ensureSongsTags } from '../tagging.js';
 import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText } from '../utils.js';
-import { search, matchReasons } from '../search.js';
+import { search, matchReasons, getSearchHistory, addSearchHistory, removeSearchHistory, clearSearchHistory } from '../search.js';
 import { writeUrlState } from '../url-state.js';
 import { applyGenreFilter, applyTagFilter, applySingerMode, sortSongs } from '../../../src/domain/index.js';
 
 let searchInputEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
+let searchHistoryDropdown = null;
 const SETLIST_STORAGE_KEY = 'kanau-setlist-v1';
 let currentFiltered = [];
 
 export function renderSongs() {
   loadSetlist();
+  restoreSetlistFromUrl();
   ensureSongsTags(state.data?.songs || []);
   const panel = $('#panel-songs');
   panel.innerHTML = `
@@ -23,7 +25,10 @@ export function renderSongs() {
     </div>
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="controls">
-        <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・artist:miwa ・chill ・久しぶり などで検索" value="${escapeHtml(state.songsQuery)}">
+        <div class="search-input-wrap">
+          <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・artist:miwa ・chill ・久しぶり などで検索" value="${escapeHtml(state.songsQuery)}">
+          <div id="search-history-dropdown" class="search-history-dropdown" hidden></div>
+        </div>
         <select id="songs-sort" class="select-input">
           <option value="count-desc">回数（多）</option>
           <option value="count-asc">回数（少）</option>
@@ -46,7 +51,8 @@ export function renderSongs() {
         <button class="btn ghost" data-filter="fresh">🟢 最近 (30日以内)</button>
         <button class="btn ghost" data-filter="stale">🟠 久しぶり (180日以上)</button>
         <button class="btn ghost" data-filter="never">⚪ 履歴未確認</button>
-        ${state.singerMode ? '' : '<button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button>'}
+        <button class="btn ghost" data-filter="favorites">❤️ お気に入り</button>
+        ${state.singerMode ? '' : '<button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button><button class="btn ghost" id="todays-song-btn" type="button">🎲 今日の一曲</button>'}
       </div>
       ${state.singerMode ? `
         <div class="songs-tools">
@@ -58,11 +64,13 @@ export function renderSongs() {
           <button class="btn ghost" data-singer-preset="energetic" type="button">激しい</button>
           <button class="btn ghost" data-singer-preset="nostalgic" type="button">ノスタルジック</button>
           <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
+          <button class="btn ghost" id="todays-song-btn" type="button">🎲 今日の一曲</button>
           <button class="btn primary" id="setlist-toggle-btn" type="button" aria-controls="setlist-planner" aria-expanded="${state.setlistExpanded ? 'true' : 'false'}">${state.setlistExpanded ? 'セトリ制作を閉じる' : 'セトリ制作を開く'}</button>
         </div>
       ` : ''}
     </div>
     ${state.singerMode ? '<div id="setlist-planner" class="setlist-planner mobile-panel mobile-panel-setlist"></div>' : ''}
+    <div id="todays-song-box" class="todays-song-box" hidden></div>
     <div class="genre-strip" id="songs-genre-chips">${genreChipsHtml()}</div>
     <div id="songs-list" class="song-list"></div>
     <div class="timeline-controls" id="songs-more-wrap"></div>
@@ -86,6 +94,8 @@ export function renderSongs() {
   const debounced = debounce(() => {
     state.songsQuery = searchInputEl.value;
     state.songsLimit = 100;
+    addSearchHistory(state.songsQuery);
+    hideSearchHistory();
     writeUrlState({
       tab: 'songs',
       q: state.songsQuery,
@@ -93,6 +103,10 @@ export function renderSongs() {
     refresh();
   }, 120);
   searchInputEl.addEventListener('input', debounced);
+  searchInputEl.addEventListener('focus', () => showSearchHistory());
+  searchInputEl.addEventListener('blur', () => {
+    setTimeout(() => hideSearchHistory(), 200);
+  });
   sortSelectEl.addEventListener('change', () => { state.songsSort = sortSelectEl.value; refresh(); });
   genreSelectEl.addEventListener('change', () => {
     state.songsGenre = genreSelectEl.value;
@@ -103,7 +117,12 @@ export function renderSongs() {
   filterButtonsEl.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-filter]');
     if (!btn) return;
-    state.songsFilter = btn.dataset.filter;
+    if (btn.dataset.filter === 'favorites') {
+      state.favoritesFilter = !state.favoritesFilter;
+    } else {
+      state.songsFilter = btn.dataset.filter;
+      state.favoritesFilter = false;
+    }
     state.songsLimit = 100;
     refreshFilterButtons();
     refresh();
@@ -131,10 +150,40 @@ export function renderSongs() {
   });
   $('#setlist-toggle-btn')?.addEventListener('click', () => toggleSetlistPlanner());
   $('#recommend-btn')?.addEventListener('click', () => showRecommendation());
+  $('#todays-song-btn')?.addEventListener('click', () => showTodaysSong());
   for (const btn of panel.querySelectorAll('[data-mobile-panel-toggle]')) {
     btn.addEventListener('click', () => toggleMobilePanel(btn.dataset.mobilePanelToggle));
   }
   panel.onclick = (e) => {
+    const clearBtn = e.target.closest('#search-history-clear');
+    if (clearBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      clearSearchHistory();
+      hideSearchHistory();
+      return;
+    }
+    const removeBtn = e.target.closest('.search-history-remove');
+    if (removeBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      removeSearchHistory(removeBtn.dataset.remove);
+      showSearchHistory();
+      return;
+    }
+    const historyItem = e.target.closest('.search-history-item');
+    if (historyItem) {
+      e.preventDefault();
+      e.stopPropagation();
+      const query = historyItem.dataset.query;
+      state.songsQuery = query;
+      searchInputEl.value = query;
+      state.songsLimit = 100;
+      hideSearchHistory();
+      writeUrlState({ tab: 'songs', q: query });
+      refresh();
+      return;
+    }
     const recommendDismiss = e.target.closest('[data-recommend-dismiss]');
     if (recommendDismiss) {
       e.preventDefault();
@@ -144,6 +193,24 @@ export function renderSongs() {
         box.hidden = true;
         box.innerHTML = '';
       }
+      return;
+    }
+    const todaysSongDismiss = e.target.closest('[data-todays-song-dismiss]');
+    if (todaysSongDismiss) {
+      e.preventDefault();
+      e.stopPropagation();
+      const box = $('#todays-song-box');
+      if (box) {
+        box.hidden = true;
+        box.innerHTML = '';
+      }
+      return;
+    }
+    const todaysSongReroll = e.target.closest('[data-todays-song-reroll]');
+    if (todaysSongReroll) {
+      e.preventDefault();
+      e.stopPropagation();
+      showTodaysSong();
       return;
     }
     const action = e.target.closest('[data-setlist-action]');
@@ -161,6 +228,16 @@ export function renderSongs() {
       state.songsLimit = 100;
       writeUrlState({ tab: 'songs', q: state.songsQuery });
       refresh();
+      return;
+    }
+    const favBtn = e.target.closest('[data-fav-toggle]');
+    if (favBtn) {
+      e.stopPropagation();
+      const key = favBtn.dataset.favToggle;
+      toggleFavorite(key);
+      const isActive = isFavorite(key);
+      favBtn.classList.toggle('is-active', isActive);
+      favBtn.textContent = isActive ? '♥' : '♡';
       return;
     }
     const tag = e.target.closest('[data-tag-search]');
@@ -192,6 +269,35 @@ export function renderSongs() {
   };
 
   refresh();
+}
+
+function showSearchHistory() {
+  const history = getSearchHistory();
+  const dropdown = $('#search-history-dropdown');
+  if (!dropdown) return;
+  searchHistoryDropdown = dropdown;
+  if (!history.length) {
+    dropdown.innerHTML = '<div class="search-history-empty">検索履歴がありません</div>';
+  } else {
+    dropdown.innerHTML = `
+      <div class="search-history-header">
+        <span>検索履歴</span>
+        <button class="search-history-clear-btn" type="button" id="search-history-clear">すべて削除</button>
+      </div>
+      ${history.map(q => `
+        <div class="search-history-item" data-query="${escapeHtml(q)}">
+          <span class="search-history-query">${escapeHtml(q)}</span>
+          <button class="search-history-remove" type="button" data-remove="${escapeHtml(q)}" aria-label="削除">×</button>
+        </div>
+      `).join('')}
+    `;
+  }
+  dropdown.hidden = false;
+}
+
+function hideSearchHistory() {
+  const dropdown = $('#search-history-dropdown');
+  if (dropdown) dropdown.hidden = true;
 }
 
 function toggleMobilePanel(panelName) {
@@ -277,8 +383,13 @@ function refreshGenreChips() {
 
 function refreshFilterButtons() {
   for (const btn of filterButtonsEl.querySelectorAll('[data-filter]')) {
-    btn.classList.toggle('primary', btn.dataset.filter === state.songsFilter);
-    btn.classList.toggle('ghost', btn.dataset.filter !== state.songsFilter);
+    if (btn.dataset.filter === 'favorites') {
+      btn.classList.toggle('primary', state.favoritesFilter);
+      btn.classList.toggle('ghost', !state.favoritesFilter);
+    } else {
+      btn.classList.toggle('primary', btn.dataset.filter === state.songsFilter && !state.favoritesFilter);
+      btn.classList.toggle('ghost', btn.dataset.filter !== state.songsFilter || state.favoritesFilter);
+    }
   }
 }
 
@@ -295,6 +406,10 @@ function refresh() {
   let filtered = state.songsQuery.trim()
     ? results.filter(s => tagFiltered.includes(s))
     : tagFiltered;
+
+  if (state.favoritesFilter) {
+    filtered = filtered.filter(s => state.favorites.has(s.key));
+  }
 
   filtered = sortSongs(filtered, state.songsSort, !!state.songsQuery.trim());
   currentFiltered = filtered;
@@ -327,6 +442,52 @@ function refresh() {
   } else {
     moreBtnWrap.innerHTML = '';
   }
+}
+
+function showTodaysSong() {
+  const box = $('#todays-song-box');
+  if (!box) return;
+  if (!currentFiltered.length) {
+    box.hidden = false;
+    box.innerHTML = `<div class="empty-state">条件に合う曲がありません 🎲</div>`;
+    return;
+  }
+  const pick = currentFiltered[Math.floor(Math.random() * currentFiltered.length)];
+  box.hidden = false;
+  box.innerHTML = renderTodaysSongCard(pick);
+}
+
+function renderTodaysSongCard(song) {
+  const lastHtml = song.lastSung
+    ? `${fmtDate(song.lastSung)} · ${song.daysSinceLast}日前`
+    : '履歴未確認';
+  const keyHtml = song.displayKey
+    ? `<span class="todays-song-key">キー ${escapeHtml(song.displayKey)}</span>`
+    : '';
+  const addButton = state.singerMode
+    ? `<button class="btn primary" type="button" data-setlist-action="todays-song-add" data-songkey="${escapeHtml(song.key)}">＋セトリに追加</button>`
+    : '';
+  return `
+    <div class="todays-song-card">
+      <div class="todays-song-header">
+        <span class="todays-song-label">🎲 今日の一曲</span>
+        <button class="todays-song-dismiss" type="button" data-todays-song-dismiss aria-label="閉じる">×</button>
+      </div>
+      <div class="todays-song-info">
+        <div class="todays-song-title">${escapeHtml(song.title)}</div>
+        <div class="todays-song-artist">${escapeHtml(song.artist)}</div>
+        <div class="todays-song-meta">
+          <span class="todays-song-count">${song.count}回</span>
+          <span class="todays-song-last">${lastHtml}</span>
+          ${keyHtml}
+        </div>
+      </div>
+      <div class="todays-song-actions">
+        ${addButton}
+        <button class="btn ghost" type="button" data-todays-song-reroll>別のもう一回</button>
+      </div>
+    </div>
+  `;
 }
 
 function showRecommendation() {
@@ -376,6 +537,48 @@ function loadSetlist() {
     state.setlist.items = Array.isArray(saved.items) ? saved.items : [];
   } catch (_) {
     state.setlist.items = [];
+  }
+}
+
+function generateSetlistShareUrl() {
+  const items = state.setlist.items;
+  if (!items.length) return window.location.href.split('?')[0];
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(items))));
+  const url = new URL(window.location.href.split('?')[0]);
+  url.searchParams.set('setlist', encoded);
+  return url.toString();
+}
+
+function restoreSetlistFromUrl() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const setlistParam = urlParams.get('setlist');
+    if (!setlistParam) return;
+    const decoded = decodeURIComponent(escape(atob(setlistParam)));
+    const items = JSON.parse(decoded);
+    if (!Array.isArray(items) || !items.length) return;
+    const existingKeys = new Set(state.setlist.items.map(item => item.key));
+    const newItems = items.filter(item => !existingKeys.has(item.key));
+    if (newItems.length) {
+      state.setlist.items = [...state.setlist.items, ...newItems];
+      saveSetlist();
+    }
+  } catch (_) {
+    // Invalid setlist parameter, ignore
+  }
+}
+
+async function copySetlistShareUrl() {
+  const url = generateSetlistShareUrl();
+  if (!state.setlist.items.length) {
+    renderSetlistPlanner('共有する曲がありません');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    renderSetlistPlanner('共有URLをコピーしました');
+  } catch (_) {
+    renderSetlistPlanner('コピーに失敗しました');
   }
 }
 
@@ -439,6 +642,7 @@ function handleSetlistAction(action) {
   const act = action.dataset.setlistAction;
   const index = Number(action.dataset.index);
   if (act === 'add') addToSetlist(songByKey(action.dataset.songkey));
+  if (act === 'todays-song-add') addToSetlist(songByKey(action.dataset.songkey));
   if (act === 'remove') state.setlist.items.splice(index, 1);
   if (act === 'up' && index > 0) {
     [state.setlist.items[index - 1], state.setlist.items[index]] = [state.setlist.items[index], state.setlist.items[index - 1]];
@@ -456,6 +660,10 @@ function handleSetlistAction(action) {
   }
   if (act === 'random') addRandomToSetlist();
   if (act === 'copy') copySetlist();
+  if (act === 'share') {
+    copySetlistShareUrl();
+    return;
+  }
   if (act === 'clear' && confirm('セトリを空にしますか？')) state.setlist.items = [];
   saveSetlist();
   if (!['add', 'random', 'copy'].includes(act)) renderSetlistPlanner();
@@ -540,6 +748,7 @@ function renderSetlistPlanner(message = '') {
       </select>
       <button class="btn ghost" type="button" data-setlist-action="random">ランダム追加</button>
       <button class="btn primary" type="button" data-setlist-action="copy">コピー</button>
+      <button class="btn ghost" type="button" data-setlist-action="share">🔗 共有</button>
       <button class="btn ghost" type="button" data-setlist-action="clear">クリア</button>
       ${message ? `<span class="setlist-message">${escapeHtml(message)}</span>` : ''}
     </div>
@@ -622,6 +831,7 @@ function rowHtml(song, tokens) {
   const titleHtml = highlightText(song.title, tokens);
   const artistHtml = highlightText(song.artist, tokens);
   const reasons = matchReasons(song, state.songsQuery);
+  const favActive = isFavorite(song.key);
   return `
     <div class="song-row" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="クリックで曲詳細を表示">
       <div class="rank ${rankClass}">${song.rank}</div>
@@ -639,6 +849,7 @@ function rowHtml(song, tokens) {
         <div class="count">${song.count}<small>回</small></div>
         <div class="last">${lastHtml}</div>
       </div>
+      <button class="fav-btn ${favActive ? 'is-active' : ''}" type="button" data-fav-toggle="${escapeHtml(song.key)}" aria-label="お気に入り" title="お気に入り">${favActive ? '♥' : '♡'}</button>
     </div>
   `;
 }
