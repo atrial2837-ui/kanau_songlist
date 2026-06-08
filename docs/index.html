@@ -139,11 +139,11 @@
     <section class="panel"        id="panel-analytics" role="tabpanel"></section>
   </div>
 
-  <div id="loading" class="state-card" hidden>
+  <div id="loading" class="state-card" style="display:none">
     <div class="spinner"></div>
     <div class="msg">スプレッドシートからデータを取得中…</div>
   </div>
-  <div id="error" class="state-card" hidden>
+  <div id="error" class="state-card" style="display:none">
     <div class="msg">⚠️ データの取得に失敗しました</div>
     <div class="err-detail" id="err-detail"></div>
     <button class="btn primary" id="retry-btn" type="button">再試行</button>
@@ -265,7 +265,7 @@
 </button>
 
 <!-- Dependencies -->
-<script type="module" src="dist/main.js"></script>
+<script type="module" src="docs/js/main.js"></script>
 
 </body>
 </html>

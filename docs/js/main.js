@@ -636,12 +636,22 @@ function activeDays(data) {
   return Math.floor((last - first) / 86400000) + 1;
 }
 
-function showLoading() { $('#loading').hidden = false; $('#error').hidden = true; }
-function hideLoading() { $('#loading').hidden = true; }
+function showLoading() {
+  const el = $('#loading');
+  if (el) el.style.display = '';
+  const err = $('#error');
+  if (err) err.style.display = 'none';
+}
+function hideLoading() {
+  const el = $('#loading');
+  if (el) el.style.display = 'none';
+}
 function showError(err) {
-  $('#loading').hidden = true;
-  $('#error').hidden = false;
-  $('#err-detail').textContent = err && err.message ? err.message : String(err);
+  hideLoading();
+  const el = $('#error');
+  if (el) el.style.display = '';
+  const detail = $('#err-detail');
+  if (detail) detail.textContent = err && err.message ? err.message : String(err);
 }
 
 function updatePageTitle(mode) {
@@ -704,13 +714,17 @@ function initWelcomeTip() {
 }
 
 async function init() {
-  showLoading();
+  // Show hero placeholder immediately (no network wait)
   renderHeroPlaceholder();
+  hideLoading();
+
   try {
     const initialData = await loadInitial();
     state.channelData = initialData;
+
     const url = readUrlState();
     state.songsQuery = url.q;
+
     let initialChannel = url.channel || state.channel || DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) initialChannel = DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) {
@@ -718,24 +732,44 @@ async function init() {
       if (fallback) initialChannel = fallback;
     }
     if (!getDataset(initialChannel)) throw new Error('No channel data could be loaded');
+
     refreshChannelButtons();
-    hideLoading();
+
     const initialTab = isValidTab(url.tab) ? url.tab : state.activeTab;
-    switchChannel(initialChannel, {
-      resetSearch: false,
-      updateUrl: false,
-      autoLoad: false,
+
+    // Set channel data without rendering heavy UI yet
+    const ds = getDataset(initialChannel);
+    state.channel = initialChannel;
+    state.data = ds;
+    updatePageTitle(initialChannel);
+
+    // Render hero immediately with available stats
+    renderHero();
+
+    // Defer all heavy rendering to next frame
+    requestAnimationFrame(() => {
+      switchChannel(initialChannel, {
+        resetSearch: false,
+        updateUrl: false,
+        autoLoad: false,
+      });
+      activateTab(initialTab, {
+        updateUrl: false,
+        autoLoad: false,
+        initial: true,
+      });
+      switchAudience(state.audience, {
+        autoLoad: false,
+        initial: true,
+      });
     });
-    activateTab(initialTab, {
-      updateUrl: false,
-      autoLoad: false,
-      initial: true,
-    });
-    switchAudience(state.audience, {
-      autoLoad: false,
-      initial: true,
-    });
-    loadFullDataInBackground();
+
+    // Load full data after initial paint
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(() => loadFullDataInBackground(), { timeout: 4000 });
+    } else {
+      window.setTimeout(() => loadFullDataInBackground(), 1500);
+    }
   } catch (e) {
     console.error(e);
     showError(e);

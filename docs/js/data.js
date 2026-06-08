@@ -328,22 +328,22 @@ async function loadStaticSplit(metaPayload = null) {
 async function loadStaticMeta() {
   const meta = await fetchJson(STATIC_URLS.meta);
   const channels = {};
-  for (const [code, stats] of Object.entries(meta.channels || {})) {
-    channels[code] = hydrateDataset({
-      stats: withGeneratedAt(stats, meta.generatedAt),
+  for (const [code, item] of Object.entries(meta.channels || {})) {
+    channels[code] = {
+      stats: withGeneratedAt(item.stats || item, meta.generatedAt),
       songs: [],
       streams: [],
       orphans: [],
       artists: [],
-    });
+    };
   }
-  const combined = hydrateDataset({
+  const combined = {
     stats: withGeneratedAt(meta.combined || {}, meta.generatedAt),
     songs: [],
     streams: [],
     orphans: [],
     artists: [],
-  });
+  };
   return {
     channels,
     combined,
