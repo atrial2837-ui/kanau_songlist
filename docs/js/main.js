@@ -381,8 +381,10 @@ function playYouTubeInline(url) {
   initYouTubePlayer();
   const container = $('#yt-player-container');
   const panel = $('#yt-player-panel');
+  const openLink = $('#yt-player-open');
   if (!container || !panel) return;
-  container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1" frameborder="0" allowfullscreen allow="autoplay"></iframe>`;
+  container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>`;
+  if (openLink) openLink.href = String(url || '');
   panel.hidden = false;
 }
 
@@ -391,7 +393,14 @@ function initYouTubePlayer() {
   const panel = document.createElement('div');
   panel.id = 'yt-player-panel';
   panel.hidden = true;
-  panel.innerHTML = `<button id="yt-player-close" type="button" aria-label="閉じる">×</button><div id="yt-player-container"></div>`;
+  panel.innerHTML = `
+    <div class="yt-player-head">
+      <span>インライン再生</span>
+      <a id="yt-player-open" href="#" target="_blank" rel="noopener">YouTubeで開く</a>
+      <button id="yt-player-close" type="button" aria-label="閉じる">×</button>
+    </div>
+    <div id="yt-player-container"></div>
+  `;
   document.body.appendChild(panel);
   $('#yt-player-close').addEventListener('click', () => {
     panel.hidden = true;
@@ -445,7 +454,7 @@ function openSongDetail(key) {
       ${refs.length ? refs.map(ref => `
         <div class="song-detail-stream">
           ${ref.thumbnail && ref.url
-            ? `<span class="song-detail-thumb-link" data-inline-youtube="${escapeHtml(ref.url)}" role="button" tabindex="0" aria-label="YouTubeで再生"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" data-fallback="${escapeHtml(ref.thumbnailFallback)}" data-tiny="${escapeHtml(ref.thumbnailTiny)}" alt="" loading="lazy" referrerpolicy="no-referrer"></span>`
+            ? `<span class="song-detail-thumb-wrap"><button class="song-detail-thumb-link" type="button" data-inline-youtube="${escapeHtml(ref.url)}" aria-label="インライン再生"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" data-fallback="${escapeHtml(ref.thumbnailFallback)}" data-tiny="${escapeHtml(ref.thumbnailTiny)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>再生</span></button><a class="song-detail-youtube-link" href="${escapeHtml(ref.url)}" target="_blank" rel="noopener">開く</a></span>`
             : '<div class="song-detail-thumb placeholder"></div>'}
           <button class="song-detail-frame" type="button" data-detail-action="stream" data-songkey="${escapeHtml(song.key)}" data-streamkey="${escapeHtml(ref.detailKey)}">
             <span>${fmtDate(ref.date)}</span>
@@ -467,6 +476,13 @@ function initSongModal() {
   closeBtn.addEventListener('click', close);
   modal.addEventListener('click', (event) => {
     if (event.target === modal) close();
+    const inlineYt = event.target.closest('[data-inline-youtube]');
+    if (inlineYt) {
+      event.preventDefault();
+      event.stopPropagation();
+      playYouTubeInline(inlineYt.dataset.inlineYoutube);
+      return;
+    }
     const action = event.target.closest('[data-detail-action]');
     if (!action) return;
     event.stopPropagation();
@@ -494,12 +510,6 @@ function initSongModal() {
       const song = findSong(action.dataset.songkey);
       close();
       if (song) searchArtistFromDetail(song);
-    }
-    const inlineYt = event.target.closest('[data-inline-youtube]');
-    if (inlineYt) {
-      event.preventDefault();
-      event.stopPropagation();
-      playYouTubeInline(inlineYt.dataset.inlineYoutube);
     }
   });
   modal.addEventListener('error', (event) => {

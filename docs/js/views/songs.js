@@ -237,6 +237,7 @@ export function renderSongs() {
       toggleFavorite(key);
       const isActive = isFavorite(key);
       favBtn.classList.toggle('is-active', isActive);
+      favBtn.setAttribute('aria-pressed', String(isActive));
       favBtn.textContent = isActive ? '♥' : '♡';
       return;
     }
@@ -849,7 +850,7 @@ function rowHtml(song, tokens) {
         <div class="count">${song.count}<small>回</small></div>
         <div class="last">${lastHtml}</div>
       </div>
-      <button class="fav-btn ${favActive ? 'is-active' : ''}" type="button" data-fav-toggle="${escapeHtml(song.key)}" aria-label="お気に入り" title="お気に入り">${favActive ? '♥' : '♡'}</button>
+      <button class="fav-btn ${favActive ? 'is-active' : ''}" type="button" data-fav-toggle="${escapeHtml(song.key)}" aria-label="お気に入り" aria-pressed="${favActive ? 'true' : 'false'}" title="お気に入り">${favActive ? '♥' : '♡'}</button>
     </div>
   `;
 }

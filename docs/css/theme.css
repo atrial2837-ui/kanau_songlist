@@ -470,25 +470,63 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 }
 .song-detail-stream {
   display: grid;
-  grid-template-columns: 58px 1fr;
+  grid-template-columns: 72px 1fr;
   gap: 10px;
   align-items: center;
   padding: 9px 0;
   border-top: 1px dashed var(--border);
   color: var(--ink);
 }
+.song-detail-thumb-wrap {
+  display: grid;
+  gap: 4px;
+}
 .song-detail-thumb-link {
+  position: relative;
   display: block;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
   border-radius: 6px;
 }
 .song-detail-thumb {
-  width: 58px;
+  width: 72px;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: 6px;
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
   height: auto;
+}
+.song-detail-thumb-link span {
+  position: absolute;
+  inset: auto 4px 4px 4px;
+  border-radius: 999px;
+  background: rgba(31, 120, 159, 0.9);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: center;
+}
+.song-detail-youtube-link {
+  display: inline-flex;
+  justify-content: center;
+  min-height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--primary-strong);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.7;
+}
+.song-detail-youtube-link:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  text-decoration: none;
 }
 .song-detail-thumb.placeholder {
   display: block;

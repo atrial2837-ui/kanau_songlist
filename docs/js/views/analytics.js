@@ -14,7 +14,7 @@ export function renderAnalytics() {
       <span class="count-pill">${streams.length}枠 × ${songs.length}曲を分析</span>
     </div>
 
-    <div class="dashboard-grid">
+    <div class="analytics-grid">
 
       <div class="card col-6">
         <div class="card-title">📚 持ち曲の累積成長 <span class="pill">初披露ベース</span></div>
