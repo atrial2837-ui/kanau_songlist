@@ -46,6 +46,10 @@ function renderInitialDashboard() {
     .map(dataset => dataset.stats || {})
     .filter(stats => stats.channelLabel || stats.channelId);
   const rows = channels.length ? channels : [state.channelData.combined?.stats || {}];
+  if (!rows.length || !rows[0].total) {
+    panel.innerHTML = '';
+    return;
+  }
   panel.innerHTML = `
     <div class="dashboard-grid">
       ${rows.map(stats => `
@@ -145,10 +149,10 @@ function scheduleFullDataPreload() {
     if ('requestIdleCallback' in window) {
       window.requestIdleCallback(preload, { timeout: 2000 });
     } else {
-      window.setTimeout(preload, 600);
+      window.setTimeout(preload, 300);
     }
   };
-  const scheduleAfterInitialPaint = () => window.setTimeout(runWhenIdle, 400);
+  const scheduleAfterInitialPaint = () => window.setTimeout(runWhenIdle, 200);
   if (document.readyState === 'complete') {
     scheduleAfterInitialPaint();
   } else {
@@ -247,8 +251,11 @@ function switchChannel(channelId, options = {}) {
       q: state.songsQuery,
     });
   }
+  // Parallel: renderHero (sync DOM) + renderTab (async view load)
   renderHero();
-  if (options.render !== false) renderTab(state.activeTab, { autoLoad: options.autoLoad !== false });
+  if (options.render !== false) {
+    renderTab(state.activeTab, { autoLoad: options.autoLoad !== false });
+  }
 }
 
 function switchAudience(audience, options = {}) {
@@ -541,12 +548,46 @@ function initSongModal() {
 }
 
 function renderHeroPlaceholder() {
-  $('#stats-grid').innerHTML = Array.from({ length: 6 }, () => `
+  const grid = $('#stats-grid');
+  if (!grid) return;
+  // Only set placeholder once to avoid re-render cost
+  if (grid.dataset.placeholderSet) return;
+  grid.dataset.placeholderSet = '1';
+  grid.innerHTML = Array.from({ length: 6 }, () => `
     <div class="stat-card placeholder">
       <div class="stat-label">&nbsp;</div>
       <div class="stat-value">&nbsp;</div>
     </div>
   `).join('');
+}
+
+// Cache stat card elements for differential updates
+let _heroCards = null;
+
+function _ensureHeroCards() {
+  if (_heroCards) return _heroCards;
+  const grid = $('#stats-grid');
+  if (!grid) return null;
+  // Build card structure once
+  grid.innerHTML = `
+    <div class="stat-card"><div class="stat-label"></div><div class="stat-value"></div></div>
+    <div class="stat-card"><div class="stat-label"></div><div class="stat-value"></div></div>
+    <div class="stat-card"><div class="stat-label"></div><div class="stat-value"></div></div>
+    <div class="stat-card"><div class="stat-label"></div><div class="stat-value"></div></div>
+    <div class="stat-card accent"><div class="stat-label"></div><div class="stat-value"></div></div>
+    <div class="stat-card gold"><div class="stat-label"></div><div class="stat-value"></div></div>
+  `;
+  const cards = grid.querySelectorAll('.stat-card');
+  _heroCards = {
+    total:     { label: cards[0].querySelector('.stat-label'), value: cards[0].querySelector('.stat-value') },
+    repertoire:{ label: cards[1].querySelector('.stat-label'), value: cards[1].querySelector('.stat-value') },
+    streams:   { label: cards[2].querySelector('.stat-label'), value: cards[2].querySelector('.stat-value') },
+    avg:       { label: cards[3].querySelector('.stat-label'), value: cards[3].querySelector('.stat-value') },
+    latest:    { label: cards[4].querySelector('.stat-label'), value: cards[4].querySelector('.stat-value') },
+    active:    { label: cards[5].querySelector('.stat-label'), value: cards[5].querySelector('.stat-value') },
+  };
+  grid.removeAttribute('data-placeholder-set');
+  return _heroCards;
 }
 
 function renderHero() {
@@ -562,37 +603,30 @@ function renderHero() {
   const chLabel = stats.channelLabel || stats.channelId || '';
   const chBadge = chLabel ? `<span class="badge accent" style="margin-right:8px;">${escapeHtml(chLabel)}</span>` : '';
 
-  $('#updated-info').innerHTML =
-    chBadge +
-    `データ更新日：<strong>${fmtDate(dataGeneratedDate) || '—'}</strong>` +
-    (dSinceUpdate != null ? ` <span class="badge">${dSinceUpdate}日前</span>` : '');
+  const updatedEl = $('#updated-info');
+  if (updatedEl) {
+    updatedEl.innerHTML =
+      chBadge +
+      `データ更新日：<strong>${fmtDate(dataGeneratedDate) || '—'}</strong>` +
+      (dSinceUpdate != null ? ` <span class="badge">${dSinceUpdate}日前</span>` : '');
+  }
 
-  $('#stats-grid').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">総歌唱数</div>
-      <div class="stat-value">${formatNumber(stats.total)}<span class="stat-unit">回</span></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">持ち曲数</div>
-      <div class="stat-value">${formatNumber(stats.repertoire)}<span class="stat-unit">曲</span></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">歌枠回数</div>
-      <div class="stat-value">${formatNumber(stats.streams)}<span class="stat-unit">回</span></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">1枠平均</div>
-      <div class="stat-value">${stats.avgPerStream}<span class="stat-unit">曲</span></div>
-    </div>
-    <div class="stat-card accent">
-      <div class="stat-label">最新歌枠から</div>
-      <div class="stat-value">${dSinceLatest != null ? dSinceLatest : '—'}<span class="stat-unit">日</span></div>
-    </div>
-    <div class="stat-card gold">
-      <div class="stat-label">活動期間</div>
-      <div class="stat-value">${activeDays(state.data)}<span class="stat-unit">日</span></div>
-    </div>
-  `;
+  const cards = _ensureHeroCards();
+  if (!cards) return;
+
+  // Differential text updates — no innerHTML rebuild
+  cards.total.label.textContent = '総歌唱数';
+  cards.total.value.innerHTML = `${formatNumber(stats.total)}<span class="stat-unit">回</span>`;
+  cards.repertoire.label.textContent = '持ち曲数';
+  cards.repertoire.value.innerHTML = `${formatNumber(stats.repertoire)}<span class="stat-unit">曲</span>`;
+  cards.streams.label.textContent = '歌枠回数';
+  cards.streams.value.innerHTML = `${formatNumber(stats.streams)}<span class="stat-unit">回</span>`;
+  cards.avg.label.textContent = '1枠平均';
+  cards.avg.value.innerHTML = `${stats.avgPerStream}<span class="stat-unit">曲</span>`;
+  cards.latest.label.textContent = '最新歌枠から';
+  cards.latest.value.innerHTML = `${dSinceLatest != null ? dSinceLatest : '—'}<span class="stat-unit">日</span>`;
+  cards.active.label.textContent = '活動期間';
+  cards.active.value.innerHTML = `${activeDays(state.data)}<span class="stat-unit">日</span>`;
 }
 
 function activeDays(data) {
@@ -708,25 +742,33 @@ async function init() {
   }
 }
 
-async function loadFullDataInBackground() {
-  try {
-    const fullData = await loadAll({ meta: state.channelData });
-    state.channelData = fullData;
-    state.channelData.fullLoaded = true;
-    const channel = getDataset(state.channel) ? state.channel : DEFAULT_CHANNEL;
-    switchChannel(channel, {
-      resetSearch: false,
-      updateUrl: false,
-      render: false,
-    });
-    for (const ch of Object.values(fullData.channels)) {
-      if (ch.orphans?.length) {
-        console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
+function loadFullDataInBackground() {
+  const run = async () => {
+    try {
+      const fullData = await loadAll({ meta: state.channelData });
+      state.channelData = fullData;
+      state.channelData.fullLoaded = true;
+      const channel = getDataset(state.channel) ? state.channel : DEFAULT_CHANNEL;
+      switchChannel(channel, {
+        resetSearch: false,
+        updateUrl: false,
+        render: false,
+      });
+      for (const ch of Object.values(fullData.channels)) {
+        if (ch.orphans?.length) {
+          console.warn(`[${ch.stats.channelLabel}] セトリ→リスト未マッチ: ${ch.orphans.length}件`, ch.orphans);
+        }
       }
+      scheduleFullDataPreload();
+    } catch (error) {
+      console.warn('[data] background full load failed', error);
     }
-    scheduleFullDataPreload();
-  } catch (error) {
-    console.warn('[data] background full load failed', error);
+  };
+  // Defer to idle time to avoid blocking initial render
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(run, { timeout: 3000 });
+  } else {
+    window.setTimeout(run, 800);
   }
 }
 
