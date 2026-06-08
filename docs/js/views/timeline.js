@@ -116,9 +116,7 @@ function renderItem(s, idx, filter) {
   const watchHtml = s.url
     ? `<span class="watch-actions"><button class="watch-link" type="button" data-inline-youtube="${escapeHtml(s.url)}">▶ 再生</button><a class="watch-open-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener">↗ 開く</a></span>`
     : '';
-  const copyHtml = state.singerMode
-    ? `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}">セトリコピー</button>`
-    : '';
+  const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}">セトリコピー</button>`;
   return `
     <article class="timeline-item ${recentClass}">
       <span class="stream-anchor" data-streamkey="${escapeHtml(streamKey(s))}"></span>

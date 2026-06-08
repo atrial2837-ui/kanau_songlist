@@ -471,6 +471,7 @@ function openSongDetail(key) {
         <div><strong>${song.count}</strong><span>歌唱回数</span></div>
         <div><strong>${song.displayKey || '—'}</strong><span>キー</span></div>
         <div><strong>${song.daysSinceLast ?? '—'}</strong><span>日前</span></div>
+        <div><strong>${fmtDate(song.firstSung) || '—'}</strong><span>初披露</span></div>
       </div>
     </div>
     <div class="song-detail-actions">
@@ -798,6 +799,32 @@ initSongModal();
 initMobileMenu();
 initPageTopToast();
 initWelcomeTip();
+
+// キーボードショートカット: / → 全曲検索欄にフォーカス、Esc → 検索クリア
+document.addEventListener('keydown', (e) => {
+  const tag = document.activeElement?.tagName;
+  const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  if (e.key === '/' && !inInput && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    const searchEl = $('#songs-search');
+    if (searchEl) {
+      searchEl.focus();
+      searchEl.select();
+    } else {
+      // songs タブへ切り替えてから描画完了後にフォーカス
+      activateTab('songs');
+      setTimeout(() => { $('#songs-search')?.focus(); }, 200);
+    }
+  }
+  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey) {
+    const searchEl = $('#songs-search');
+    if (searchEl && document.activeElement === searchEl && searchEl.value) {
+      e.preventDefault();
+      searchEl.value = '';
+      searchEl.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+});
 
 // Re-render charts on theme change
 onRerenderNeeded(() => {
