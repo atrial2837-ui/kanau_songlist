@@ -997,66 +997,39 @@ mark.hl {
   }
 }
 
-/* === YouTube Inline Player === */
+/* === YouTube Mini Player (コンパクト浮動プレイヤー) === */
 
 #yt-player-panel {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 16px;
+  right: 16px;
   z-index: 1000;
-  background: var(--surface);
-  border-top: 2px solid var(--border-strong);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.18);
-  padding: 8px 8px max(8px, env(safe-area-inset-bottom));
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-  align-items: start;
+  width: 340px;
+  background: #0d1e2e;
+  border: 1px solid rgba(74, 178, 220, 0.22);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
 }
 
-#yt-player-panel[hidden] {
-  display: none;
-}
+#yt-player-panel[hidden] { display: none; }
 
-.yt-player-head {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 8px;
-  color: var(--ink-soft);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.yt-player-head a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 28px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--primary-strong);
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.yt-player-head a:hover {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  text-decoration: none;
-}
-
-#yt-player-container {
+/* ── 動画エリア ── */
+.yt-mini-video-wrap {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  max-height: 60vh;
-  border-radius: 10px;
-  overflow: hidden;
   background: #000;
+  overflow: hidden;
+}
+
+#yt-player-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 #yt-player-container iframe {
@@ -1067,56 +1040,133 @@ mark.hl {
   border: 0;
 }
 
-#yt-player-close {
+/* ── 大画面展開ボタン（ホバー時のオーバーレイ） ── */
+.yt-mini-expand {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0);
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s, background 0.18s;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+
+/* has-stream クラスがある場合のみホバーで表示 */
+#yt-player-panel.has-stream .yt-mini-video-wrap:hover .yt-mini-expand {
+  opacity: 1;
+  background: rgba(7, 19, 31, 0.7);
+  pointer-events: auto;
+}
+
+.yt-mini-expand-icon {
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+}
+
+.yt-mini-expand-label {
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+}
+
+/* ── 情報バー ── */
+.yt-mini-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #0d1e2e;
+  border-top: 1px solid rgba(74, 178, 220, 0.1);
+  min-width: 0;
+}
+
+.yt-mini-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.yt-mini-stream-title {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.yt-mini-song-name {
+  display: block;
+  font-size: 10px;
+  color: rgba(74, 178, 220, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+  line-height: 1.4;
+}
+
+.yt-mini-yt-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  background: var(--surface);
-  color: var(--ink-soft);
-  font-size: 17px;
-  font-weight: 800;
-  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.yt-mini-yt-btn:hover {
+  background: rgba(74, 178, 220, 0.16);
+  border-color: rgba(74, 178, 220, 0.4);
+  color: #7ecfee;
+  text-decoration: none;
+}
+
+.yt-mini-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-  flex: 0 0 auto;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
-#yt-player-close:hover {
-  border-color: var(--red);
-  color: var(--red);
-  transform: translateY(-1px);
+.yt-mini-close-btn:hover {
+  background: rgba(220, 80, 80, 0.18);
+  border-color: rgba(220, 80, 80, 0.4);
+  color: #f08080;
 }
 
-@media (min-width: 768px) {
+@media (max-width: 480px) {
   #yt-player-panel {
-    left: auto;
-    right: 16px;
-    bottom: 16px;
-    width: min(560px, calc(100vw - 32px));
-    border-radius: 14px;
-    border: 2px solid var(--border-strong);
-    padding: 8px;
-  }
-
-  #yt-player-container {
-    max-height: min(315px, 50vh);
-  }
-}
-
-@media (max-width: 420px) {
-  #yt-player-panel {
-    padding: 6px 6px max(6px, env(safe-area-inset-bottom));
-    gap: 4px;
-  }
-
-  #yt-player-close {
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
+    width: calc(100vw - 24px);
+    right: 12px;
+    bottom: 12px;
   }
 }
 
@@ -1201,13 +1251,45 @@ mark.hl {
   overflow: hidden;
 }
 
-.sv-stream-title {
-  font-size: 13px;
+/* ── パンくずナビゲーション ── */
+.sv-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+
+.sv-bc-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.14s;
+}
+
+.sv-bc-btn:hover { color: rgba(255, 255, 255, 0.82); }
+
+.sv-bc-sep {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.sv-bc-current {
+  font-size: 12px;
   font-weight: 700;
-  color: rgba(255,255,255,0.92);
+  color: rgba(255, 255, 255, 0.92);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
   line-height: 1.3;
 }
 
@@ -1635,7 +1717,8 @@ mark.hl {
 
   .sv-close-btn { padding: 5px 10px; font-size: 11px; }
   .sv-yt-link   { padding: 5px 10px; font-size: 11px; }
-  .sv-stream-title { font-size: 12px; }
+  .sv-bc-btn    { font-size: 10px; }
+  .sv-bc-current { font-size: 10.5px; }
   .sv-stream-meta  { font-size: 10px; }
 }
 
