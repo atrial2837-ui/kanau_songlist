@@ -800,10 +800,69 @@ mark.hl {
   color: var(--red);
 }
 
+/* ── 検索サジェストチップ ─────────────────────────────────── */
+.search-suggest {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 101;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.search-suggest-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.search-suggest-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-mute);
+  letter-spacing: 0.03em;
+  flex: 0 0 auto;
+  min-width: 40px;
+}
+.search-suggest-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.search-suggest-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+.search-suggest-chip:hover {
+  background: var(--primary-soft, color-mix(in srgb, var(--primary) 12%, var(--surface)));
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
 @media (max-width: 600px) {
   .search-input-wrap {
     flex: 1 1 100%;
     min-width: 0;
+  }
+  .search-suggest-label {
+    display: none;
   }
 }
 

@@ -28,8 +28,47 @@ export function renderSongs() {
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="controls">
         <div class="search-input-wrap">
-          <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・artist:miwa ・chill ・久しぶり などで検索" value="${escapeHtml(state.songsQuery)}">
+          <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・雰囲気で検索（例：チルな曲 / 懐かしい / ボカロ 定番）" value="${escapeHtml(state.songsQuery)}">
           <div id="search-history-dropdown" class="search-history-dropdown" hidden></div>
+          <div id="search-suggest" class="search-suggest" hidden>
+            <div class="search-suggest-section">
+              <span class="search-suggest-label">雰囲気</span>
+              <div class="search-suggest-chips">
+                ${[
+                  ['😌 chill', 'チルな曲'],
+                  ['☀️ 明るい', '明るい曲'],
+                  ['🌙 しっとり', 'しっとり'],
+                  ['💫 エモい', 'エモい'],
+                  ['🔥 かっこいい', 'かっこいい'],
+                  ['🍂 切ない', '切ない'],
+                  ['📻 懐かしい', '懐かしい'],
+                  ['💧 泣ける', '泣ける'],
+                  ['⚡ あつい', 'あつい曲'],
+                  ['🌸 かわいい', 'かわいい'],
+                  ['🌿 癒し系', '癒し系'],
+                  ['🌑 ダーク', '暗い曲'],
+                ].map(([label, q]) => `<button type="button" class="search-suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
+              </div>
+            </div>
+            <div class="search-suggest-section">
+              <span class="search-suggest-label">ジャンル</span>
+              <div class="search-suggest-chips">
+                ${[
+                  ['ボカロ', 'ボカロ'], ['アニソン', 'アニソン'], ['J-POP', 'J-POP'],
+                  ['R&B', 'R&B'], ['ロック', 'ロック'], ['アコースティック', '弾き語り'],
+                ].map(([label, q]) => `<button type="button" class="search-suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
+              </div>
+            </div>
+            <div class="search-suggest-section">
+              <span class="search-suggest-label">状態</span>
+              <div class="search-suggest-chips">
+                ${[
+                  ['定番', '定番'], ['久しぶり', '久しぶり'], ['最近歌った', '最近歌った'],
+                  ['レア', 'レア'], ['初披露のみ', '1回だけ歌'], ['未歌唱', '未歌唱'],
+                ].map(([label, q]) => `<button type="button" class="search-suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
+              </div>
+            </div>
+          </div>
         </div>
         <select id="songs-sort" class="select-input">
           <option value="count-desc">回数（多）</option>
@@ -93,22 +132,52 @@ export function renderSongs() {
   refreshFilterButtons();
   refreshGenreChips();
 
+  const suggestEl = document.getElementById('search-suggest');
+
   const debounced = debounce(() => {
     state.songsQuery = searchInputEl.value;
     state.songsLimit = 100;
     addSearchHistory(state.songsQuery);
     hideSearchHistory();
+    if (suggestEl) suggestEl.hidden = true;
     writeUrlState({
       tab: 'songs',
       q: state.songsQuery,
     }, { replace: true });
     refresh();
   }, 120);
-  searchInputEl.addEventListener('input', debounced);
-  searchInputEl.addEventListener('focus', () => showSearchHistory());
-  searchInputEl.addEventListener('blur', () => {
-    setTimeout(() => hideSearchHistory(), 200);
+  searchInputEl.addEventListener('input', (e) => {
+    debounced();
+    // サジェストは空のときのみ表示
+    if (suggestEl) suggestEl.hidden = !!e.target.value.trim();
   });
+  searchInputEl.addEventListener('focus', () => {
+    showSearchHistory();
+    if (suggestEl && !searchInputEl.value.trim()) suggestEl.hidden = false;
+  });
+  searchInputEl.addEventListener('blur', () => {
+    setTimeout(() => {
+      hideSearchHistory();
+      if (suggestEl) suggestEl.hidden = true;
+    }, 200);
+  });
+
+  // サジェストチップのクリック
+  if (suggestEl) {
+    suggestEl.addEventListener('mousedown', (e) => {
+      const chip = e.target.closest('[data-suggest]');
+      if (!chip) return;
+      e.preventDefault(); // blur を防ぐ
+      const q = chip.dataset.suggest;
+      searchInputEl.value = q;
+      state.songsQuery = q;
+      state.songsLimit = 100;
+      suggestEl.hidden = true;
+      addSearchHistory(q);
+      writeUrlState({ tab: 'songs', q }, { replace: true });
+      refresh();
+    });
+  }
   sortSelectEl.addEventListener('change', () => { state.songsSort = sortSelectEl.value; refresh(); });
   genreSelectEl.addEventListener('change', () => {
     state.songsGenre = genreSelectEl.value;
