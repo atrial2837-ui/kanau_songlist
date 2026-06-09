@@ -1,0 +1,1 @@
+var o="1mM9TQGYm7VAOds90XpSbSzF6xnFeq-95XZwL2mz8B4o",t={new:{id:"new",label:"\u65B0ch",listGid:"0",setlistGid:"684306666"},old:{id:"old",label:"\u65E7ch",listGid:"959470167",setlistGid:"254288043"}},e="new",s=t.new.listGid,I=t.new.setlistGid,c=12,n=12,T=50,d=20;var p=`https://docs.google.com/spreadsheets/d/${o}/edit`;export{e as a,c as b,n as c,T as d,d as e};

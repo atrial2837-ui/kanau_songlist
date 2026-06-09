@@ -24,8 +24,10 @@ const common = {
 async function buildMain() {
   await esbuild.build({
     ...common,
-    entryPoints: [join(__dirname, 'docs', 'js', 'main.js')],
-    outfile: join(OUT_DIR, 'main.js'),
+    entryPoints: [{ in: join(__dirname, 'docs', 'js', 'main.js'), out: 'main' }],
+    outdir: OUT_DIR,
+    splitting: true,          // 動的importをチャンクに分離してunused JSを削減
+    chunkNames: 'chunk-[hash]',
     metafile: true,
   });
   console.log('built docs/dist/main.js');
