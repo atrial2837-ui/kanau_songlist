@@ -1176,20 +1176,20 @@ mark.hl {
 
 #panel-player {
   min-height: calc(100vh - 140px);
-  background: #07131f;
+  background: var(--surface);
 }
 
 /* ============================================================
-   Stream Viewer (埋め込み + 全画面共通)
+   Stream Viewer (埋め込みモード = テーマ準拠 / 全画面 = ダーク)
    ============================================================ */
 
-/* ── デフォルト: 埋め込みモード ── */
+/* ── デフォルト: 埋め込みモード（サイトテーマに合わせる） ── */
 #stream-viewer {
   position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #07131f;
+  background: var(--surface);
   height: calc(100vh - 140px);
   min-height: 520px;
 }
@@ -1251,8 +1251,10 @@ mark.hl {
   align-items: center;
   gap: 10px;
   padding: 0 14px;
-  background: #0d1e2e;
-  border-bottom: 1px solid rgba(74, 178, 220, 0.18);
+  background: var(--surface-glass);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--border-soft);
   flex: 0 0 auto;
   height: 52px;
 }
@@ -1262,10 +1264,10 @@ mark.hl {
   align-items: center;
   gap: 7px;
   padding: 7px 16px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.18);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  color: rgba(255,255,255,0.85);
+  color: var(--ink-soft);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -1275,22 +1277,22 @@ mark.hl {
 }
 
 .sv-close-btn:hover {
-  background: rgba(74, 178, 220, 0.2);
-  border-color: rgba(74, 178, 220, 0.55);
-  color: #fff;
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
 }
 
 .sv-esc-hint {
   display: inline-flex;
   align-items: center;
   padding: 1px 5px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: rgba(255,255,255,0.45);
+  color: var(--ink-mute);
   line-height: 1.6;
 }
 
@@ -1312,7 +1314,7 @@ mark.hl {
 .sv-bc-btn {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--ink-mute);
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
@@ -1322,10 +1324,10 @@ mark.hl {
   transition: color 0.14s;
 }
 
-.sv-bc-btn:hover { color: rgba(255, 255, 255, 0.82); }
+.sv-bc-btn:hover { color: var(--ink); }
 
 .sv-bc-sep {
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--border-strong);
   font-size: 11px;
   flex-shrink: 0;
   user-select: none;
@@ -1334,7 +1336,7 @@ mark.hl {
 .sv-bc-current {
   font-size: 12px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1344,7 +1346,7 @@ mark.hl {
 
 .sv-stream-meta {
   font-size: 11px;
-  color: rgba(255,255,255,0.42);
+  color: var(--ink-mute);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -1356,10 +1358,10 @@ mark.hl {
   align-items: center;
   gap: 5px;
   padding: 6px 14px;
-  background: rgba(74, 178, 220, 0.14);
-  border: 1px solid rgba(74, 178, 220, 0.4);
+  background: var(--primary-soft);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  color: #7ecfee;
+  color: var(--primary-strong);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
@@ -1376,9 +1378,9 @@ mark.hl {
   width: 32px;
   height: 32px;
   border-radius: 7px;
-  border: 1px solid rgba(74, 178, 220, 0.3);
-  background: rgba(74, 178, 220, 0.08);
-  color: rgba(74, 178, 220, 0.8);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--ink-soft);
   font-size: 17px;
   cursor: pointer;
   flex-shrink: 0;
@@ -1386,15 +1388,15 @@ mark.hl {
 }
 
 .sv-fullscreen-btn:hover {
-  background: rgba(74, 178, 220, 0.22);
-  border-color: rgba(74, 178, 220, 0.6);
-  color: #a8e4ff;
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
 }
 
 .sv-yt-link:hover {
-  background: rgba(74, 178, 220, 0.28);
-  border-color: rgba(74, 178, 220, 0.7);
-  color: #b4e6f7;
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
   text-decoration: none;
 }
 
@@ -1407,7 +1409,7 @@ mark.hl {
   overflow: hidden;
 }
 
-/* ── Player ── */
+/* ── Player (動画エリアは常にダーク) ── */
 .sv-player-wrap {
   position: relative;
   background: #000;
@@ -1430,7 +1432,7 @@ mark.hl {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--ink-mute);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -1439,8 +1441,8 @@ mark.hl {
 
 /* ── Panel ── */
 .sv-panel {
-  background: #0f1e2d;
-  border-left: 1px solid rgba(74, 178, 220, 0.14);
+  background: var(--surface-2);
+  border-left: 1px solid var(--border-soft);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1451,7 +1453,7 @@ mark.hl {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(74, 178, 220, 0.14);
+  border-bottom: 1px solid var(--border-soft);
   flex: 0 0 auto;
   gap: 8px;
 }
@@ -1459,7 +1461,7 @@ mark.hl {
 .sv-panel-head > span:first-child {
   font-size: 11px;
   font-weight: 800;
-  color: rgba(255,255,255,0.55);
+  color: var(--ink-mute);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   flex: 1;
@@ -1477,10 +1479,10 @@ mark.hl {
   align-items: center;
   gap: 3px;
   padding: 3px 9px;
-  background: rgba(74, 178, 220, 0.1);
-  border: 1px solid rgba(74, 178, 220, 0.3);
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  color: rgba(74, 178, 220, 0.8);
+  color: var(--primary-strong);
   font-size: 10px;
   font-weight: 700;
   cursor: pointer;
@@ -1488,26 +1490,25 @@ mark.hl {
 }
 
 .sv-import-toggle:hover {
-  background: rgba(74, 178, 220, 0.2);
-  border-color: rgba(74, 178, 220, 0.6);
-  color: #7ecfee;
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 
 .sv-song-count {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(74, 178, 220, 0.9);
-  background: rgba(74, 178, 220, 0.1);
+  color: var(--primary-strong);
+  background: var(--primary-soft);
   padding: 2px 9px;
   border-radius: 999px;
-  border: 1px solid rgba(74, 178, 220, 0.25);
+  border: 1px solid var(--border);
 }
 
 /* ── Import form ── */
 .sv-import-area {
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(74, 178, 220, 0.12);
-  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface-3);
   flex: 0 0 auto;
 }
 
@@ -1515,7 +1516,7 @@ mark.hl {
 
 .sv-import-desc {
   font-size: 10.5px;
-  color: rgba(255,255,255,0.45);
+  color: var(--ink-mute);
   margin: 0 0 8px;
   line-height: 1.5;
 }
@@ -1523,10 +1524,10 @@ mark.hl {
 .sv-import-input {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(74, 178, 220, 0.25);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: rgba(255,255,255,0.85);
+  color: var(--ink);
   font-size: 12px;
   font-family: ui-monospace, 'Cascadia Code', 'Menlo', monospace;
   line-height: 1.7;
@@ -1537,10 +1538,10 @@ mark.hl {
 }
 
 .sv-import-input:focus {
-  border-color: rgba(74, 178, 220, 0.55);
+  border-color: var(--primary);
 }
 
-.sv-import-input::placeholder { color: rgba(255,255,255,0.22); }
+.sv-import-input::placeholder { color: var(--ink-mute); opacity: 0.6; }
 
 .sv-import-btns {
   display: flex;
@@ -1550,27 +1551,28 @@ mark.hl {
 
 .sv-import-apply {
   padding: 5px 16px;
-  background: rgba(74, 178, 220, 0.25);
-  border: 1px solid rgba(74, 178, 220, 0.5);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
   border-radius: 999px;
-  color: #7ecfee;
+  color: var(--primary-strong);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
 .sv-import-apply:hover {
-  background: rgba(74, 178, 220, 0.4);
-  border-color: rgba(74, 178, 220, 0.75);
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  border-color: var(--primary-strong);
+  color: #fff;
 }
 
 .sv-import-cancel {
   padding: 5px 14px;
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.14);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  color: rgba(255,255,255,0.45);
+  color: var(--ink-mute);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1578,15 +1580,15 @@ mark.hl {
 }
 
 .sv-import-cancel:hover {
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.7);
+  background: var(--surface-3);
+  color: var(--ink-soft);
 }
 
 .sv-panel-hint {
   padding: 7px 14px;
   font-size: 10px;
-  color: rgba(255,255,255,0.28);
-  border-bottom: 1px solid rgba(74, 178, 220, 0.08);
+  color: var(--ink-mute);
+  border-bottom: 1px solid var(--border-soft);
   flex: 0 0 auto;
   line-height: 1.5;
   letter-spacing: 0.01em;
@@ -1599,26 +1601,26 @@ mark.hl {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: rgba(74, 178, 220, 0.2) transparent;
+  scrollbar-color: var(--border) transparent;
 }
 
 .sv-setlist::-webkit-scrollbar { width: 4px; }
 .sv-setlist::-webkit-scrollbar-track { background: transparent; }
-.sv-setlist::-webkit-scrollbar-thumb { background: rgba(74, 178, 220, 0.2); border-radius: 2px; }
+.sv-setlist::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
 .sv-song {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--border-soft);
   transition: background 0.12s;
   cursor: default;
 }
 
 .sv-song:last-child { border-bottom: none; }
 
-.sv-song:hover { background: rgba(74, 178, 220, 0.07); }
+.sv-song:hover { background: var(--surface-3); }
 
 .sv-song-num {
   display: inline-flex;
@@ -1627,10 +1629,10 @@ mark.hl {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.06);
+  background: var(--surface-3);
   font-size: 10px;
   font-weight: 800;
-  color: rgba(255,255,255,0.35);
+  color: var(--ink-mute);
   flex-shrink: 0;
 }
 
@@ -1644,7 +1646,7 @@ mark.hl {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: rgba(255,255,255,0.88);
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1654,7 +1656,7 @@ mark.hl {
 .sv-song-artist {
   display: block;
   font-size: 10.5px;
-  color: rgba(255,255,255,0.38);
+  color: var(--ink-mute);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1678,10 +1680,10 @@ mark.hl {
   align-items: center;
   gap: 3px;
   padding: 3px 8px;
-  background: rgba(74, 178, 220, 0.15);
-  border: 1px solid rgba(74, 178, 220, 0.4);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
   border-radius: 999px;
-  color: #7ecfee;
+  color: var(--primary-strong);
   font-size: 10.5px;
   font-weight: 700;
   cursor: pointer;
@@ -1693,9 +1695,9 @@ mark.hl {
 .sv-ts-badge::before { content: '▶'; font-size: 8px; opacity: 0.7; }
 
 .sv-ts-badge:hover {
-  background: rgba(74, 178, 220, 0.3);
-  border-color: rgba(74, 178, 220, 0.7);
-  color: #b4e6f7;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  border-color: var(--primary-strong);
+  color: #fff;
 }
 
 /* Timestamp delete button */
@@ -1706,9 +1708,9 @@ mark.hl {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid var(--border);
   background: transparent;
-  color: rgba(255,255,255,0.35);
+  color: var(--ink-mute);
   font-size: 8px;
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s, background 0.12s;
@@ -1716,9 +1718,9 @@ mark.hl {
 }
 
 .sv-ts-del:hover {
-  border-color: rgba(255, 100, 100, 0.6);
-  color: #ff8080;
-  background: rgba(255, 100, 100, 0.1);
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(220, 50, 50, 0.07);
 }
 
 /* Set timestamp button */
@@ -1730,9 +1732,9 @@ mark.hl {
   height: 26px;
   padding: 0 8px;
   border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.5);
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  color: var(--ink-mute);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -1742,9 +1744,9 @@ mark.hl {
 }
 
 .sv-ts-set:hover {
-  border-color: rgba(74, 178, 220, 0.5);
-  background: rgba(74, 178, 220, 0.15);
-  color: #7ecfee;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
 }
 
 /* ── Mobile: stacked layout ── */
@@ -1774,7 +1776,7 @@ mark.hl {
 
   .sv-panel {
     border-left: none;
-    border-top: 1px solid rgba(74, 178, 220, 0.14);
+    border-top: 1px solid var(--border-soft);
     max-height: 50vh;
     min-height: 240px;
   }
@@ -1792,6 +1794,180 @@ mark.hl {
   .sv-bc-btn    { font-size: 10px; }
   .sv-bc-current { font-size: 10.5px; }
   .sv-stream-meta  { font-size: 10px; }
+}
+
+/* ============================================================
+   Stream Viewer — 全画面モード ダークテーマ上書き
+   .sv-fullscreen が付いた時のみ暗い配色に切り替える
+   ============================================================ */
+
+#stream-viewer.sv-fullscreen { background: #07131f; }
+
+#stream-viewer.sv-fullscreen .sv-header {
+  background: #0d1e2e;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom-color: rgba(74, 178, 220, 0.18);
+}
+
+#stream-viewer.sv-fullscreen .sv-close-btn {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.85);
+}
+#stream-viewer.sv-fullscreen .sv-close-btn:hover {
+  background: rgba(74, 178, 220, 0.2);
+  border-color: rgba(74, 178, 220, 0.55);
+  color: #fff;
+}
+
+#stream-viewer.sv-fullscreen .sv-esc-hint {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.45);
+}
+
+#stream-viewer.sv-fullscreen .sv-bc-btn { color: rgba(255,255,255,0.4); }
+#stream-viewer.sv-fullscreen .sv-bc-btn:hover { color: rgba(255,255,255,0.82); }
+#stream-viewer.sv-fullscreen .sv-bc-sep { color: rgba(255,255,255,0.2); }
+#stream-viewer.sv-fullscreen .sv-bc-current { color: rgba(255,255,255,0.92); }
+#stream-viewer.sv-fullscreen .sv-stream-meta { color: rgba(255,255,255,0.42); }
+
+#stream-viewer.sv-fullscreen .sv-yt-link {
+  background: rgba(74, 178, 220, 0.14);
+  border-color: rgba(74, 178, 220, 0.4);
+  color: #7ecfee;
+}
+#stream-viewer.sv-fullscreen .sv-yt-link:hover {
+  background: rgba(74, 178, 220, 0.28);
+  border-color: rgba(74, 178, 220, 0.7);
+  color: #b4e6f7;
+}
+
+#stream-viewer.sv-fullscreen .sv-fullscreen-btn {
+  border-color: rgba(74, 178, 220, 0.3);
+  background: rgba(74, 178, 220, 0.08);
+  color: rgba(74, 178, 220, 0.8);
+}
+#stream-viewer.sv-fullscreen .sv-fullscreen-btn:hover {
+  background: rgba(74, 178, 220, 0.22);
+  border-color: rgba(74, 178, 220, 0.6);
+  color: #a8e4ff;
+}
+
+#stream-viewer.sv-fullscreen .sv-panel {
+  background: #0f1e2d;
+  border-left-color: rgba(74, 178, 220, 0.14);
+}
+#stream-viewer.sv-fullscreen .sv-panel-head {
+  border-bottom-color: rgba(74, 178, 220, 0.14);
+}
+#stream-viewer.sv-fullscreen .sv-panel-head > span:first-child {
+  color: rgba(255,255,255,0.55);
+}
+
+#stream-viewer.sv-fullscreen .sv-import-toggle {
+  background: rgba(74, 178, 220, 0.1);
+  border-color: rgba(74, 178, 220, 0.3);
+  color: rgba(74, 178, 220, 0.8);
+}
+#stream-viewer.sv-fullscreen .sv-import-toggle:hover {
+  background: rgba(74, 178, 220, 0.2);
+  border-color: rgba(74, 178, 220, 0.6);
+  color: #7ecfee;
+}
+
+#stream-viewer.sv-fullscreen .sv-song-count {
+  color: rgba(74, 178, 220, 0.9);
+  background: rgba(74, 178, 220, 0.1);
+  border-color: rgba(74, 178, 220, 0.25);
+}
+
+#stream-viewer.sv-fullscreen .sv-import-area {
+  background: rgba(0,0,0,0.25);
+  border-bottom-color: rgba(74, 178, 220, 0.12);
+}
+#stream-viewer.sv-fullscreen .sv-import-desc { color: rgba(255,255,255,0.45); }
+#stream-viewer.sv-fullscreen .sv-import-input {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(74, 178, 220, 0.25);
+  color: rgba(255,255,255,0.85);
+}
+#stream-viewer.sv-fullscreen .sv-import-input:focus { border-color: rgba(74, 178, 220, 0.55); }
+#stream-viewer.sv-fullscreen .sv-import-input::placeholder { color: rgba(255,255,255,0.22); opacity: 1; }
+
+#stream-viewer.sv-fullscreen .sv-import-apply {
+  background: rgba(74, 178, 220, 0.25);
+  border-color: rgba(74, 178, 220, 0.5);
+  color: #7ecfee;
+}
+#stream-viewer.sv-fullscreen .sv-import-apply:hover {
+  background: rgba(74, 178, 220, 0.4);
+  border-color: rgba(74, 178, 220, 0.75);
+  color: #b4e6f7;
+}
+
+#stream-viewer.sv-fullscreen .sv-import-cancel {
+  border-color: rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.45);
+}
+#stream-viewer.sv-fullscreen .sv-import-cancel:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.7);
+}
+
+#stream-viewer.sv-fullscreen .sv-panel-hint {
+  color: rgba(255,255,255,0.28);
+  border-bottom-color: rgba(74, 178, 220, 0.08);
+}
+
+#stream-viewer.sv-fullscreen .sv-setlist {
+  scrollbar-color: rgba(74, 178, 220, 0.2) transparent;
+}
+#stream-viewer.sv-fullscreen .sv-setlist::-webkit-scrollbar-thumb {
+  background: rgba(74, 178, 220, 0.2);
+}
+
+#stream-viewer.sv-fullscreen .sv-song { border-bottom-color: rgba(255,255,255,0.05); }
+#stream-viewer.sv-fullscreen .sv-song:hover { background: rgba(74, 178, 220, 0.07); }
+#stream-viewer.sv-fullscreen .sv-song-num {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.35);
+}
+#stream-viewer.sv-fullscreen .sv-song-title { color: rgba(255,255,255,0.88); }
+#stream-viewer.sv-fullscreen .sv-song-artist { color: rgba(255,255,255,0.38); }
+#stream-viewer.sv-fullscreen .sv-player-loading { color: rgba(255,255,255,0.4); }
+
+#stream-viewer.sv-fullscreen .sv-ts-badge {
+  background: rgba(74, 178, 220, 0.15);
+  border-color: rgba(74, 178, 220, 0.4);
+  color: #7ecfee;
+}
+#stream-viewer.sv-fullscreen .sv-ts-badge:hover {
+  background: rgba(74, 178, 220, 0.3);
+  border-color: rgba(74, 178, 220, 0.7);
+  color: #b4e6f7;
+}
+
+#stream-viewer.sv-fullscreen .sv-ts-del {
+  border-color: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.35);
+}
+#stream-viewer.sv-fullscreen .sv-ts-del:hover {
+  border-color: rgba(255, 100, 100, 0.6);
+  color: #ff8080;
+  background: rgba(255, 100, 100, 0.1);
+}
+
+#stream-viewer.sv-fullscreen .sv-ts-set {
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.5);
+}
+#stream-viewer.sv-fullscreen .sv-ts-set:hover {
+  border-color: rgba(74, 178, 220, 0.5);
+  background: rgba(74, 178, 220, 0.15);
+  color: #7ecfee;
 }
 
 /* ============================================================
