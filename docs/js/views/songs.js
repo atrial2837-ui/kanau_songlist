@@ -28,47 +28,8 @@ export function renderSongs() {
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="controls">
         <div class="search-input-wrap">
-          <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・雰囲気で検索（例：チルな曲 / 懐かしい / ボカロ 定番）" value="${escapeHtml(state.songsQuery)}">
+          <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・雰囲気で検索（例：チルな曲 / あつい / ボカロ 定番）" value="${escapeHtml(state.songsQuery)}">
           <div id="search-history-dropdown" class="search-history-dropdown" hidden></div>
-          <div id="search-suggest" class="search-suggest" hidden>
-            <div class="search-suggest-section">
-              <span class="search-suggest-label">雰囲気</span>
-              <div class="search-suggest-chips">
-                ${[
-                  ['😌 chill', 'チルな曲'],
-                  ['☀️ 明るい', '明るい曲'],
-                  ['🌙 しっとり', 'しっとり'],
-                  ['💫 エモい', 'エモい'],
-                  ['🔥 かっこいい', 'かっこいい'],
-                  ['🍂 切ない', '切ない'],
-                  ['📻 懐かしい', '懐かしい'],
-                  ['💧 泣ける', '泣ける'],
-                  ['⚡ あつい', 'あつい曲'],
-                  ['🌸 かわいい', 'かわいい'],
-                  ['🌿 癒し系', '癒し系'],
-                  ['🌑 ダーク', '暗い曲'],
-                ].map(([label, q]) => `<button type="button" class="search-suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
-              </div>
-            </div>
-            <div class="search-suggest-section">
-              <span class="search-suggest-label">ジャンル</span>
-              <div class="search-suggest-chips">
-                ${[
-                  ['ボカロ', 'ボカロ'], ['アニソン', 'アニソン'], ['J-POP', 'J-POP'],
-                  ['R&B', 'R&B'], ['ロック', 'ロック'], ['アコースティック', '弾き語り'],
-                ].map(([label, q]) => `<button type="button" class="search-suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
-              </div>
-            </div>
-            <div class="search-suggest-section">
-              <span class="search-suggest-label">状態</span>
-              <div class="search-suggest-chips">
-                ${[
-                  ['定番', '定番'], ['久しぶり', '久しぶり'], ['最近歌った', '最近歌った'],
-                  ['レア', 'レア'], ['初披露のみ', '1回だけ歌'], ['未歌唱', '未歌唱'],
-                ].map(([label, q]) => `<button type="button" class="search-suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
-              </div>
-            </div>
-          </div>
         </div>
         <select id="songs-sort" class="select-input">
           <option value="count-desc">回数（多）</option>
@@ -82,19 +43,55 @@ export function renderSongs() {
           ${genreOptionsHtml()}
         </select>
       </div>
+      <!-- 横スクロールサジェストチップ（常時表示・UIに被らない） -->
+      <div id="search-suggest" class="suggest-strip" role="group" aria-label="検索キーワードのヒント">
+        ${[
+          ['😌 chill', 'チルな曲'],
+          ['⚡ あつい', 'あつい曲'],
+          ['🌙 しっとり', 'しっとり'],
+          ['💫 エモい', 'エモい'],
+          ['🔥 かっこいい', 'かっこいい'],
+          ['🍂 切ない', '切ない'],
+          ['📻 懐かしい', '懐かしい'],
+          ['💧 泣ける', '泣ける'],
+          ['🌸 かわいい', 'かわいい'],
+          ['🌿 癒し系', '癒し系'],
+          ['🌑 ダーク', '暗い曲'],
+        ].map(([label, q]) => `<button type="button" class="suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
+        <span class="suggest-strip-div" aria-hidden="true"></span>
+        ${[
+          ['ボカロ', 'ボカロ'],
+          ['アニソン', 'アニソン'],
+          ['J-POP', 'J-POP'],
+          ['アイドル', 'アイドル'],
+          ['ロック', 'ロック'],
+          ['弾き語り', '弾き語り'],
+        ].map(([label, q]) => `<button type="button" class="suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
+        <span class="suggest-strip-div" aria-hidden="true"></span>
+        ${[
+          ['定番', '定番'],
+          ['久しぶり', '久しぶり'],
+          ['最近歌った', '最近歌った'],
+          ['レア', 'レア'],
+          ['未歌唱', '未歌唱'],
+        ].map(([label, q]) => `<button type="button" class="suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
+      </div>
+      <!-- ステータス絞り込み行（コンパクト） -->
+      <div class="filter-row" id="songs-filters">
+        <select id="songs-status-filter" class="select-input status-select">
+          <option value="all">🗂 すべて</option>
+          <option value="fresh">🟢 最近 (30日以内)</option>
+          <option value="stale">🟠 久しぶり (180日以上)</option>
+          <option value="never">⚪ 履歴未確認</option>
+        </select>
+        <button class="btn ghost" id="fav-filter-btn" type="button">❤️ お気に入り</button>
+        ${state.singerMode ? '' : '<button class="btn ghost" id="recommend-btn" type="button">💡 おすすめ</button><button class="btn ghost" id="todays-song-btn" type="button">🎲 今日の一曲</button>'}
+      </div>
       <p class="search-help">
         ${state.singerMode
-          ? '曲の＋セトリから追加できます。ランダム追加は現在の検索・絞り込み条件から選びます。'
-          : 'タグを押すと、その条件で絞り込めます。曲を押すと詳細を開きます。'}
+          ? '＋でセトリに追加できます。🎲ランダム追加は現在の検索・絞り込み条件から選びます。'
+          : '「チルな曲」「あつい」「ボカロ 定番」など自然語で検索できます。チップをタップで素早く絞り込み。'}
       </p>
-      <div class="controls" id="songs-filters" style="margin-top:-8px;">
-        <button class="btn ghost active" data-filter="all">すべて</button>
-        <button class="btn ghost" data-filter="fresh">🟢 最近 (30日以内)</button>
-        <button class="btn ghost" data-filter="stale">🟠 久しぶり (180日以上)</button>
-        <button class="btn ghost" data-filter="never">⚪ 履歴未確認</button>
-        <button class="btn ghost" data-filter="favorites">❤️ お気に入り</button>
-        ${state.singerMode ? '' : '<button class="btn primary" id="recommend-btn" type="button">おすすめ選曲</button><button class="btn ghost" id="todays-song-btn" type="button">🎲 今日の一曲</button>'}
-      </div>
       ${state.singerMode ? `
         <div class="songs-tools">
           <button class="btn ghost" data-singer-preset="keyed" type="button">キー確認済み</button>
@@ -130,6 +127,7 @@ export function renderSongs() {
   genreSelectEl.value = genreExists(state.songsGenre) ? state.songsGenre : 'all';
   state.songsGenre = genreSelectEl.value;
   refreshFilterButtons();
+  refreshSuggestChips();
   refreshGenreChips();
 
   const suggestEl = document.getElementById('search-suggest');
@@ -139,42 +137,43 @@ export function renderSongs() {
     state.songsLimit = 100;
     addSearchHistory(state.songsQuery);
     hideSearchHistory();
-    if (suggestEl) suggestEl.hidden = true;
     writeUrlState({
       tab: 'songs',
       q: state.songsQuery,
     }, { replace: true });
+    refreshSuggestChips();
     refresh();
   }, 120);
-  searchInputEl.addEventListener('input', (e) => {
+  searchInputEl.addEventListener('input', () => {
     debounced();
-    // サジェストは空のときのみ表示
-    if (suggestEl) suggestEl.hidden = !!e.target.value.trim();
   });
   searchInputEl.addEventListener('focus', () => {
     showSearchHistory();
-    if (suggestEl && !searchInputEl.value.trim()) suggestEl.hidden = false;
   });
   searchInputEl.addEventListener('blur', () => {
     setTimeout(() => {
       hideSearchHistory();
-      if (suggestEl) suggestEl.hidden = true;
     }, 200);
   });
 
-  // サジェストチップのクリック
+  // サジェストチップ（横スクロール常時表示）のクリック — トグル動作
   if (suggestEl) {
-    suggestEl.addEventListener('mousedown', (e) => {
+    suggestEl.addEventListener('click', (e) => {
       const chip = e.target.closest('[data-suggest]');
       if (!chip) return;
-      e.preventDefault(); // blur を防ぐ
       const q = chip.dataset.suggest;
-      searchInputEl.value = q;
-      state.songsQuery = q;
+      if (searchInputEl.value === q) {
+        // 同じチップを押したらクリア
+        searchInputEl.value = '';
+        state.songsQuery = '';
+      } else {
+        searchInputEl.value = q;
+        state.songsQuery = q;
+      }
       state.songsLimit = 100;
-      suggestEl.hidden = true;
-      addSearchHistory(q);
-      writeUrlState({ tab: 'songs', q }, { replace: true });
+      addSearchHistory(state.songsQuery || q);
+      writeUrlState({ tab: 'songs', q: state.songsQuery }, { replace: true });
+      refreshSuggestChips();
       refresh();
     });
   }
@@ -185,19 +184,27 @@ export function renderSongs() {
     refreshGenreChips();
     refresh();
   });
-  filterButtonsEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-filter]');
-    if (!btn) return;
-    if (btn.dataset.filter === 'favorites') {
-      state.favoritesFilter = !state.favoritesFilter;
-    } else {
-      state.songsFilter = btn.dataset.filter;
+  // ステータスフィルター（セレクト）
+  const statusFilterEl = document.getElementById('songs-status-filter');
+  if (statusFilterEl) {
+    statusFilterEl.addEventListener('change', () => {
+      state.songsFilter = statusFilterEl.value;
       state.favoritesFilter = false;
-    }
-    state.songsLimit = 100;
-    refreshFilterButtons();
-    refresh();
-  });
+      state.songsLimit = 100;
+      refreshFilterButtons();
+      refresh();
+    });
+  }
+  // お気に入りトグルボタン
+  const favBtnEl = document.getElementById('fav-filter-btn');
+  if (favBtnEl) {
+    favBtnEl.addEventListener('click', () => {
+      state.favoritesFilter = !state.favoritesFilter;
+      state.songsLimit = 100;
+      refreshFilterButtons();
+      refresh();
+    });
+  }
   genreChipsEl.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-genre]');
     if (!btn) return;
@@ -456,14 +463,21 @@ function refreshGenreChips() {
 }
 
 function refreshFilterButtons() {
-  for (const btn of filterButtonsEl.querySelectorAll('[data-filter]')) {
-    if (btn.dataset.filter === 'favorites') {
-      btn.classList.toggle('primary', state.favoritesFilter);
-      btn.classList.toggle('ghost', !state.favoritesFilter);
-    } else {
-      btn.classList.toggle('primary', btn.dataset.filter === state.songsFilter && !state.favoritesFilter);
-      btn.classList.toggle('ghost', btn.dataset.filter !== state.songsFilter || state.favoritesFilter);
-    }
+  const statusSelect = document.getElementById('songs-status-filter');
+  if (statusSelect) statusSelect.value = state.songsFilter;
+  const favBtn = document.getElementById('fav-filter-btn');
+  if (favBtn) {
+    favBtn.classList.toggle('primary', state.favoritesFilter);
+    favBtn.classList.toggle('ghost', !state.favoritesFilter);
+  }
+}
+
+function refreshSuggestChips() {
+  const strip = document.getElementById('search-suggest');
+  if (!strip) return;
+  const q = (state.songsQuery || '').trim();
+  for (const chip of strip.querySelectorAll('[data-suggest]')) {
+    chip.classList.toggle('is-active', chip.dataset.suggest === q);
   }
 }
 

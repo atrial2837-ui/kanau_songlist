@@ -800,69 +800,76 @@ mark.hl {
   color: var(--red);
 }
 
-/* ── 検索サジェストチップ ─────────────────────────────────── */
-.search-suggest {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 101;
-  background: var(--surface);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  padding: 10px 12px 12px;
+/* ── 横スクロールサジェストチップ（常時表示） ─────────────────── */
+.suggest-strip {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.search-suggest-section {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 5px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  align-items: center;
+  margin: 2px 0 0;
 }
-.search-suggest-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--ink-mute);
-  letter-spacing: 0.03em;
-  flex: 0 0 auto;
-  min-width: 40px;
-}
-.search-suggest-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.search-suggest-chip {
+.suggest-strip::-webkit-scrollbar { display: none; }
+
+.suggest-chip {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 3px 10px;
-  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border: 1.5px solid var(--border);
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--ink-soft);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s, color 0.1s;
   white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.3;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
-.search-suggest-chip:hover {
-  background: var(--primary-soft, color-mix(in srgb, var(--primary) 12%, var(--surface)));
+.suggest-chip:hover {
+  background: var(--primary-soft);
   border-color: var(--primary);
   color: var(--primary-strong);
+}
+.suggest-chip.is-active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+  font-weight: 700;
+}
+
+.suggest-strip-div {
+  width: 1px;
+  min-width: 1px;
+  height: 14px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 4px;
+  opacity: 0.6;
+}
+
+/* ── ステータス絞り込み行 ─────────────────────────────────── */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2px;
+}
+.filter-row .status-select {
+  flex: 0 1 auto;
+  min-width: 110px;
+  max-width: 185px;
 }
 
 @media (max-width: 600px) {
   .search-input-wrap {
     flex: 1 1 100%;
     min-width: 0;
-  }
-  .search-suggest-label {
-    display: none;
   }
 }
 
