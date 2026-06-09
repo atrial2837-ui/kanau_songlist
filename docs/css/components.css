@@ -1171,20 +1171,69 @@ mark.hl {
 }
 
 /* ============================================================
-   Stream Viewer (大画面プレイヤー + セットリスト)
+   埋め込みプレイヤーパネル
    ============================================================ */
 
-#stream-viewer {
-  position: fixed;
-  inset: 0;
-  z-index: 300;
+#panel-player {
+  min-height: calc(100vh - 140px);
   background: #07131f;
+}
+
+/* ============================================================
+   Stream Viewer (埋め込み + 全画面共通)
+   ============================================================ */
+
+/* ── デフォルト: 埋め込みモード ── */
+#stream-viewer {
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: #07131f;
+  height: calc(100vh - 140px);
+  min-height: 520px;
 }
 
 #stream-viewer[hidden] { display: none; }
+
+/* ── 全画面モード（.sv-fullscreen クラスで切り替え） ── */
+#stream-viewer.sv-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 300 !important;
+  height: 100vh !important;
+  min-height: unset !important;
+}
+
+/* 埋め込みモード: 動画を 16:9 アスペクト比に固定 */
+#stream-viewer:not(.sv-fullscreen) .sv-body {
+  align-items: start;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#stream-viewer:not(.sv-fullscreen) .sv-player-wrap {
+  aspect-ratio: 16 / 9;
+  flex: 0 0 auto;
+  min-height: unset;
+}
+
+#stream-viewer:not(.sv-fullscreen) .sv-panel {
+  overflow-y: auto;
+  height: 100%;
+  min-height: 300px;
+}
+
+/* 全画面モード: 動画は高さいっぱいに伸長 */
+#stream-viewer.sv-fullscreen .sv-player-wrap {
+  aspect-ratio: unset;
+  flex: 1;
+}
+
+/* 全画面ボタン: 全画面時は不要（← 戻る で戻れる）*/
+#stream-viewer.sv-fullscreen .sv-fullscreen-btn {
+  display: none !important;
+}
 
 .sv-container {
   display: flex;
@@ -1317,6 +1366,29 @@ mark.hl {
   white-space: nowrap;
   flex-shrink: 0;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+/* ── 全画面ボタン ── */
+.sv-fullscreen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1px solid rgba(74, 178, 220, 0.3);
+  background: rgba(74, 178, 220, 0.08);
+  color: rgba(74, 178, 220, 0.8);
+  font-size: 17px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.13s, color 0.13s, border-color 0.13s;
+}
+
+.sv-fullscreen-btn:hover {
+  background: rgba(74, 178, 220, 0.22);
+  border-color: rgba(74, 178, 220, 0.6);
+  color: #a8e4ff;
 }
 
 .sv-yt-link:hover {

@@ -414,7 +414,7 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
   const openLink = $('#yt-player-open');
   if (!container || !panel) return;
   const startParam = startAt > 0 ? `&start=${Math.floor(startAt)}` : '';
-  container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1${startParam}" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>`;
+  container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1${startParam}&vq=hd1080" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>`;
   if (openLink) openLink.href = String(url || '');
   // ミニプレイヤー情報更新
   const titleEl = $('#yt-mini-title');
@@ -495,6 +495,38 @@ let _svGen = 0;
 let _svLastStream = null;     // stream currently loaded in mini player
 let _svMiniStartAt = 0;       // seconds into video when mini player started
 let _svMiniStartWallTime = 0; // Date.now() when mini player started
+let _svFullscreen = false;    // stream viewer が全画面モードか
+let _epPrevTab = 'timeline';  // 埋め込みプレイヤーを開く前のタブ
+
+/** 埋め込みプレイヤーパネルを表示（タブバーの active はリセット） */
+function showPlayerPanel() {
+  _epPrevTab = state.activeTab || 'timeline';
+  state.activeTab = 'player';
+  $$('.tab-btn').forEach(b => b.classList.remove('active'));
+  $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-player'));
+}
+
+/** 前のタブに戻る */
+function hidePlayerPanel() {
+  activateTab(_epPrevTab || 'timeline');
+}
+
+/** 埋め込み → 全画面に切り替え
+ *  .container { z-index: 1 } がスタッキングコンテキストを作るため、
+ *  全画面時は <body> 直下に移動してトップバーより前面に出す */
+function enterStreamFullscreen() {
+  _svFullscreen = true;
+  const viewer = $('#stream-viewer');
+  if (!viewer) return;
+  // body 直下に移動 → z-index 競合を回避
+  document.body.appendChild(viewer);
+  viewer.classList.add('sv-fullscreen');
+  document.body.style.overflow = 'hidden';
+  const closeBtn = $('#sv-close');
+  if (closeBtn) closeBtn.title = '通常表示に戻る（Esc）';
+  const fsBtn = $('#sv-fullscreen-btn');
+  if (fsBtn) fsBtn.setAttribute('aria-pressed', 'true');
+}
 
 function _fmtTs(sec) {
   const s = Math.floor(sec);
@@ -549,11 +581,11 @@ function _parseTs(str) {
 
 function initStreamViewer() {
   if ($('#stream-viewer')) return;
+  const panel = $('#panel-player');
+  if (!panel) return;
   const el = document.createElement('div');
   el.id = 'stream-viewer';
   el.hidden = true;
-  el.setAttribute('role', 'dialog');
-  el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-label', '配信プレイヤー');
   el.innerHTML = `
     <div class="sv-container">
@@ -571,6 +603,8 @@ function initStreamViewer() {
           </nav>
           <div class="sv-stream-meta" id="sv-stream-meta"></div>
         </div>
+        <button class="sv-fullscreen-btn" id="sv-fullscreen-btn" type="button"
+          title="大画面で再生" aria-pressed="false">⛶</button>
         <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener">↗ YouTubeで開く</a>
       </div>
       <div class="sv-body">
@@ -600,9 +634,12 @@ function initStreamViewer() {
       </div>
     </div>
   `;
-  document.body.appendChild(el);
+  panel.appendChild(el);
 
   $('#sv-close').addEventListener('click', closeStreamViewer);
+
+  // 全画面ボタン
+  $('#sv-fullscreen-btn').addEventListener('click', enterStreamFullscreen);
 
   // パンくずナビゲーション
   el.querySelectorAll('[data-bc-tab]').forEach(btn => {
@@ -687,7 +724,24 @@ function openStreamViewer(stream, resumeAt = 0) {
   }
   _svLastStream = null;
 
+  // 全画面中なら埋め込みに戻してから開く
+  if (_svFullscreen) {
+    _svFullscreen = false;
+    const existingViewer = $('#stream-viewer');
+    if (existingViewer) {
+      existingViewer.classList.remove('sv-fullscreen');
+      const panelEl = $('#panel-player');
+      if (panelEl) panelEl.appendChild(existingViewer);
+    }
+    document.body.style.overflow = '';
+  }
+  _svFullscreen = false;
+
+  // 埋め込みプレイヤーパネルを表示
+  showPlayerPanel();
+
   const viewer = $('#stream-viewer');
+  viewer.classList.remove('sv-fullscreen');
   viewer._currentStream = stream;
   const gen = ++_svGen;
 
@@ -705,8 +759,9 @@ function openStreamViewer(stream, resumeAt = 0) {
   _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
 
   viewer.hidden = false;
-  document.body.style.overflow = 'hidden';
-  $('#sv-close')?.focus();
+  document.body.style.overflow = ''; // 埋め込みモードではスクロールロックしない
+  // フォーカス先: 埋め込み時はスクロールを引き起こさないよう遅延
+  setTimeout(() => { $('#sv-close')?.focus({ preventScroll: true }); }, 50);
 
   _svPlayer = null;
   const wrap = $('#sv-player-wrap');
@@ -733,6 +788,9 @@ function openStreamViewer(stream, resumeAt = 0) {
         },
         events: {
           onReady: (event) => {
+            // HD 画質優先（adaptive QA より先に設定）
+            try { event.target.setPlaybackQuality('hd1080'); } catch (_) {}
+            try { event.target.setPlaybackQualityRange('hd720', 'hd1080'); } catch (_) {}
             // start パラメータより seekTo の方が中間地点で確実
             if (startSec > 5) {
               try { event.target.seekTo(startSec, true); } catch (_) {}
@@ -754,7 +812,22 @@ function closeStreamViewer() {
   const viewer = $('#stream-viewer');
   if (!viewer) return;
 
-  // ミニプレイヤーへ引き継ぎ（再生中なら現在時刻から続ける）
+  // ── 全画面モードの場合 → 埋め込みに戻るだけ（ミニプレイヤーは起動しない）──
+  if (_svFullscreen) {
+    _svFullscreen = false;
+    viewer.classList.remove('sv-fullscreen');
+    document.body.style.overflow = '';
+    // #panel-player に戻す
+    const panelEl = $('#panel-player');
+    if (panelEl) panelEl.appendChild(viewer);
+    const closeBtn = $('#sv-close');
+    if (closeBtn) closeBtn.title = 'ミニプレイヤーで再生を続けながら戻ります（Esc）';
+    const fsBtn = $('#sv-fullscreen-btn');
+    if (fsBtn) fsBtn.setAttribute('aria-pressed', 'false');
+    return; // 動画はそのまま継続再生
+  }
+
+  // ── 埋め込みモードの場合 → ミニプレイヤーへ引き継ぎ ──
   const stream = viewer._currentStream;
   const currentTime = _svPlayer?.getCurrentTime?.() ?? 0;
   const videoId = stream?.url ? youtubeVideoId(stream.url) : '';
@@ -766,6 +839,9 @@ function closeStreamViewer() {
   const wrap = $('#sv-player-wrap');
   if (wrap) wrap.innerHTML = '';
   document.body.style.overflow = '';
+
+  // 前のタブに戻る
+  hidePlayerPanel();
 
   if (videoId && stream?.url) {
     // ミニプレイヤー再開位置を記録してから起動
@@ -1209,9 +1285,10 @@ document.addEventListener('keydown', (e) => {
 
   // Esc: 優先度順に閉じる
   if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey) {
-    // 0. 配信プレイヤー
+    // 0. 配信プレイヤー（全画面 or プレイヤーパネルがアクティブな場合）
     const streamViewer = $('#stream-viewer');
-    if (streamViewer && !streamViewer.hidden) {
+    const playerPanelActive = !!$('#panel-player.active');
+    if (streamViewer && !streamViewer.hidden && (_svFullscreen || playerPanelActive)) {
       e.preventDefault();
       closeStreamViewer();
       return;
