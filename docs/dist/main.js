@@ -74,7 +74,7 @@ import{b as W,c as X,d as tt,i as et,k as q,l as _}from"./chunk-4TPCNLDP.js";imp
       <span class="sv-song-title">${d(t.title)}</span>
       <span class="sv-song-artist">${d(t.artist)}</span>
     </div>
-    <div class="sv-song-actions">${o}<button class="sv-ts-set" data-idx="${e}" data-action="set-ts" title="\u73FE\u5728\u306E\u518D\u751F\u6642\u523B\u3092\u30E1\u30E2">\u23F1</button></div>
+    <div class="sv-song-actions">${o}<button class="sv-ts-set" data-idx="${e}" data-action="set-ts" title="\u73FE\u5728\u306E\u518D\u751F\u6642\u523B\u3092\u30BF\u30A4\u30E0\u30B9\u30BF\u30F3\u30D7\u306B\u8A18\u9332">\u23F1 \u30E1\u30E2</button></div>
   </div>`}function V(t,e,n){t.innerHTML=e.map((s,o)=>Gt(s,o,n)).join("")}function St(){if(l("#stream-viewer"))return;let t=document.createElement("div");t.id="stream-viewer",t.hidden=!0,t.setAttribute("role","dialog"),t.setAttribute("aria-modal","true"),t.setAttribute("aria-label","\u914D\u4FE1\u30D7\u30EC\u30A4\u30E4\u30FC"),t.innerHTML=`
     <div class="sv-container">
       <div class="sv-header">

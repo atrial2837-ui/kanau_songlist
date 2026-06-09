@@ -1128,9 +1128,7 @@ mark.hl {
   position: fixed;
   inset: 0;
   z-index: 300;
-  background: rgba(10, 22, 38, 0.92);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: #07131f;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1143,7 +1141,7 @@ mark.hl {
   flex-direction: column;
   width: 100%;
   height: 100%;
-  max-width: 1440px;
+  max-width: 1600px;
   margin: 0 auto;
   overflow: hidden;
 }
@@ -1153,34 +1151,34 @@ mark.hl {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px;
-  background: var(--surface);
-  border-bottom: 1.5px solid var(--border);
+  padding: 0 14px;
+  background: #0d1e2e;
+  border-bottom: 1px solid rgba(74, 178, 220, 0.18);
   flex: 0 0 auto;
-  min-height: 50px;
+  height: 52px;
 }
 
 .sv-close-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  background: transparent;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  color: var(--ink-soft);
+  gap: 5px;
+  padding: 6px 13px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+  color: rgba(255,255,255,0.75);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .sv-close-btn:hover {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  color: var(--primary-strong);
+  background: rgba(74, 178, 220, 0.18);
+  border-color: rgba(74, 178, 220, 0.5);
+  color: #fff;
 }
 
 .sv-title-area {
@@ -1192,7 +1190,7 @@ mark.hl {
 .sv-stream-title {
   font-size: 13px;
   font-weight: 700;
-  color: var(--ink);
+  color: rgba(255,255,255,0.92);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1201,7 +1199,7 @@ mark.hl {
 
 .sv-stream-meta {
   font-size: 11px;
-  color: var(--ink-mute);
+  color: rgba(255,255,255,0.42);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -1211,31 +1209,31 @@ mark.hl {
 .sv-yt-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  background: transparent;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  color: var(--ink-soft);
+  gap: 5px;
+  padding: 6px 14px;
+  background: rgba(74, 178, 220, 0.14);
+  border: 1px solid rgba(74, 178, 220, 0.4);
+  border-radius: 999px;
+  color: #7ecfee;
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .sv-yt-link:hover {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  color: var(--primary-strong);
+  background: rgba(74, 178, 220, 0.28);
+  border-color: rgba(74, 178, 220, 0.7);
+  color: #b4e6f7;
   text-decoration: none;
 }
 
 /* ── Body ── */
 .sv-body {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 1fr 340px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -1264,17 +1262,17 @@ mark.hl {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   pointer-events: none;
 }
 
 /* ── Panel ── */
 .sv-panel {
-  background: var(--surface);
-  border-left: 1.5px solid var(--border);
+  background: #0f1e2d;
+  border-left: 1px solid rgba(74, 178, 220, 0.14);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1284,33 +1282,37 @@ mark.hl {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1.5px solid var(--border);
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--ink);
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(74, 178, 220, 0.14);
   flex: 0 0 auto;
-  letter-spacing: 0.03em;
+}
+
+.sv-panel-head > span:first-child {
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .sv-song-count {
   font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-mute);
-  background: var(--surface-2);
-  padding: 2px 8px;
+  font-weight: 700;
+  color: rgba(74, 178, 220, 0.9);
+  background: rgba(74, 178, 220, 0.1);
+  padding: 2px 9px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(74, 178, 220, 0.25);
 }
 
 .sv-panel-hint {
-  padding: 6px 14px;
-  font-size: 10.5px;
-  color: var(--ink-mute);
-  border-bottom: 1px solid var(--border-soft);
+  padding: 7px 14px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.28);
+  border-bottom: 1px solid rgba(74, 178, 220, 0.08);
   flex: 0 0 auto;
   line-height: 1.5;
-  background: var(--surface-2);
+  letter-spacing: 0.01em;
 }
 
 /* ── Setlist ── */
@@ -1319,27 +1321,39 @@ mark.hl {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 178, 220, 0.2) transparent;
 }
+
+.sv-setlist::-webkit-scrollbar { width: 4px; }
+.sv-setlist::-webkit-scrollbar-track { background: transparent; }
+.sv-setlist::-webkit-scrollbar-thumb { background: rgba(74, 178, 220, 0.2); border-radius: 2px; }
 
 .sv-song {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--border-soft);
-  transition: background 0.1s;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.12s;
+  cursor: default;
 }
 
 .sv-song:last-child { border-bottom: none; }
 
-.sv-song:hover { background: var(--surface-2); }
+.sv-song:hover { background: rgba(74, 178, 220, 0.07); }
 
 .sv-song-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
   font-size: 10px;
-  font-weight: 700;
-  color: var(--ink-mute);
-  min-width: 20px;
-  text-align: right;
+  font-weight: 800;
+  color: rgba(255,255,255,0.35);
   flex-shrink: 0;
 }
 
@@ -1351,9 +1365,9 @@ mark.hl {
 
 .sv-song-title {
   display: block;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--ink);
+  color: rgba(255,255,255,0.88);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1363,7 +1377,7 @@ mark.hl {
 .sv-song-artist {
   display: block;
   font-size: 10.5px;
-  color: var(--ink-mute);
+  color: rgba(255,255,255,0.38);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1375,28 +1389,36 @@ mark.hl {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+  opacity: 0.4;
+  transition: opacity 0.15s;
 }
+
+.sv-song:hover .sv-song-actions { opacity: 1; }
 
 /* Timestamp seek badge */
 .sv-ts-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 7px;
-  background: var(--primary-soft);
-  border: 1.5px solid var(--primary);
+  gap: 3px;
+  padding: 3px 8px;
+  background: rgba(74, 178, 220, 0.15);
+  border: 1px solid rgba(74, 178, 220, 0.4);
   border-radius: 999px;
-  color: var(--primary-strong);
+  color: #7ecfee;
   font-size: 10.5px;
   font-weight: 700;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
+.sv-ts-badge::before { content: '▶'; font-size: 8px; opacity: 0.7; }
+
 .sv-ts-badge:hover {
-  background: var(--primary);
-  color: #fff;
+  background: rgba(74, 178, 220, 0.3);
+  border-color: rgba(74, 178, 220, 0.7);
+  color: #b4e6f7;
 }
 
 /* Timestamp delete button */
@@ -1407,18 +1429,19 @@ mark.hl {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.15);
   background: transparent;
-  color: var(--ink-mute);
+  color: rgba(255,255,255,0.35);
   font-size: 8px;
   cursor: pointer;
-  transition: border-color 0.12s, color 0.12s;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
   flex-shrink: 0;
 }
 
 .sv-ts-del:hover {
-  border-color: var(--red);
-  color: var(--red);
+  border-color: rgba(255, 100, 100, 0.6);
+  color: #ff8080;
+  background: rgba(255, 100, 100, 0.1);
 }
 
 /* Set timestamp button */
@@ -1426,22 +1449,25 @@ mark.hl {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
+  gap: 3px;
   height: 26px;
+  padding: 0 8px;
   border-radius: 6px;
-  border: 1.5px solid var(--border);
-  background: var(--surface-2);
-  color: var(--ink-soft);
-  font-size: 13px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
+  white-space: nowrap;
   transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
 .sv-ts-set:hover {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  color: var(--primary-strong);
+  border-color: rgba(74, 178, 220, 0.5);
+  background: rgba(74, 178, 220, 0.15);
+  color: #7ecfee;
 }
 
 /* ── Mobile: stacked layout ── */
@@ -1471,7 +1497,7 @@ mark.hl {
 
   .sv-panel {
     border-left: none;
-    border-top: 1.5px solid var(--border);
+    border-top: 1px solid rgba(74, 178, 220, 0.14);
     max-height: 50vh;
     min-height: 240px;
   }
@@ -1479,24 +1505,15 @@ mark.hl {
 
 @media (max-width: 479px) {
   .sv-header {
-    padding: 6px 10px;
-    gap: 6px;
-    min-height: 44px;
+    padding: 0 10px;
+    height: 46px;
+    gap: 8px;
   }
 
-  .sv-close-btn,
-  .sv-yt-link {
-    padding: 4px 9px;
-    font-size: 11px;
-  }
-
-  .sv-stream-title {
-    font-size: 12px;
-  }
-
-  .sv-stream-meta {
-    font-size: 10px;
-  }
+  .sv-close-btn { padding: 5px 10px; font-size: 11px; }
+  .sv-yt-link   { padding: 5px 10px; font-size: 11px; }
+  .sv-stream-title { font-size: 12px; }
+  .sv-stream-meta  { font-size: 10px; }
 }
 
 /* ============================================================
