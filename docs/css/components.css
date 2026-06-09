@@ -1576,9 +1576,7 @@ mark.hl {
   display: none;
 }
 
-/* 埋め込みモード: 動画を 16:9 アスペクト比に固定
-   ナビ/統計/関連はパネル内（セットリスト直下）に表示するため
-   ボディ自体のスクロールは不要 */
+/* 埋め込みモード: ページスクロールに同化させる */
 #stream-viewer:not(.sv-fullscreen) .sv-body {
   align-items: start;
 }
@@ -1589,16 +1587,23 @@ mark.hl {
   min-height: unset;
 }
 
+/* 埋め込み時はパネルを自然な高さに展開（内部スクロールなし） */
 #stream-viewer:not(.sv-fullscreen) .sv-panel {
-  overflow-y: auto;
-  height: 100%;
-  min-height: 300px;
+  overflow: visible;
+  height: auto;
 }
 
-/* パネル内の sv-below-player（セットリスト直下ナビ） */
-.sv-panel .sv-below-player {
+/* 埋め込み時はセットリストも全件表示（内部スクロールなし） */
+#stream-viewer:not(.sv-fullscreen) .sv-setlist {
+  overflow: visible;
+  flex: none;
+}
+
+/* プレイヤー下部（ナビ・統計・関連）の区切り線 */
+.sv-player-section .sv-below-player {
   border-top: 2px solid var(--border-soft);
-  margin-top: 2px;
+  margin-top: 8px;
+  padding-top: 4px;
 }
 
 /* 全画面モード: 動画は高さいっぱいに伸長 */
@@ -2235,6 +2240,9 @@ mark.hl {
 #stream-viewer.sv-fullscreen .sv-panel {
   background: #0f1e2d;
   border-left-color: rgba(74, 178, 220, 0.14);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 #stream-viewer.sv-fullscreen .sv-panel-head {
   border-bottom-color: rgba(74, 178, 220, 0.14);

@@ -213,6 +213,7 @@ import{b as yt,c as gt,d as wt,i as kt,k as st,l as R}from"./chunk-DSNH5IKV.js";
           <div class="sv-player-wrap" id="sv-player-wrap">
             <div class="sv-player-loading">\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026</div>
           </div>
+          <div class="sv-below-player" id="sv-below-player"></div>
         </div>
         <div class="sv-panel">
           <div class="sv-panel-head">
@@ -233,7 +234,6 @@ import{b as yt,c as gt,d as wt,i as kt,k as st,l as R}from"./chunk-DSNH5IKV.js";
           </div>
           <div class="sv-panel-hint">\u23F1 \u3067\u73FE\u5728\u6642\u523B\u3092\u30E1\u30E2 \uFF0F \u30D0\u30C3\u30B8\u3092\u30BF\u30C3\u30D7\u3067\u79FB\u52D5</div>
           <div class="sv-setlist" id="sv-setlist"></div>
-          <div class="sv-below-player" id="sv-below-player"></div>
         </div>
       </div>
     </div>

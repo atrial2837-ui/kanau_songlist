@@ -1054,6 +1054,7 @@ function initStreamViewer() {
           <div class="sv-player-wrap" id="sv-player-wrap">
             <div class="sv-player-loading">読み込み中…</div>
           </div>
+          <div class="sv-below-player" id="sv-below-player"></div>
         </div>
         <div class="sv-panel">
           <div class="sv-panel-head">
@@ -1074,7 +1075,6 @@ function initStreamViewer() {
           </div>
           <div class="sv-panel-hint">⏱ で現在時刻をメモ ／ バッジをタップで移動</div>
           <div class="sv-setlist" id="sv-setlist"></div>
-          <div class="sv-below-player" id="sv-below-player"></div>
         </div>
       </div>
     </div>
