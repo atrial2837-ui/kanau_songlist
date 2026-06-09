@@ -113,6 +113,8 @@ const DEFAULT_IN_MEMORY = {
   setlist: { theme: '', copyFormat: 'simple', items: [] },
   setlistExpanded: false,
   rankingLimit: 50,
+  rankingPeriod: 'all',
+  rankingMonth: '',
   favorites: loadFavorites(),
   favoritesFilter: false,
   fullLoaded: false,
@@ -285,6 +287,12 @@ export const state = {
 
   get rankingLimit() { return get('rankingLimit'); },
   set rankingLimit(v) { set('rankingLimit', v); },
+
+  get rankingPeriod() { return get('rankingPeriod'); },
+  set rankingPeriod(v) { set('rankingPeriod', v); },
+
+  get rankingMonth() { return get('rankingMonth'); },
+  set rankingMonth(v) { set('rankingMonth', v); },
 
   get fullLoaded() { return get('fullLoaded'); },
   set fullLoaded(v) { set('fullLoaded', v); },

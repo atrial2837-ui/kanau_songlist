@@ -1041,3 +1041,268 @@ mark.hl {
     font-size: 16px;
   }
 }
+
+/* ============================================================
+   Ranking Period Selector
+   ============================================================ */
+
+.ranking-period-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 14px;
+  align-items: center;
+}
+
+.period-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.period-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+.period-btn.active {
+  background: var(--primary-soft);
+  border-color: var(--primary-strong);
+  color: var(--primary-strong);
+}
+.period-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.period-month-select {
+  height: 32px !important;
+  font-size: 12px !important;
+  min-width: 120px;
+  flex: 0 0 auto;
+}
+
+.ranking-period-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  margin-bottom: 12px;
+}
+.ranking-period-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-strong);
+}
+.ranking-period-meta {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.ranking-prev-label {
+  font-size: 11px;
+  color: var(--ink-mute);
+}
+
+/* Delta badge (前月比) */
+.rank-delta {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.rank-delta.up   { color: var(--green-text); }
+.rank-delta.down { color: var(--orange-text); }
+.rank-delta.new  { color: var(--accent-strong); font-size: 10px; letter-spacing: 0.04em; }
+.rank-delta.same { color: var(--ink-mute); }
+
+/* 前月比カラムがあるとき、4列目の幅を縮める */
+.song-list.has-delta .song-row {
+  grid-template-columns: 52px 1fr 90px 60px;
+}
+@media (max-width: 600px) {
+  .song-list.has-delta .song-row {
+    grid-template-columns: 34px minmax(0, 1fr) minmax(90px, auto);
+  }
+}
+@media (max-width: 420px) {
+  .song-list.has-delta .song-row {
+    grid-template-columns: 28px minmax(0, 1fr) minmax(80px, auto);
+  }
+}
+@media (max-width: 600px) {
+  .ranking-period-selector { gap: 5px; }
+  .period-btn { min-height: 28px; padding: 3px 10px; font-size: 11px; }
+  .period-month-select { height: 28px !important; font-size: 11px !important; }
+}
+
+/* ============================================================
+   Global Search Palette (コマンドパレット)
+   ============================================================ */
+
+#omni-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(31, 72, 97, 0.32);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: grid;
+  place-items: start center;
+  padding: clamp(60px, 10vh, 100px) 16px 16px;
+}
+#omni-backdrop[hidden] { display: none; }
+
+#omni-box {
+  width: min(680px, 100%);
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+.omni-input-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.omni-search-icon {
+  font-size: 17px;
+  text-align: center;
+  color: var(--ink-mute);
+}
+.omni-input {
+  width: 100%;
+  height: 52px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  padding: 0 8px;
+  appearance: none;
+}
+.omni-input::placeholder { color: var(--ink-mute); }
+.omni-input::-webkit-search-cancel-button { display: none; }
+.omni-esc-key {
+  font-size: 10px;
+  opacity: 0.5;
+}
+
+.omni-listbox {
+  max-height: min(400px, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.omni-section-label {
+  padding: 10px 16px 4px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--ink-mute);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.omni-item {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.08s ease;
+}
+.omni-item:hover,
+.omni-item.is-active {
+  background: var(--primary-soft);
+}
+.omni-item-icon {
+  font-size: 16px;
+  text-align: center;
+}
+.omni-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.omni-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.omni-item-meta {
+  font-size: 12px;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.omni-item-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-strong);
+  text-align: right;
+  white-space: nowrap;
+  font-feature-settings: "tnum";
+}
+.omni-item-count small {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-mute);
+  margin-left: 1px;
+}
+
+.omni-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--ink-mute);
+  font-size: 13px;
+}
+
+.omni-footer {
+  display: flex;
+  gap: 16px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 11px;
+  color: var(--ink-mute);
+}
+.omni-footer kbd {
+  font-size: 10px;
+  padding: 0 4px;
+  border-bottom-width: 1px;
+  vertical-align: middle;
+}
+
+@media (max-width: 600px) {
+  #omni-backdrop {
+    padding: 48px 10px 10px;
+    align-items: start;
+  }
+  .omni-input { font-size: 15px; height: 46px; }
+  .omni-footer { gap: 10px; }
+  .omni-item { padding: 9px 12px; }
+}

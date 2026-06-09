@@ -1,11 +1,12 @@
 import { state, initStore, toggleFavorite, isFavorite } from './store.js';
 import { ensureSongTags, loadAll, loadInitial } from './data.js';
 import { buildIndex } from './search.js';
-import { initTheme, onThemeChange } from './theme.js';
+import { initTheme, onThemeChange, cycleTheme } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
 import { $, $$, escapeHtml, fmtDate, daysSince, isLink, formatNumber, streamKey } from './utils.js';
 import { DEFAULT_CHANNEL } from './config.js';
 import { readUrlState, writeUrlState } from './url-state.js';
+import { initSearchPalette, openSearchPalette, closeSearchPalette, isSearchPaletteOpen } from './views/search-palette.js';
 
 initTheme();
 initStore();
@@ -800,23 +801,83 @@ initMobileMenu();
 initPageTopToast();
 initWelcomeTip();
 
-// キーボードショートカット: / → 全曲検索欄にフォーカス、Esc → 検索クリア
+// グローバル検索パレット初期化
+initSearchPalette((result) => {
+  if (result.type === 'song') {
+    openSongDetail(result.song.key);
+  } else if (result.type === 'artist') {
+    searchArtistName(result.artist);
+  } else if (result.type === 'stream') {
+    // 配信枠へジャンプ（タイムライン）
+    state.timelineFocus = streamKey(result.stream);
+    state.timelineFilter = null;
+    state.timelineLimit = 9999;
+    activateTab('timeline');
+    $('#panel-timeline')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// キーボードショートカット
+//   /  または Ctrl+K / Cmd+K → グローバル検索を開く
+//   T                         → テーマ切替
+//   ?                         → ヘルプモーダルを開く
+//   Esc                       → 検索パレット→曲モーダル→ヘルプ→検索クリア の順で閉じる
+// ──────────────────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName;
   const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
-  if (e.key === '/' && !inInput && !e.metaKey && !e.ctrlKey) {
+
+  // グローバル検索を開く: / (非入力中) または Ctrl+K / Cmd+K
+  const openSearch =
+    (e.key === '/' && !inInput && !e.metaKey && !e.ctrlKey) ||
+    (e.key === 'k' && (e.ctrlKey || e.metaKey) && !e.shiftKey);
+  if (openSearch) {
     e.preventDefault();
-    const searchEl = $('#songs-search');
-    if (searchEl) {
-      searchEl.focus();
-      searchEl.select();
-    } else {
-      // songs タブへ切り替えてから描画完了後にフォーカス
-      activateTab('songs');
-      setTimeout(() => { $('#songs-search')?.focus(); }, 200);
-    }
+    openSearchPalette();
+    return;
   }
+
+  // テーマ切替: T
+  if (e.key === 't' && !inInput && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    cycleTheme();
+    return;
+  }
+
+  // ヘルプ: ?
+  if (e.key === '?' && !inInput && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    const modal = $('#help-modal');
+    if (modal && modal.hidden) {
+      modal.hidden = false;
+      $('#help-close')?.focus();
+    }
+    return;
+  }
+
+  // Esc: 優先度順に閉じる
   if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey) {
+    // 1. グローバル検索
+    if (isSearchPaletteOpen()) {
+      e.preventDefault();
+      closeSearchPalette();
+      return;
+    }
+    // 2. 曲詳細モーダル
+    const songModal = $('#song-modal');
+    if (songModal && !songModal.hidden) {
+      // song modal の Esc は initSongModal 内で処理済み
+      return;
+    }
+    // 3. ヘルプモーダル
+    const helpModal = $('#help-modal');
+    if (helpModal && !helpModal.hidden) {
+      helpModal.hidden = true;
+      $('#help-btn')?.focus();
+      return;
+    }
+    // 4. 曲リスト検索クリア
     const searchEl = $('#songs-search');
     if (searchEl && document.activeElement === searchEl && searchEl.value) {
       e.preventDefault();
