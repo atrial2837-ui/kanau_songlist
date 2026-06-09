@@ -439,6 +439,208 @@ function initYouTubePlayer() {
   });
 }
 
+// ─── YouTube IFrame API ───────────────────────────────────────────────────────
+
+let _ytApiReady = false;
+const _ytApiQueue = [];
+
+window.onYouTubeIframeAPIReady = () => {
+  _ytApiReady = true;
+  _ytApiQueue.splice(0).forEach(fn => fn());
+};
+
+function _loadYtApi() {
+  if (document.getElementById('yt-iframe-api-script')) return;
+  const s = document.createElement('script');
+  s.id = 'yt-iframe-api-script';
+  s.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(s);
+}
+
+function _onYtReady(fn) {
+  if (_ytApiReady && window.YT?.Player) { fn(); return; }
+  _ytApiQueue.push(fn);
+}
+
+// ─── Stream Viewer ────────────────────────────────────────────────────────────
+
+let _svPlayer = null;
+let _svGen = 0;
+
+function _fmtTs(sec) {
+  const s = Math.floor(sec);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`
+    : `${m}:${String(ss).padStart(2, '0')}`;
+}
+
+function _svTsKey(stream) {
+  return `kanau-ts-${stream.channel || ''}-${stream.index || ''}`;
+}
+
+function _svLoadTs(stream) {
+  try { return JSON.parse(localStorage.getItem(_svTsKey(stream)) || 'null') || {}; }
+  catch (_) { return {}; }
+}
+
+function _svSaveTs(stream, ts) {
+  try { localStorage.setItem(_svTsKey(stream), JSON.stringify(ts)); }
+  catch (_) { /* quota */ }
+}
+
+function _svSongRow(song, i, ts) {
+  const time = ts[i];
+  const badge = time != null
+    ? `<button class="sv-ts-badge" data-idx="${i}" data-action="seek" title="${escapeHtml(_fmtTs(time))} に移動">${escapeHtml(_fmtTs(time))}</button><button class="sv-ts-del" data-idx="${i}" data-action="del-ts" aria-label="タイムスタンプ削除">✕</button>`
+    : '';
+  return `<div class="sv-song" data-idx="${i}">
+    <span class="sv-song-num">${i + 1}</span>
+    <div class="sv-song-info">
+      <span class="sv-song-title">${escapeHtml(song.title)}</span>
+      <span class="sv-song-artist">${escapeHtml(song.artist)}</span>
+    </div>
+    <div class="sv-song-actions">${badge}<button class="sv-ts-set" data-idx="${i}" data-action="set-ts" title="現在の再生時刻をメモ">⏱</button></div>
+  </div>`;
+}
+
+function _svRefreshSetlist(setlistEl, songs, ts) {
+  setlistEl.innerHTML = songs.map((s, i) => _svSongRow(s, i, ts)).join('');
+}
+
+function initStreamViewer() {
+  if ($('#stream-viewer')) return;
+  const el = document.createElement('div');
+  el.id = 'stream-viewer';
+  el.hidden = true;
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  el.setAttribute('aria-label', '配信プレイヤー');
+  el.innerHTML = `
+    <div class="sv-container">
+      <div class="sv-header">
+        <button class="sv-close-btn" id="sv-close" type="button">← 閉じる</button>
+        <div class="sv-title-area">
+          <div class="sv-stream-title" id="sv-stream-title"></div>
+          <div class="sv-stream-meta" id="sv-stream-meta"></div>
+        </div>
+        <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener">↗ YouTubeで開く</a>
+      </div>
+      <div class="sv-body">
+        <div class="sv-player-wrap" id="sv-player-wrap">
+          <div class="sv-player-loading">読み込み中…</div>
+        </div>
+        <div class="sv-panel">
+          <div class="sv-panel-head">
+            <span>セットリスト</span>
+            <span class="sv-song-count" id="sv-song-count"></span>
+          </div>
+          <div class="sv-panel-hint">⏱ で現在時刻をメモ ／ バッジをタップで移動</div>
+          <div class="sv-setlist" id="sv-setlist"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(el);
+
+  $('#sv-close').addEventListener('click', closeStreamViewer);
+
+  $('#sv-setlist').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx, 10);
+    const stream = el._currentStream;
+    if (!stream) return;
+    const ts = _svLoadTs(stream);
+
+    if (btn.dataset.action === 'seek') {
+      if (ts[idx] != null && _svPlayer?.seekTo) {
+        _svPlayer.seekTo(ts[idx], true);
+        try { _svPlayer.playVideo(); } catch (_) {}
+      }
+    } else if (btn.dataset.action === 'set-ts') {
+      const time = _svPlayer?.getCurrentTime?.();
+      if (time != null) {
+        ts[idx] = Math.floor(time);
+        _svSaveTs(stream, ts);
+        _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+      }
+    } else if (btn.dataset.action === 'del-ts') {
+      delete ts[idx];
+      _svSaveTs(stream, ts);
+      _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+    }
+  });
+}
+
+function openStreamViewer(stream) {
+  if (!stream?.url) return;
+  const id = youtubeVideoId(stream.url);
+  if (!id) { playYouTubeInline(stream.url); return; }
+
+  initStreamViewer();
+  _loadYtApi();
+
+  const viewer = $('#stream-viewer');
+  viewer._currentStream = stream;
+  const gen = ++_svGen;
+
+  $('#sv-stream-title').textContent = stream.title || '配信';
+  $('#sv-stream-meta').textContent = `${fmtDate(stream.date)}　第${stream.index}枠　🎤 ${stream.songs.length}曲`;
+  const ytLink = $('#sv-yt-link');
+  if (ytLink) ytLink.href = stream.url;
+  const songCount = $('#sv-song-count');
+  if (songCount) songCount.textContent = `${stream.songs.length}曲`;
+
+  const ts = _svLoadTs(stream);
+  _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+
+  viewer.hidden = false;
+  document.body.style.overflow = 'hidden';
+  $('#sv-close')?.focus();
+
+  _svPlayer = null;
+  const wrap = $('#sv-player-wrap');
+  wrap.innerHTML = '<div class="sv-player-loading">読み込み中…</div>';
+
+  _onYtReady(() => {
+    if (gen !== _svGen || viewer.hidden) return;
+    wrap.innerHTML = '';
+    const playerDiv = document.createElement('div');
+    wrap.appendChild(playerDiv);
+    try {
+      _svPlayer = new window.YT.Player(playerDiv, {
+        videoId: id,
+        width: '100%',
+        height: '100%',
+        playerVars: { autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 },
+        events: {
+          onError: () => {
+            if (gen !== _svGen) return;
+            wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+          },
+        },
+      });
+    } catch (_) {
+      wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    }
+  });
+}
+
+function closeStreamViewer() {
+  const viewer = $('#stream-viewer');
+  if (!viewer) return;
+  ++_svGen;
+  viewer.hidden = true;
+  viewer._currentStream = null;
+  _svPlayer = null;
+  const wrap = $('#sv-player-wrap');
+  if (wrap) wrap.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
 function openSongDetail(key) {
   const song = findSong(key);
   const modal = $('#song-modal');
@@ -779,6 +981,19 @@ document.body.addEventListener('click', (e) => {
     searchArtistName(artist.dataset.artistSearch || artist.textContent || '');
     return;
   }
+  const streamPlayEl = e.target.closest('[data-stream-play]');
+  if (streamPlayEl) {
+    e.preventDefault();
+    e.stopPropagation();
+    const skey = streamPlayEl.dataset.streamPlay;
+    const foundStream = (state.data?.streams || []).find(s => streamKey(s) === skey);
+    if (foundStream?.url) {
+      openStreamViewer(foundStream);
+    } else if (streamPlayEl.dataset.inlineYoutube) {
+      playYouTubeInline(streamPlayEl.dataset.inlineYoutube);
+    }
+    return;
+  }
   const inlineYt = e.target.closest('[data-inline-youtube]');
   if (inlineYt) {
     e.preventDefault();
@@ -796,6 +1011,7 @@ $('#retry-btn').addEventListener('click', init);
 $('#reload-btn').addEventListener('click', init);
 initHelpModal();
 initYouTubePlayer();
+initStreamViewer();
 initSongModal();
 initMobileMenu();
 initPageTopToast();
@@ -858,6 +1074,13 @@ document.addEventListener('keydown', (e) => {
 
   // Esc: 優先度順に閉じる
   if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey) {
+    // 0. 配信プレイヤー
+    const streamViewer = $('#stream-viewer');
+    if (streamViewer && !streamViewer.hidden) {
+      e.preventDefault();
+      closeStreamViewer();
+      return;
+    }
     // 1. グローバル検索
     if (isSearchPaletteOpen()) {
       e.preventDefault();
