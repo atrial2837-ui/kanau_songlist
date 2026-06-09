@@ -1161,13 +1161,13 @@ mark.hl {
 .sv-close-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 13px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.14);
+  gap: 7px;
+  padding: 7px 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
   border-radius: 999px;
-  color: rgba(255,255,255,0.75);
-  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
@@ -1176,9 +1176,23 @@ mark.hl {
 }
 
 .sv-close-btn:hover {
-  background: rgba(74, 178, 220, 0.18);
-  border-color: rgba(74, 178, 220, 0.5);
+  background: rgba(74, 178, 220, 0.2);
+  border-color: rgba(74, 178, 220, 0.55);
   color: #fff;
+}
+
+.sv-esc-hint {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.6;
 }
 
 .sv-title-area {
@@ -1282,9 +1296,10 @@ mark.hl {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid rgba(74, 178, 220, 0.14);
   flex: 0 0 auto;
+  gap: 8px;
 }
 
 .sv-panel-head > span:first-child {
@@ -1293,6 +1308,35 @@ mark.hl {
   color: rgba(255,255,255,0.55);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  flex: 1;
+}
+
+.sv-panel-head-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.sv-import-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  background: rgba(74, 178, 220, 0.1);
+  border: 1px solid rgba(74, 178, 220, 0.3);
+  border-radius: 999px;
+  color: rgba(74, 178, 220, 0.8);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.sv-import-toggle:hover {
+  background: rgba(74, 178, 220, 0.2);
+  border-color: rgba(74, 178, 220, 0.6);
+  color: #7ecfee;
 }
 
 .sv-song-count {
@@ -1303,6 +1347,85 @@ mark.hl {
   padding: 2px 9px;
   border-radius: 999px;
   border: 1px solid rgba(74, 178, 220, 0.25);
+}
+
+/* ── Import form ── */
+.sv-import-area {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(74, 178, 220, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  flex: 0 0 auto;
+}
+
+.sv-import-area[hidden] { display: none; }
+
+.sv-import-desc {
+  font-size: 10.5px;
+  color: rgba(255,255,255,0.45);
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.sv-import-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(74, 178, 220, 0.25);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.85);
+  font-size: 12px;
+  font-family: ui-monospace, 'Cascadia Code', 'Menlo', monospace;
+  line-height: 1.7;
+  padding: 8px 10px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.sv-import-input:focus {
+  border-color: rgba(74, 178, 220, 0.55);
+}
+
+.sv-import-input::placeholder { color: rgba(255,255,255,0.22); }
+
+.sv-import-btns {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.sv-import-apply {
+  padding: 5px 16px;
+  background: rgba(74, 178, 220, 0.25);
+  border: 1px solid rgba(74, 178, 220, 0.5);
+  border-radius: 999px;
+  color: #7ecfee;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.sv-import-apply:hover {
+  background: rgba(74, 178, 220, 0.4);
+  border-color: rgba(74, 178, 220, 0.75);
+}
+
+.sv-import-cancel {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+  color: rgba(255,255,255,0.45);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sv-import-cancel:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.7);
 }
 
 .sv-panel-hint {

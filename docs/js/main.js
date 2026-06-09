@@ -401,7 +401,7 @@ function youtubeThumbTiny(url) {
   return id ? `https://i.ytimg.com/vi/${id}/default.jpg` : '';
 }
 
-function playYouTubeInline(url) {
+function playYouTubeInline(url, startAt = 0) {
   const id = youtubeVideoId(url);
   if (!id) return;
   if (window.matchMedia('(max-width: 600px)').matches) {
@@ -413,7 +413,8 @@ function playYouTubeInline(url) {
   const panel = $('#yt-player-panel');
   const openLink = $('#yt-player-open');
   if (!container || !panel) return;
-  container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>`;
+  const startParam = startAt > 0 ? `&start=${Math.floor(startAt)}` : '';
+  container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1${startParam}" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>`;
   if (openLink) openLink.href = String(url || '');
   panel.hidden = false;
 }
@@ -502,12 +503,20 @@ function _svSongRow(song, i, ts) {
       <span class="sv-song-title">${escapeHtml(song.title)}</span>
       <span class="sv-song-artist">${escapeHtml(song.artist)}</span>
     </div>
-    <div class="sv-song-actions">${badge}<button class="sv-ts-set" data-idx="${i}" data-action="set-ts" title="現在の再生時刻をメモ">⏱</button></div>
+    <div class="sv-song-actions">${badge}<button class="sv-ts-set" data-idx="${i}" data-action="set-ts" title="現在の再生時刻をタイムスタンプに記録">⏱ メモ</button></div>
   </div>`;
 }
 
 function _svRefreshSetlist(setlistEl, songs, ts) {
   setlistEl.innerHTML = songs.map((s, i) => _svSongRow(s, i, ts)).join('');
+}
+
+// タイムスタンプ文字列（MM:SS or H:MM:SS）を秒数に変換
+function _parseTs(str) {
+  const m = str.match(/(\d+):(\d{2}):(\d{2})|(\d+):(\d{2})/);
+  if (!m) return null;
+  if (m[1] !== undefined) return parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseInt(m[3]);
+  return parseInt(m[4]) * 60 + parseInt(m[5]);
 }
 
 function initStreamViewer() {
@@ -521,7 +530,9 @@ function initStreamViewer() {
   el.innerHTML = `
     <div class="sv-container">
       <div class="sv-header">
-        <button class="sv-close-btn" id="sv-close" type="button">← 閉じる</button>
+        <button class="sv-close-btn" id="sv-close" type="button" title="ミニプレイヤーで再生を続けながら戻ります（Esc）">
+          ← 戻る <span class="sv-esc-hint">Esc</span>
+        </button>
         <div class="sv-title-area">
           <div class="sv-stream-title" id="sv-stream-title"></div>
           <div class="sv-stream-meta" id="sv-stream-meta"></div>
@@ -535,7 +546,19 @@ function initStreamViewer() {
         <div class="sv-panel">
           <div class="sv-panel-head">
             <span>セットリスト</span>
-            <span class="sv-song-count" id="sv-song-count"></span>
+            <div class="sv-panel-head-right">
+              <button class="sv-import-toggle" id="sv-import-toggle" type="button">一括入力</button>
+              <span class="sv-song-count" id="sv-song-count"></span>
+            </div>
+          </div>
+          <div class="sv-import-area" id="sv-import-area" hidden>
+            <p class="sv-import-desc">タイムスタンプを1行に1つ入力（上から順に曲へ割り当て）</p>
+            <textarea class="sv-import-input" id="sv-import-input" rows="6"
+              placeholder="例:&#10;15:59&#10;21:12&#10;25:57&#10;1:08:13"></textarea>
+            <div class="sv-import-btns">
+              <button class="sv-import-apply" id="sv-import-apply" type="button">適用</button>
+              <button class="sv-import-cancel" id="sv-import-cancel" type="button">キャンセル</button>
+            </div>
           </div>
           <div class="sv-panel-hint">⏱ で現在時刻をメモ ／ バッジをタップで移動</div>
           <div class="sv-setlist" id="sv-setlist"></div>
@@ -546,6 +569,36 @@ function initStreamViewer() {
   document.body.appendChild(el);
 
   $('#sv-close').addEventListener('click', closeStreamViewer);
+
+  // 一括インポート
+  $('#sv-import-toggle').addEventListener('click', () => {
+    const area = $('#sv-import-area');
+    if (!area) return;
+    area.hidden = !area.hidden;
+    if (!area.hidden) $('#sv-import-input')?.focus();
+  });
+  $('#sv-import-cancel').addEventListener('click', () => {
+    const area = $('#sv-import-area');
+    if (area) { area.hidden = true; }
+    const input = $('#sv-import-input');
+    if (input) input.value = '';
+  });
+  $('#sv-import-apply').addEventListener('click', () => {
+    const stream = el._currentStream;
+    if (!stream) return;
+    const input = $('#sv-import-input');
+    if (!input) return;
+    const lines = input.value.split('\n');
+    const times = lines.map(l => _parseTs(l)).filter(t => t !== null);
+    if (!times.length) return;
+    const ts = _svLoadTs(stream);
+    times.forEach((t, i) => { if (i < stream.songs.length) ts[i] = t; });
+    _svSaveTs(stream, ts);
+    _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+    const area = $('#sv-import-area');
+    if (area) area.hidden = true;
+    input.value = '';
+  });
 
   $('#sv-setlist').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
@@ -632,6 +685,12 @@ function openStreamViewer(stream) {
 function closeStreamViewer() {
   const viewer = $('#stream-viewer');
   if (!viewer) return;
+
+  // ミニプレイヤーへ引き継ぎ（再生中なら現在時刻から続ける）
+  const stream = viewer._currentStream;
+  const currentTime = _svPlayer?.getCurrentTime?.() ?? 0;
+  const videoId = stream?.url ? youtubeVideoId(stream.url) : '';
+
   ++_svGen;
   viewer.hidden = true;
   viewer._currentStream = null;
@@ -639,6 +698,10 @@ function closeStreamViewer() {
   const wrap = $('#sv-player-wrap');
   if (wrap) wrap.innerHTML = '';
   document.body.style.overflow = '';
+
+  if (videoId && stream?.url) {
+    playYouTubeInline(stream.url, Math.floor(currentTime));
+  }
 }
 
 function openSongDetail(key) {
