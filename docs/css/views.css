@@ -1539,6 +1539,30 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   transform: translateY(-1px);
 }
 
+/* ☆ プレイリスト保存ボタン */
+.timeline-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--ink-mute);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.12s ease, border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.timeline-save-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(244, 196, 74, 0.08);
+  transform: translateY(-1px);
+}
+
 .setlist {
   display: flex;
   flex-wrap: wrap;

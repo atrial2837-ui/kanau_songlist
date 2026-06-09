@@ -17,6 +17,7 @@ const VIEW_LOADERS = {
   songs:     () => import('./views/songs.js').then(m => m.renderSongs),
   timeline:  () => import('./views/timeline.js').then(m => m.renderTimeline),
   analytics: () => import('./views/analytics.js').then(m => m.renderAnalytics),
+  playlists: () => import('./views/playlists.js').then(m => m.renderPlaylists),
 };
 const rendererCache = new Map();
 let renderToken = 0;
@@ -108,10 +109,13 @@ async function ensureFullData() {
 }
 
 async function renderTab(tab = state.activeTab, options = {}) {
-  if (!state.data || !isValidTab(tab)) return;
+  // playlists は localStorage のみで動作するため state.data 不要
+  if (tab !== 'playlists' && (!state.data || !isValidTab(tab))) return;
+  if (!isValidTab(tab)) return;
   const hasPartial = state.channelData?.partialLoaded || state.channelData?.fullLoaded;
   const hasFull    = state.channelData?.fullLoaded;
-  const waitNeeded = needsStreams(tab) ? !hasFull : !hasPartial;
+  // playlists は常にすぐ描画（データ待ち不要）
+  const waitNeeded = tab === 'playlists' ? false : (needsStreams(tab) ? !hasFull : !hasPartial);
 
   if (waitNeeded) {
     if (options.autoLoad) {
@@ -852,6 +856,9 @@ function closeStreamViewer() {
   }
 }
 
+// プレイリストビューからストリームを開けるようにグローバル公開
+window.__openStreamViewer = openStreamViewer;
+
 function openSongDetail(key) {
   const song = findSong(key);
   const modal = $('#song-modal');
@@ -1192,6 +1199,17 @@ document.body.addEventListener('click', (e) => {
     searchArtistName(artist.dataset.artistSearch || artist.textContent || '');
     return;
   }
+  // プレイリストに追加ボタン
+  const plAddEl = e.target.closest('[data-playlist-add]');
+  if (plAddEl) {
+    e.preventDefault();
+    e.stopPropagation();
+    const skey = plAddEl.dataset.playlistAdd;
+    const title = plAddEl.dataset.streamTitle || '';
+    import('./views/playlists.js').then(m => m.showAddToPlaylistModal(skey, title));
+    return;
+  }
+
   const streamPlayEl = e.target.closest('[data-stream-play]');
   if (streamPlayEl) {
     e.preventDefault();
