@@ -1540,6 +1540,100 @@ function updatePageTitle(mode) {
     el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32" fetchpriority="high" decoding="sync">夢川かなう 歌唱データベース';
     document.title = '夢川かなう 歌唱データベース';
   }
+
+  // ヒーロー背景ウォーターマーク切替
+  const bg = document.getElementById('hero-ch-bg');
+  if (bg) bg.dataset.mode = mode || 'all';
+}
+
+// ─── チャンネル情報モーダル ────────────────────────────────────────────────────
+
+const CH_INFO = {
+  new: {
+    name: '夢川かなう',
+    handle: '@YumekawaKanau',
+    url: 'https://www.youtube.com/@YumekawaKanau',
+    label: '新ch',
+    desc: '夢川かなうの現行チャンネル。歌枠を中心に活動中。',
+  },
+  old: {
+    name: '夢川かなう / Kanau ch',
+    handle: '@Kanau_Yumekawa',
+    url: 'https://www.youtube.com/@Kanau_Yumekawa',
+    label: '旧ch',
+    desc: '夢川かなうの旧チャンネル（〜2024年9月）。歌枠アーカイブ多数。',
+  },
+};
+
+function _buildChCard(key) {
+  const info = CH_INFO[key];
+  if (!info) return '';
+  const meta = state.channelData?.channels?.[key] || null;
+  const statsHtml = meta ? `
+    <div class="ch-card-stats">
+      <div class="ch-card-stat"><span class="ch-card-stat-val">${meta.streams}</span><span class="ch-card-stat-lbl">歌枠</span></div>
+      <div class="ch-card-stat"><span class="ch-card-stat-val">${meta.repertoire}</span><span class="ch-card-stat-lbl">曲目</span></div>
+      <div class="ch-card-stat"><span class="ch-card-stat-val">${formatNumber(meta.total)}</span><span class="ch-card-stat-lbl">歌唱回数</span></div>
+      <div class="ch-card-stat"><span class="ch-card-stat-val">${meta.updateDate?.slice(0,7) || '—'}</span><span class="ch-card-stat-lbl">最終更新</span></div>
+    </div>` : '';
+  return `
+    <div class="ch-card ch-card--${key}">
+      <div class="ch-card-banner ch-card-banner--${key}">
+        <span class="ch-card-banner-label">${escapeHtml(info.label)}</span>
+      </div>
+      <div class="ch-card-body">
+        <div class="ch-card-header">
+          <div class="ch-card-avatar ch-card-avatar--${key}">${key === 'new' ? '新' : '旧'}</div>
+          <div class="ch-card-meta">
+            <div class="ch-card-name">${escapeHtml(info.name)}</div>
+            <div class="ch-card-handle">${escapeHtml(info.handle)}</div>
+          </div>
+        </div>
+        ${statsHtml}
+        <p class="ch-card-desc">${escapeHtml(info.desc)}</p>
+        <div class="ch-card-actions">
+          <a class="ch-card-yt-btn" href="${escapeHtml(info.url)}" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z"/></svg>
+            YouTubeで開く
+          </a>
+        </div>
+      </div>
+    </div>`;
+}
+
+function openChannelModal(chKey) {
+  const modal = $('#ch-modal');
+  const body  = $('#ch-modal-body');
+  if (!modal || !body) return;
+
+  // chKey が 'new' または 'old' → 1枚、それ以外(all/undefined) → 両方
+  let html = '';
+  if (chKey === 'new') {
+    html = _buildChCard('new');
+  } else if (chKey === 'old') {
+    html = _buildChCard('old');
+  } else {
+    html = _buildChCard('new') + _buildChCard('old');
+  }
+
+  body.innerHTML = html;
+  modal.hidden = false;
+  $('#ch-modal-close')?.focus();
+}
+
+function initChannelModal() {
+  const modal    = $('#ch-modal');
+  const closeBtn = $('#ch-modal-close');
+  if (!modal || !closeBtn) return;
+
+  const close = () => { modal.hidden = true; };
+  closeBtn.addEventListener('click', close);
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+
+  // Official Channel ボタン
+  document.querySelectorAll('[data-ch-modal]').forEach(btn => {
+    btn.addEventListener('click', () => openChannelModal(btn.dataset.chModal));
+  });
 }
 
 function initHelpModal() {
@@ -1711,6 +1805,7 @@ document.body.addEventListener('click', (e) => {
 $('#retry-btn').addEventListener('click', init);
 $('#reload-btn').addEventListener('click', init);
 initHelpModal();
+initChannelModal();
 initYouTubePlayer();
 initStreamViewer();
 initSongModal();
@@ -1795,7 +1890,13 @@ document.addEventListener('keydown', (e) => {
       // song modal の Esc は initSongModal 内で処理済み
       return;
     }
-    // 3. ヘルプモーダル
+    // 3. チャンネル情報モーダル
+    const chModal = $('#ch-modal');
+    if (chModal && !chModal.hidden) {
+      chModal.hidden = true;
+      return;
+    }
+    // 4. ヘルプモーダル
     const helpModal = $('#help-modal');
     if (helpModal && !helpModal.hidden) {
       helpModal.hidden = true;
