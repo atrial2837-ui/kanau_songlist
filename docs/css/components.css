@@ -282,9 +282,15 @@
   font-size: 11px;
   font-weight: 600;
   background: var(--primary-soft);
-  color: var(--primary-strong);
+  color: #1a6b8d; /* 5.24:1 on #dff5ff — passes WCAG AA */
   padding: 2px 9px;
   border-radius: 999px;
+}
+:root[data-theme="dark"] .card-title .pill {
+  color: var(--primary-strong); /* dark: #9bdcf7 on #1d3550 = 8.3:1 ✓ */
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .card-title .pill { color: var(--primary-strong); }
 }
 
 /* === Section header === */
@@ -305,11 +311,17 @@
 }
 .count-pill {
   background: var(--primary-soft);
-  color: var(--primary-strong);
+  color: #1a6b8d; /* 5.24:1 on #dff5ff — passes WCAG AA */
   padding: 3px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
+}
+:root[data-theme="dark"] .count-pill {
+  color: var(--primary-strong); /* dark: #9bdcf7 on #1d3550 = 8.3:1 ✓ */
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .count-pill { color: var(--primary-strong); }
 }
 
 /* === Stat cards === */
@@ -581,12 +593,12 @@
 .official-link.youtube {
   border-color: #ff9aa2;
   background: #fff2f3;
-  color: #d94444;
+  color: #c43030; /* 5.06:1 on #fff2f3 — was #d94444 (3.97:1) */
 }
 .official-link.youtube.old {
   border-color: var(--gold);
   background: #fff8dc;
-  color: #a97a12;
+  color: #8a6210; /* 5.13:1 on #fff8dc — was #a97a12 (3.59:1) */
 }
 .official-link.x-link {
   border-color: var(--border-strong);
