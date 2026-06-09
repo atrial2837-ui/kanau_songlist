@@ -1054,7 +1054,6 @@ function initStreamViewer() {
           <div class="sv-player-wrap" id="sv-player-wrap">
             <div class="sv-player-loading">読み込み中…</div>
           </div>
-          <div class="sv-below-player" id="sv-below-player"></div>
         </div>
         <div class="sv-panel">
           <div class="sv-panel-head">
@@ -1075,6 +1074,7 @@ function initStreamViewer() {
           </div>
           <div class="sv-panel-hint">⏱ で現在時刻をメモ ／ バッジをタップで移動</div>
           <div class="sv-setlist" id="sv-setlist"></div>
+          <div class="sv-below-player" id="sv-below-player"></div>
         </div>
       </div>
     </div>
@@ -1550,51 +1550,85 @@ function updatePageTitle(mode) {
 
 const CH_INFO = {
   new: {
-    name: '夢川かなう',
+    name: '夢川かなう - Kanau Yumekawa',
     handle: '@YumekawaKanau',
     url: 'https://www.youtube.com/@YumekawaKanau',
     label: '新ch',
-    desc: '夢川かなうの現行チャンネル。歌枠を中心に活動中。',
+    desc: 'Re:AcT所属の海のお姫さまになりたい、泡沫たゆたうVsinger 🐟\n夢川かなうじゃよ、ちょっと休憩していこ〜\nイメージ星座一魚座 ／ 星言葉は「魅力あふれる芸術的能」',
+    links: [
+      { icon: '𝕏', label: 'X (Twitter)',    url: 'https://twitter.com/Kanau_Yumekawa' },
+      { icon: '🛍', label: 'official store', url: 'https://react.booth.pm' },
+      { icon: '🌐', label: 'official site',  url: 'https://v-react.com' },
+      { icon: '🎵', label: 'Apple Music',    url: 'https://music.apple.com/jp/artist/1614216914' },
+      { icon: '🎧', label: 'Spotify',        url: 'https://open.spotify.com/intl-ja/artist/0sVSaI5Q6w9zNWeNkILwLQ' },
+    ],
+    avatarUrl: 'https://yt3.googleusercontent.com/n3rxKDtxPPTKJvicX3gH7Zcsb0POnFranvtpOJVNEHiIoO5byTcKBSJkdixlfvFs1KqMzxLfG78=s176-c-k-c0x00ffffff-no-rj-mo',
+    bannerUrl: 'https://yt3.googleusercontent.com/khwuxCUEYr__Mkl4ReGfyihrgGNoL0bh5yjGOO_XIBO03pXgqpVpp7_Ebv1IlUDy_EDryDjyXA=w1707-fcrop64=1,00005a57ffffa5a8-k-c0xffffffff-no-nd-rj',
   },
   old: {
     name: '夢川かなう / Kanau ch',
     handle: '@Kanau_Yumekawa',
     url: 'https://www.youtube.com/@Kanau_Yumekawa',
     label: '旧ch',
-    desc: '夢川かなうの旧チャンネル（〜2024年9月）。歌枠アーカイブ多数。',
+    desc: '🐟姫になりたいアイドルVtuber夢川かなう 🐟\nイメージ星座:うお座 ／ 星言葉《魅力あふれる芸術的才能》\n欲しい言葉を欲しい声で届けます*.+゜\n和菓子が大好物なんじゃあ〜( ˙˙ ) 和菓子情報やおすすめゲームなど何かあれば\n#夢川聞いて を気軽に使ってツイートしてくれ！何でも良いぞ！@Re:AcT所属',
+    links: [
+      { icon: '▶', label: '新チャンネルはこちら', url: 'https://www.youtube.com/@YumekawaKanau' },
+      { icon: '𝕏', label: 'X (Twitter)',          url: 'https://twitter.com/Kanau_Yumekawa' },
+    ],
+    avatarUrl: 'https://yt3.googleusercontent.com/RzGaNftqAH8jHQ_o4jwgzi28yV6Qm6kl_-UdxfQOTG69PmumlfgSb1gNj0rtduR5eQywPzoiuA=s900-c-k-c0x00ffffff-no-rj',
+    bannerUrl: 'https://yt3.googleusercontent.com/o5PE0uSJL6gWyisa1As1SRmJgerzaf2BG4OdBwEz-9slJ2KQGONpciczZbHNNfUgJ7_549G3=w1707-fcrop64=1,00005a57ffffa5a8-k-c0xffffffff-no-nd-rj',
   },
 };
 
 function _buildChCard(key) {
   const info = CH_INFO[key];
   if (!info) return '';
-  const meta = state.channelData?.channels?.[key] || null;
-  const statsHtml = meta ? `
-    <div class="ch-card-stats">
-      <div class="ch-card-stat"><span class="ch-card-stat-val">${meta.streams}</span><span class="ch-card-stat-lbl">歌枠</span></div>
-      <div class="ch-card-stat"><span class="ch-card-stat-val">${meta.repertoire}</span><span class="ch-card-stat-lbl">曲目</span></div>
-      <div class="ch-card-stat"><span class="ch-card-stat-val">${formatNumber(meta.total)}</span><span class="ch-card-stat-lbl">歌唱回数</span></div>
-      <div class="ch-card-stat"><span class="ch-card-stat-val">${meta.updateDate?.slice(0,7) || '—'}</span><span class="ch-card-stat-lbl">最終更新</span></div>
+
+  // バナー部分（画像URL があれば img、なければグラデーション）
+  const bannerInner = info.bannerUrl
+    ? `<img class="ch-card-banner-img" src="${escapeHtml(info.bannerUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">
+       <span class="ch-card-banner-label ch-card-banner-label--over">${escapeHtml(info.label)}</span>`
+    : `<span class="ch-card-banner-label">${escapeHtml(info.label)}</span>`;
+
+  // アバター部分（画像URL があれば img、なければ文字）
+  const avatarInner = info.avatarUrl
+    ? `<img class="ch-card-avatar-img" src="${escapeHtml(info.avatarUrl)}" alt="${escapeHtml(info.name)}" loading="lazy" referrerpolicy="no-referrer">`
+    : (key === 'new' ? '新' : '旧');
+
+  // 説明文（改行対応）
+  const descHtml = info.desc
+    ? `<p class="ch-card-desc">${info.desc.split('\n').map(l => escapeHtml(l)).join('<br>')}</p>`
+    : '';
+
+  // リンク一覧
+  const linksHtml = info.links?.length ? `
+    <div class="ch-card-links">
+      ${info.links.map(l => `
+        <a class="ch-card-link" href="${escapeHtml(l.url)}" target="_blank" rel="noopener">
+          <span class="ch-card-link-icon" aria-hidden="true">${l.icon}</span>
+          <span>${escapeHtml(l.label)}</span>
+        </a>`).join('')}
     </div>` : '';
+
   return `
     <div class="ch-card ch-card--${key}">
-      <div class="ch-card-banner ch-card-banner--${key}">
-        <span class="ch-card-banner-label">${escapeHtml(info.label)}</span>
+      <div class="ch-card-banner ch-card-banner--${key}${info.bannerUrl ? ' ch-card-banner--img' : ''}">
+        ${bannerInner}
       </div>
       <div class="ch-card-body">
         <div class="ch-card-header">
-          <div class="ch-card-avatar ch-card-avatar--${key}">${key === 'new' ? '新' : '旧'}</div>
+          <div class="ch-card-avatar ch-card-avatar--${key}${info.avatarUrl ? ' ch-card-avatar--img' : ''}">${avatarInner}</div>
           <div class="ch-card-meta">
             <div class="ch-card-name">${escapeHtml(info.name)}</div>
             <div class="ch-card-handle">${escapeHtml(info.handle)}</div>
           </div>
         </div>
-        ${statsHtml}
-        <p class="ch-card-desc">${escapeHtml(info.desc)}</p>
+        ${descHtml}
+        ${linksHtml}
         <div class="ch-card-actions">
           <a class="ch-card-yt-btn" href="${escapeHtml(info.url)}" target="_blank" rel="noopener">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z"/></svg>
-            YouTubeで開く
+            YouTubeチャンネルへ
           </a>
         </div>
       </div>
@@ -1820,12 +1854,7 @@ initSearchPalette((result) => {
   } else if (result.type === 'artist') {
     searchArtistName(result.artist);
   } else if (result.type === 'stream') {
-    // 配信枠へジャンプ（タイムライン）
-    state.timelineFocus = streamKey(result.stream);
-    state.timelineFilter = null;
-    state.timelineLimit = 9999;
-    activateTab('timeline');
-    $('#panel-timeline')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    openStreamViewer(result.stream);
   }
 });
 

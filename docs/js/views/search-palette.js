@@ -196,8 +196,8 @@ function _render(rawQuery) {
     }
   }
 
-  // ── 配信枠 (フルデータ読込済みのみ) ────────────────────────────────────────
-  if (state.channelData?.fullLoaded && streams.length) {
+  // ── 配信枠 ──────────────────────────────────────────────────────────────────
+  if (streams.length) {
     const matchedStreams = streams.filter(s =>
       _norm(s.title).includes(q) ||
       s.songs?.some(sg => _norm(sg.title).includes(q) || _norm(sg.artist).includes(q))
@@ -207,11 +207,12 @@ function _render(rawQuery) {
       html += _sectionLabel('📅 配信枠');
       for (const stream of matchedStreams) {
         _flat.push({ type: 'stream', stream });
+        const chLabel = stream.channel === 'new' ? '新ch' : stream.channel === 'old' ? '旧ch' : '';
         html += `<div class="omni-item" role="option" aria-selected="false" data-omni-idx="${idx++}">
           <span class="omni-item-icon">📅</span>
           <div class="omni-item-body">
             <span class="omni-item-title">${_hl(escapeHtml(stream.title || '配信'), q)}</span>
-            <span class="omni-item-meta">${fmtDate(stream.date)} · ${stream.songs?.length || 0}曲</span>
+            <span class="omni-item-meta">${fmtDate(stream.date)}${chLabel ? ' · ' + chLabel : ''} · ${stream.songs?.length || 0}曲 · クリックで再生</span>
           </div>
         </div>`;
       }

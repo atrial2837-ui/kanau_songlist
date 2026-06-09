@@ -10,7 +10,7 @@
  */
 
 import { state } from '../store.js';
-import { $, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbFallback } from '../utils.js';
+import { $, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbFallback, youtubeVideoId } from '../utils.js';
 
 const STORAGE_KEY = 'kanau-playlists';
 const PER_PAGE    = 24; // 4列 × 6行
@@ -243,15 +243,29 @@ function _renderPlaylistCard(pl, allStreams) {
         : '';
     }).join('');
 
-  const items = streams.map(({ skey, stream }) => {
+  const totalItems = streams.length;
+  const items = streams.map(({ skey, stream }, rowIdx) => {
+    const moveKey = escapeHtml(pl.id + '|:|' + skey);
     if (!stream) return `
       <div class="pl-stream-row pl-stream-missing">
+        <div class="pl-sort-btns">
+          <button class="pl-sort-btn" data-pl-move="${moveKey}|:|up"
+            type="button" title="上へ" ${rowIdx === 0 ? 'disabled' : ''}>↑</button>
+          <button class="pl-sort-btn" data-pl-move="${moveKey}|:|down"
+            type="button" title="下へ" ${rowIdx === totalItems - 1 ? 'disabled' : ''}>↓</button>
+        </div>
         <span class="pl-stream-title">（配信データなし）</span>
-        <button class="pl-rm-btn" data-pl-rm-stream="${escapeHtml(pl.id + '|:|' + skey)}"
+        <button class="pl-rm-btn" data-pl-rm-stream="${moveKey}"
           type="button" title="削除">✕</button>
       </div>`;
     return `
       <div class="pl-stream-row">
+        <div class="pl-sort-btns">
+          <button class="pl-sort-btn" data-pl-move="${moveKey}|:|up"
+            type="button" title="上へ" ${rowIdx === 0 ? 'disabled' : ''}>↑</button>
+          <button class="pl-sort-btn" data-pl-move="${moveKey}|:|down"
+            type="button" title="下へ" ${rowIdx === totalItems - 1 ? 'disabled' : ''}>↓</button>
+        </div>
         <div class="pl-stream-info">
           <span class="pl-stream-date">${fmtDate(stream.date)}</span>
           <span class="pl-stream-title">${escapeHtml(stream.title || '配信')}</span>
@@ -262,11 +276,16 @@ function _renderPlaylistCard(pl, allStreams) {
             ? `<button class="pl-play-stream-btn" data-pl-play-stream="${escapeHtml(skey)}"
                 type="button" title="再生">▶</button>`
             : ''}
-          <button class="pl-rm-btn" data-pl-rm-stream="${escapeHtml(pl.id + '|:|' + skey)}"
+          <button class="pl-rm-btn" data-pl-rm-stream="${moveKey}"
             type="button" title="削除">✕</button>
         </div>
       </div>`;
   }).join('');
+
+  // YouTube共有可能な動画IDを収集
+  const videoIds = streams
+    .map(({ stream }) => stream?.url ? youtubeVideoId(stream.url) : '')
+    .filter(Boolean);
 
   return `
     <div class="pl-card">
@@ -283,6 +302,14 @@ function _renderPlaylistCard(pl, allStreams) {
       <div class="pl-stream-list">
         ${items || '<div class="pl-stream-empty">配信が追加されていません</div>'}
       </div>
+      ${videoIds.length ? `
+      <div class="pl-card-footer">
+        <button class="pl-yt-share-btn" data-pl-yt-share="${escapeHtml(pl.id)}"
+          type="button" title="YouTubeで連続再生（一時的なプレイリストとして開きます）">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z"/></svg>
+          YouTubeで連続再生 (${videoIds.length}本)
+        </button>
+      </div>` : ''}
     </div>`;
 }
 
@@ -331,6 +358,48 @@ function _handleMyPlaylistsClick(e, allStreams) {
       const target = lists.find(p => p.id === id);
       if (target) { target.name = newName; savePlaylists(lists); renderPlaylists(); }
     }
+    return;
+  }
+
+  // 並び替え（↑↓）
+  const moveBtn = e.target.closest('[data-pl-move]');
+  if (moveBtn) {
+    const parts = moveBtn.dataset.plMove.split('|:|');
+    const [plId, skey, dir] = parts; // plId|:|skey|:|up or down
+    const lists = getPlaylists();
+    const pl = lists.find(p => p.id === plId);
+    if (!pl) return;
+    const idx = pl.streams.indexOf(skey);
+    if (idx < 0) return;
+    if (dir === 'up' && idx > 0) {
+      [pl.streams[idx - 1], pl.streams[idx]] = [pl.streams[idx], pl.streams[idx - 1]];
+      savePlaylists(lists);
+      renderPlaylists();
+    } else if (dir === 'down' && idx < pl.streams.length - 1) {
+      [pl.streams[idx], pl.streams[idx + 1]] = [pl.streams[idx + 1], pl.streams[idx]];
+      savePlaylists(lists);
+      renderPlaylists();
+    }
+    return;
+  }
+
+  // YouTubeで連続再生
+  const ytShareBtn = e.target.closest('[data-pl-yt-share]');
+  if (ytShareBtn) {
+    const plId = ytShareBtn.dataset.plYtShare;
+    const pl = getPlaylists().find(p => p.id === plId);
+    if (!pl) return;
+    const videoIds = pl.streams
+      .map(skey => allStreams.find(s => streamKey(s) === skey))
+      .filter(s => s?.url)
+      .map(s => youtubeVideoId(s.url))
+      .filter(Boolean);
+    if (!videoIds.length) {
+      alert('YouTubeのURLが登録されている配信がありません');
+      return;
+    }
+    const url = `https://www.youtube.com/watch_videos?video_ids=${videoIds.join(',')}`;
+    window.open(url, '_blank', 'noopener noreferrer');
     return;
   }
 }

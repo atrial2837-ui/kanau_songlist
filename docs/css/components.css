@@ -125,10 +125,25 @@ button.official-link {
   padding: 10px 16px;
   position: relative;
   background: linear-gradient(135deg, #4ab2dc, #9bdcf7);
+  overflow: hidden;
 }
 
 .ch-card-banner--old {
   background: linear-gradient(135deg, #c8a02a, #f4c44a 50%, #d49a6a);
+}
+
+/* バナー画像あり */
+.ch-card-banner--img {
+  height: 120px;
+}
+
+.ch-card-banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .ch-card-banner-label {
@@ -140,6 +155,22 @@ button.official-link {
   background: rgba(0,0,0,0.22);
   border-radius: 999px;
   padding: 2px 9px;
+  position: relative; /* バナー画像の上に表示 */
+  z-index: 1;
+}
+
+/* アバター画像あり */
+.ch-card-avatar--img {
+  padding: 0;
+  background: transparent;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.22);
+}
+
+.ch-card-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 /* カード本体 */
@@ -234,6 +265,40 @@ button.official-link {
   color: var(--ink-soft);
   line-height: 1.65;
   margin: 0;
+}
+
+/* リンク一覧 */
+.ch-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-top: 2px;
+}
+
+.ch-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.ch-card-link:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+  text-decoration: none;
+}
+
+.ch-card-link-icon {
+  font-size: 13px;
+  line-height: 1;
 }
 
 /* YouTubeボタン */
@@ -1511,11 +1576,11 @@ mark.hl {
   display: none;
 }
 
-/* 埋め込みモード: 動画を 16:9 アスペクト比に固定 */
+/* 埋め込みモード: 動画を 16:9 アスペクト比に固定
+   ナビ/統計/関連はパネル内（セットリスト直下）に表示するため
+   ボディ自体のスクロールは不要 */
 #stream-viewer:not(.sv-fullscreen) .sv-body {
   align-items: start;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 #stream-viewer:not(.sv-fullscreen) .sv-player-wrap {
@@ -1528,6 +1593,12 @@ mark.hl {
   overflow-y: auto;
   height: 100%;
   min-height: 300px;
+}
+
+/* パネル内の sv-below-player（セットリスト直下ナビ） */
+.sv-panel .sv-below-player {
+  border-top: 2px solid var(--border-soft);
+  margin-top: 2px;
 }
 
 /* 全画面モード: 動画は高さいっぱいに伸長 */
@@ -3021,6 +3092,75 @@ mark.hl {
   border-color: var(--red);
   color: var(--red);
   background: rgba(220, 50, 50, 0.07);
+}
+
+/* 並び替えボタン */
+.pl-sort-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.pl-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-2);
+  color: var(--ink-mute);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.pl-sort-btn:not(:disabled):hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
+.pl-sort-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+/* カードフッター（YouTube共有） */
+.pl-card-footer {
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.pl-yt-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.pl-yt-share-btn:hover {
+  background: #ff000015;
+  border-color: #ff4444;
+  color: #cc0000;
+}
+
+[data-theme="dark"] .pl-yt-share-btn:hover,
+[data-theme="auto"] .pl-yt-share-btn:hover {
+  color: #ff6666;
 }
 
 /* プレイリスト追加モーダル */
