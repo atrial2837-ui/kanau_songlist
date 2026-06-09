@@ -501,6 +501,8 @@ let _svMiniStartAt = 0;       // seconds into video when mini player started
 let _svMiniStartWallTime = 0; // Date.now() when mini player started
 let _svFullscreen = false;    // stream viewer が全画面モードか
 let _epPrevTab = 'timeline';  // 埋め込みプレイヤーを開く前のタブ
+/** @type {Object<number, Array<{timeSeconds: number, note: string|null}>>} */
+let _svCommunityTs = {};      // songIndex → 承認済みコミュニティタイムスタンプ
 
 /** 埋め込みプレイヤーパネルを表示（タブバーの active はリセット） */
 function showPlayerPanel() {
@@ -561,6 +563,13 @@ function _svSongRow(song, i, ts) {
   const badge = time != null
     ? `<button class="sv-ts-badge" data-idx="${i}" data-action="seek" title="${escapeHtml(_fmtTs(time))} に移動">${escapeHtml(_fmtTs(time))}</button><button class="sv-ts-del" data-idx="${i}" data-action="del-ts" aria-label="タイムスタンプ削除">✕</button>`
     : '';
+  // コミュニティタイムスタンプ（承認済み）
+  const ctsItems = _svCommunityTs[i] || [];
+  const ctsBadges = ctsItems.map(ct =>
+    `<button class="sv-cts-badge" data-idx="${i}" data-action="cts-seek" data-cts-seconds="${ct.timeSeconds}" title="みんなのタイムスタンプ: ${escapeHtml(_fmtTs(ct.timeSeconds))}">${escapeHtml(_fmtTs(ct.timeSeconds))}</button>`
+  ).join('');
+  const proposeBtn = `<button class="sv-cts-propose" data-idx="${i}" data-action="cts-propose" type="button">+ 提案</button>`;
+  const ctsRow = `<div class="sv-cts-row">${ctsBadges}${proposeBtn}</div>`;
   return `<div class="sv-song" data-idx="${i}">
     <span class="sv-song-num">${i + 1}</span>
     <div class="sv-song-info">
@@ -568,7 +577,135 @@ function _svSongRow(song, i, ts) {
       <span class="sv-song-artist">${escapeHtml(song.artist)}</span>
     </div>
     <div class="sv-song-actions">${badge}<button class="sv-ts-set" data-idx="${i}" data-action="set-ts" title="現在の再生時刻をタイムスタンプに記録">⏱ メモ</button></div>
+    ${ctsRow}
   </div>`;
+}
+
+/**
+ * 特定の配信枠の承認済みコミュニティタイムスタンプを取得し _svCommunityTs に格納する。
+ * 取得後に sv-setlist を再描画する。
+ *
+ * @param {object} stream
+ */
+async function _svLoadCommunityTs(stream) {
+  _svCommunityTs = {};
+  if (!stream?.channel || stream?.index == null) return;
+  try {
+    const url = `/api/timestamps/${encodeURIComponent(stream.channel)}/${stream.index}`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const data = await res.json();
+    for (const item of (data.items || [])) {
+      if (!_svCommunityTs[item.songIndex]) _svCommunityTs[item.songIndex] = [];
+      _svCommunityTs[item.songIndex].push({ timeSeconds: item.timeSeconds, note: item.note ?? null });
+    }
+  } catch (_) { /* ネットワークエラーは無視 */ }
+  // 再描画（stream-viewer が同じ配信のままの場合のみ）
+  const el = $('#stream-viewer');
+  if (!el || el._currentStream !== stream) return;
+  const setlistEl = $('#sv-setlist');
+  if (setlistEl) _svRefreshSetlist(setlistEl, stream.songs, _svLoadTs(stream));
+}
+
+/**
+ * コミュニティタイムスタンプを提案するモーダルを表示する。
+ *
+ * @param {object} stream
+ * @param {number} songIdx
+ * @param {string} songTitle
+ */
+function _svShowProposeModal(stream, songIdx, songTitle) {
+  // 既存モーダルがあれば除去
+  $('#sv-cts-modal')?.remove();
+
+  const currentTime = _svPlayer?.getCurrentTime?.() ?? 0;
+  const defaultTime = _fmtTs(Math.floor(currentTime));
+
+  const modal = document.createElement('div');
+  modal.id = 'sv-cts-modal';
+  modal.className = 'sv-cts-modal-overlay';
+  modal.innerHTML = `
+    <div class="sv-cts-modal-box" role="dialog" aria-modal="true" aria-label="タイムスタンプを提案">
+      <div class="sv-cts-modal-head">
+        <span class="sv-cts-modal-title">タイムスタンプを提案</span>
+        <button class="sv-cts-modal-close" type="button" aria-label="閉じる">✕</button>
+      </div>
+      <p class="sv-cts-modal-song">${escapeHtml(songTitle)}</p>
+      <label class="sv-cts-modal-label">
+        タイムスタンプ（MM:SS または H:MM:SS）
+        <input class="sv-cts-modal-input" id="sv-cts-ts-input" type="text" value="${escapeHtml(defaultTime)}" placeholder="0:00" autocomplete="off">
+      </label>
+      <label class="sv-cts-modal-label">
+        コメント（任意・200文字以内）
+        <input class="sv-cts-modal-input" id="sv-cts-note-input" type="text" maxlength="200" placeholder="">
+      </label>
+      <p class="sv-cts-modal-hint">提案は管理者の審査後に公開されます。</p>
+      <div class="sv-cts-modal-btns">
+        <button class="sv-cts-modal-submit" id="sv-cts-submit" type="button">提案する</button>
+        <button class="sv-cts-modal-cancel" type="button">キャンセル</button>
+      </div>
+      <p class="sv-cts-modal-status" id="sv-cts-status" hidden></p>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  modal.querySelector('.sv-cts-modal-close').addEventListener('click', close);
+  modal.querySelector('.sv-cts-modal-cancel').addEventListener('click', close);
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+
+  modal.querySelector('#sv-cts-submit').addEventListener('click', async () => {
+    const tsStr = modal.querySelector('#sv-cts-ts-input').value.trim();
+    const note  = modal.querySelector('#sv-cts-note-input').value.trim() || null;
+    const parsedSec = _parseTs(tsStr);
+    const statusEl = modal.querySelector('#sv-cts-status');
+    if (parsedSec === null) {
+      statusEl.textContent = 'タイムスタンプの形式が正しくありません（例: 1:23 または 1:23:45）';
+      statusEl.className = 'sv-cts-modal-status error';
+      statusEl.hidden = false;
+      return;
+    }
+    const submitBtn = modal.querySelector('#sv-cts-submit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '送信中…';
+    try {
+      const res = await fetch(`/api/timestamps/${encodeURIComponent(stream.channel)}/${stream.index}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          songIndex:     songIdx,
+          timeSeconds:   parsedSec,
+          submitterNote: note,
+        }),
+      });
+      if (res.ok) {
+        statusEl.textContent = '提案を送信しました！審査後に公開されます。';
+        statusEl.className = 'sv-cts-modal-status success';
+        statusEl.hidden = false;
+        submitBtn.hidden = true;
+        modal.querySelector('.sv-cts-modal-cancel').textContent = '閉じる';
+      } else {
+        const body = await res.json().catch(() => ({}));
+        statusEl.textContent = `送信に失敗しました: ${body.error || res.statusText}`;
+        statusEl.className = 'sv-cts-modal-status error';
+        statusEl.hidden = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提案する';
+      }
+    } catch (err) {
+      statusEl.textContent = `送信に失敗しました: ${err.message}`;
+      statusEl.className = 'sv-cts-modal-status error';
+      statusEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = '提案する';
+    }
+  });
+
+  // フォーカス
+  setTimeout(() => modal.querySelector('#sv-cts-ts-input')?.focus(), 50);
+  document.addEventListener('keydown', function onEsc(e) {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
+  });
 }
 
 function _svRefreshSetlist(setlistEl, songs, ts) {
@@ -707,6 +844,15 @@ function initStreamViewer() {
       delete ts[idx];
       _svSaveTs(stream, ts);
       _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+    } else if (btn.dataset.action === 'cts-seek') {
+      const sec = Number(btn.dataset.ctsSeconds);
+      if (!isNaN(sec) && _svPlayer?.seekTo) {
+        _svPlayer.seekTo(sec, true);
+        try { _svPlayer.playVideo(); } catch (_) {}
+      }
+    } else if (btn.dataset.action === 'cts-propose') {
+      const song = stream.songs[idx];
+      _svShowProposeModal(stream, idx, song?.title || `曲 ${idx + 1}`);
     }
   });
 }
@@ -759,8 +905,11 @@ function openStreamViewer(stream, resumeAt = 0) {
   const songCount = $('#sv-song-count');
   if (songCount) songCount.textContent = `${stream.songs.length}曲`;
 
+  _svCommunityTs = {}; // 前の配信のコミュニティタイムスタンプをリセット
   const ts = _svLoadTs(stream);
   _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+  // コミュニティタイムスタンプを非同期取得（取得完了後にセットリストを再描画）
+  _svLoadCommunityTs(stream);
 
   viewer.hidden = false;
   document.body.style.overflow = ''; // 埋め込みモードではスクロールロックしない
