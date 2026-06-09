@@ -1170,8 +1170,20 @@ function applyUrlState() {
 }
 
 // Tab buttons
+// 埋め込みプレイヤーが開いている状態で別タブへ移動した場合、
+// ミニプレイヤーへ再生を引き継ぎながらタブ遷移する
 $$('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    const streamViewer = $('#stream-viewer');
+    // 埋め込みモード（非全画面）でストリームが再生中 → ミニプレイヤーへ引き継ぐ
+    if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen) {
+      _epPrevTab = tab; // closeStreamViewer 内の hidePlayerPanel がこのタブへ遷移する
+      closeStreamViewer();
+      return;
+    }
+    activateTab(tab);
+  });
 });
 
 // Channel switch
