@@ -9,6 +9,8 @@ let searchInputEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, l
 let searchHistoryDropdown = null;
 const SETLIST_STORAGE_KEY = 'kanau-setlist-v1';
 let currentFiltered = [];
+let _setlistSearchClickOut = null;
+let _dragCleanup = null;
 
 export function renderSongs() {
   loadSetlist();
@@ -265,7 +267,8 @@ export function renderSongs() {
   };
   panel.onkeydown = (e) => {
     if (e.key !== 'Enter') return;
-    if (!e.target.closest('.setlist-custom-add')) return;
+    if (!e.target.closest('.setlist-custom-add') && !e.target.closest('.setlist-custom-details')) return;
+    if (e.target.tagName === 'BUTTON') return; // ボタンは通常動作
     e.preventDefault();
     addCustomToSetlist();
   };
@@ -728,11 +731,21 @@ function renderSetlistPlanner(message = '') {
       <div class="setlist-total">${items.length}曲 / 約${minutes}分</div>
     </div>
     <input id="setlist-theme" class="text-input setlist-theme" type="text" placeholder="歌枠テーマメモ" value="${escapeHtml(state.setlist.theme)}">
-    <div class="setlist-custom-add" aria-label="新しい曲をセトリに追加">
-      <input id="setlist-custom-title" class="text-input" type="text" placeholder="新しい曲名">
-      <input id="setlist-custom-artist" class="text-input" type="text" placeholder="アーティスト（任意）">
-      <input id="setlist-custom-key" class="text-input" type="text" placeholder="キー（任意）">
-      <button class="btn primary" type="button" data-setlist-action="add-custom">追加</button>
+    <div class="setlist-search-add">
+      <div class="setlist-search-wrap">
+        <input id="setlist-search-input" class="text-input setlist-search-input"
+               type="text" placeholder="🔍 曲名を入力して追加…" autocomplete="off" spellcheck="false">
+        <div id="setlist-search-dropdown" class="setlist-search-dropdown" hidden></div>
+      </div>
+      <details class="setlist-custom-details">
+        <summary>DB外の曲を手動追加</summary>
+        <div class="setlist-custom-add">
+          <input id="setlist-custom-title" class="text-input" type="text" placeholder="曲名">
+          <input id="setlist-custom-artist" class="text-input" type="text" placeholder="アーティスト（任意）">
+          <input id="setlist-custom-key" class="text-input" type="text" placeholder="キー（任意）">
+          <button class="btn primary" type="button" data-setlist-action="add-custom">追加</button>
+        </div>
+      </details>
     </div>
     <div class="setlist-balance">
       ${balanceChip('ジャンル', balance.genres)}
@@ -755,6 +768,9 @@ function renderSetlistPlanner(message = '') {
       ${message ? `<span class="setlist-message">${escapeHtml(message)}</span>` : ''}
     </div>
   `;
+
+  initSetlistSearch();
+  initSetlistDrag();
 }
 
 function balanceChip(label, rows) {
@@ -764,7 +780,8 @@ function balanceChip(label, rows) {
 
 function setlistItemHtml(item, index) {
   return `
-    <div class="setlist-item">
+    <div class="setlist-item" data-index="${index}">
+      <div class="setlist-drag-handle" title="ドラッグして並び替え" aria-label="ドラッグハンドル">⠿</div>
       <div class="setlist-no">${index + 1}</div>
       <div class="setlist-info">
         <strong>${escapeHtml(item.title)}</strong>
@@ -778,6 +795,241 @@ function setlistItemHtml(item, index) {
       </div>
     </div>
   `;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// セトリ曲検索ドロップダウン
+// ──────────────────────────────────────────────────────────────────────────────
+
+function initSetlistSearch() {
+  const input = document.getElementById('setlist-search-input');
+  const dropdown = document.getElementById('setlist-search-dropdown');
+  if (!input || !dropdown) return;
+
+  let _matches = [];
+  let _selIdx = -1;
+
+  function _render(q) {
+    const ql = q.trim().toLowerCase();
+    if (!ql) { dropdown.hidden = true; _matches = []; _selIdx = -1; return; }
+
+    const songs = state.data?.songs || [];
+    const matched = songs
+      .filter(s => s.title.toLowerCase().includes(ql) || (s.artist || '').toLowerCase().includes(ql))
+      .sort((a, b) => {
+        const aT = a.title.toLowerCase().startsWith(ql) ? 2 : a.title.toLowerCase().includes(ql) ? 1 : 0;
+        const bT = b.title.toLowerCase().startsWith(ql) ? 2 : b.title.toLowerCase().includes(ql) ? 1 : 0;
+        if (aT !== bT) return bT - aT;
+        return b.count - a.count;
+      })
+      .slice(0, 8);
+
+    const newEntry = { _isNew: true, title: q.trim() };
+
+    if (!matched.length) {
+      dropdown.innerHTML = `
+        <div class="setlist-dd-item setlist-dd-new" data-dd-idx="0">
+          <span class="setlist-dd-plus">＋</span>
+          <div class="setlist-dd-body">
+            <div class="setlist-dd-title">「${escapeHtml(q.trim())}」を新規追加</div>
+            <div class="setlist-dd-meta">DB外の曲として追加（アーティスト入力可）</div>
+          </div>
+        </div>`;
+      _matches = [newEntry];
+    } else {
+      dropdown.innerHTML =
+        matched.map((s, i) => `
+          <div class="setlist-dd-item" data-dd-idx="${i}">
+            <span class="setlist-dd-icon">🎵</span>
+            <div class="setlist-dd-body">
+              <div class="setlist-dd-title">${escapeHtml(s.title)}</div>
+              <div class="setlist-dd-meta">${escapeHtml(s.artist || '—')} · ${s.count}回</div>
+            </div>
+          </div>`).join('') +
+        `<div class="setlist-dd-item setlist-dd-new" data-dd-idx="${matched.length}">
+          <span class="setlist-dd-plus">＋</span>
+          <div class="setlist-dd-body">
+            <div class="setlist-dd-title">「${escapeHtml(q.trim())}」を新規追加</div>
+            <div class="setlist-dd-meta">DB外の曲として追加</div>
+          </div>
+        </div>`;
+      _matches = [...matched, newEntry];
+    }
+    _selIdx = -1;
+    dropdown.hidden = false;
+    _updateSel();
+  }
+
+  function _updateSel() {
+    dropdown.querySelectorAll('[data-dd-idx]').forEach((el, i) =>
+      el.classList.toggle('is-selected', i === _selIdx));
+  }
+
+  function _pick(idx) {
+    const m = _matches[idx];
+    if (!m) return;
+    dropdown.hidden = true;
+    _matches = []; _selIdx = -1;
+
+    if (m._isNew) {
+      // details を開いてタイトルを prefill、アーティスト欄にフォーカス
+      const details = document.querySelector('.setlist-custom-details');
+      const titleEl = document.getElementById('setlist-custom-title');
+      if (details && titleEl) {
+        details.open = true;
+        titleEl.value = m.title;
+        input.value = '';
+        document.getElementById('setlist-custom-artist')?.focus();
+      } else {
+        input.value = '';
+      }
+    } else {
+      input.value = '';
+      addToSetlist(m);
+    }
+  }
+
+  input.addEventListener('input', () => _render(input.value));
+
+  input.addEventListener('keydown', (e) => {
+    if (dropdown.hidden) return;
+    const len = _matches.length;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _selIdx = (_selIdx + 1) % len;
+      _updateSel();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _selIdx = (_selIdx - 1 + len) % len;
+      _updateSel();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      _pick(_selIdx >= 0 ? _selIdx : 0);
+    } else if (e.key === 'Escape') {
+      dropdown.hidden = true;
+      _selIdx = -1;
+    }
+  });
+
+  dropdown.addEventListener('mousedown', (e) => {
+    const item = e.target.closest('[data-dd-idx]');
+    if (!item) return;
+    e.preventDefault(); // blur を防ぐ
+    _pick(Number(item.dataset.ddIdx));
+  });
+
+  // 外クリックで閉じる（再レンダー時に古いハンドラを解除）
+  if (_setlistSearchClickOut) document.removeEventListener('click', _setlistSearchClickOut);
+  _setlistSearchClickOut = (e) => {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.hidden = true;
+      _selIdx = -1;
+    }
+  };
+  document.addEventListener('click', _setlistSearchClickOut);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// セトリ ドラッグ＆ドロップ並び替え（Pointer Events API）
+// ──────────────────────────────────────────────────────────────────────────────
+
+function initSetlistDrag() {
+  if (_dragCleanup) { _dragCleanup(); _dragCleanup = null; }
+
+  const listEl = document.querySelector('.setlist-items');
+  if (!listEl) return;
+
+  let src = null;
+  let srcIndex = -1;
+  let ghost = null;
+  let offsetY = 0;
+  let lastOver = null;
+
+  function onMove(e) {
+    if (!src) return;
+    const srcRect = src.getBoundingClientRect();
+    ghost.style.top  = `${e.clientY - offsetY}px`;
+    ghost.style.left = `${srcRect.left}px`;
+    ghost.style.width = `${srcRect.width}px`;
+
+    // ゴーストを一時的に非表示にして下の要素を取得
+    ghost.style.visibility = 'hidden';
+    const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+    ghost.style.visibility = '';
+
+    const target = elUnder?.closest('.setlist-item:not(.is-dragging)');
+    if (lastOver !== target) {
+      lastOver?.classList.remove('drag-over');
+      target?.classList.add('drag-over');
+      lastOver = target;
+    }
+  }
+
+  function finalize(e) {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', finalize);
+    document.removeEventListener('pointercancel', cancel);
+
+    const destIndex = lastOver ? Number(lastOver.dataset.index) : -1;
+    ghost?.remove(); ghost = null;
+    src?.classList.remove('is-dragging');
+    lastOver?.classList.remove('drag-over');
+
+    const savedSrc = srcIndex;
+    src = null; srcIndex = -1; lastOver = null;
+
+    if (destIndex !== -1 && destIndex !== savedSrc) {
+      const items = state.setlist.items;
+      const [moved] = items.splice(savedSrc, 1);
+      const adj = destIndex > savedSrc ? destIndex - 1 : destIndex;
+      items.splice(adj, 0, moved);
+      saveSetlist();
+      renderSetlistPlanner();
+    }
+  }
+
+  function cancel() {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', finalize);
+    document.removeEventListener('pointercancel', cancel);
+    ghost?.remove(); ghost = null;
+    src?.classList.remove('is-dragging');
+    lastOver?.classList.remove('drag-over');
+    src = null; srcIndex = -1; lastOver = null;
+  }
+
+  listEl.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('.setlist-drag-handle')) return;
+    const item = e.target.closest('.setlist-item');
+    if (!item) return;
+    e.preventDefault();
+
+    src = item;
+    srcIndex = Number(item.dataset.index);
+    const rect = item.getBoundingClientRect();
+    offsetY = e.clientY - rect.top;
+
+    // ゴースト生成
+    ghost = item.cloneNode(true);
+    ghost.className = ghost.className + ' setlist-drag-ghost';
+    Object.assign(ghost.style, {
+      position: 'fixed',
+      top:  `${rect.top}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      pointerEvents: 'none',
+      zIndex: '9999',
+    });
+    document.body.appendChild(ghost);
+    item.classList.add('is-dragging');
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', finalize);
+    document.addEventListener('pointercancel', cancel);
+  });
+
+  _dragCleanup = cancel;
 }
 
 function formatSetlistText() {

@@ -498,6 +498,129 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   width: 100%;
   margin-bottom: 10px;
 }
+/* ── セトリ曲検索 ─────────────────── */
+.setlist-search-add {
+  margin-bottom: 8px;
+}
+.setlist-search-wrap {
+  position: relative;
+}
+.setlist-search-input {
+  width: 100%;
+}
+.setlist-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  z-index: 200;
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.setlist-dd-item {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.1s;
+}
+.setlist-dd-item:last-child { border-bottom: none; }
+.setlist-dd-item:hover,
+.setlist-dd-item.is-selected {
+  background: var(--surface-2);
+}
+.setlist-dd-icon,
+.setlist-dd-plus {
+  font-size: 14px;
+  text-align: center;
+  color: var(--ink-mute);
+}
+.setlist-dd-body { min-width: 0; }
+.setlist-dd-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.setlist-dd-meta {
+  font-size: 11px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.setlist-dd-new { background: var(--surface-2); }
+.setlist-dd-new .setlist-dd-title { color: var(--primary-strong); }
+.setlist-dd-new .setlist-dd-plus {
+  color: var(--primary-strong);
+  font-size: 18px;
+  font-weight: 700;
+}
+.setlist-custom-details {
+  margin-top: 6px;
+  font-size: 12px;
+}
+.setlist-custom-details summary {
+  cursor: pointer;
+  color: var(--ink-mute);
+  padding: 4px 2px;
+  font-size: 11px;
+  user-select: none;
+  list-style: none;
+}
+.setlist-custom-details summary::before {
+  content: '▶ ';
+  font-size: 10px;
+}
+.setlist-custom-details[open] summary::before {
+  content: '▼ ';
+}
+.setlist-custom-details[open] summary {
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+/* ── ドラッグハンドル ─────────────── */
+.setlist-drag-handle {
+  cursor: grab;
+  color: var(--ink-mute);
+  font-size: 15px;
+  text-align: center;
+  padding: 2px 0;
+  touch-action: none;
+  user-select: none;
+  line-height: 1;
+  opacity: 0.6;
+}
+.setlist-drag-handle:hover { opacity: 1; color: var(--ink-soft); }
+.setlist-drag-handle:active { cursor: grabbing; }
+.setlist-item.is-dragging { opacity: 0.3; }
+.setlist-item.drag-over {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+  background: var(--primary-soft, color-mix(in srgb, var(--primary) 10%, var(--surface-2)));
+}
+.setlist-drag-ghost {
+  opacity: 0.92;
+  box-shadow: 0 10px 32px rgba(0,0,0,0.22);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--primary);
+  background: var(--surface);
+  pointer-events: none;
+  position: fixed;
+  z-index: 9999;
+}
+
 .setlist-custom-add {
   display: grid;
   grid-template-columns: minmax(180px, 1.4fr) minmax(150px, 1fr) minmax(96px, 0.7fr) auto;
@@ -557,13 +680,14 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 }
 .setlist-item {
   display: grid;
-  grid-template-columns: 28px 1fr auto;
+  grid-template-columns: 18px 28px 1fr auto;
   align-items: center;
   gap: 8px;
   padding: 8px;
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
+  transition: opacity 0.15s;
 }
 .setlist-no {
   color: var(--primary-strong);
@@ -1193,10 +1317,10 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     font-size: 11px;
   }
   .setlist-item {
-    grid-template-columns: 24px 1fr;
+    grid-template-columns: 18px 24px 1fr;
   }
   .setlist-move {
-    grid-column: 2;
+    grid-column: 2 / -1;
   }
 }
 
