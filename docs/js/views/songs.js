@@ -738,12 +738,17 @@ function renderSetlistPlanner(message = '') {
         <div id="setlist-search-dropdown" class="setlist-search-dropdown" hidden></div>
       </div>
       <details class="setlist-custom-details">
-        <summary>DB外の曲を手動追加</summary>
+        <summary>検索で見つからない曲を追加する</summary>
         <div class="setlist-custom-add">
-          <input id="setlist-custom-title" class="text-input" type="text" placeholder="曲名">
-          <input id="setlist-custom-artist" class="text-input" type="text" placeholder="アーティスト（任意）">
-          <input id="setlist-custom-key" class="text-input" type="text" placeholder="キー（任意）">
-          <button class="btn primary" type="button" data-setlist-action="add-custom">追加</button>
+          <input id="setlist-custom-title" class="text-input" type="text"
+                 placeholder="曲名（例：シャルル）" autocomplete="off">
+          <div class="setlist-custom-row2">
+            <input id="setlist-custom-artist" class="text-input" type="text"
+                   placeholder="アーティスト名（任意）" autocomplete="off">
+            <input id="setlist-custom-key" class="text-input setlist-custom-key-inp" type="text"
+                   placeholder="キー" maxlength="5" autocomplete="off">
+            <button class="btn primary" type="button" data-setlist-action="add-custom">追加</button>
+          </div>
         </div>
       </details>
     </div>
@@ -832,7 +837,7 @@ function initSetlistSearch() {
           <span class="setlist-dd-plus">＋</span>
           <div class="setlist-dd-body">
             <div class="setlist-dd-title">「${escapeHtml(q.trim())}」を新規追加</div>
-            <div class="setlist-dd-meta">DB外の曲として追加（アーティスト入力可）</div>
+            <div class="setlist-dd-meta">アーティスト名を入力して追加できます</div>
           </div>
         </div>`;
       _matches = [newEntry];
@@ -850,7 +855,7 @@ function initSetlistSearch() {
           <span class="setlist-dd-plus">＋</span>
           <div class="setlist-dd-body">
             <div class="setlist-dd-title">「${escapeHtml(q.trim())}」を新規追加</div>
-            <div class="setlist-dd-meta">DB外の曲として追加</div>
+            <div class="setlist-dd-meta">曲リストにない曲として追加</div>
           </div>
         </div>`;
       _matches = [...matched, newEntry];

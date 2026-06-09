@@ -340,12 +340,17 @@ var Na=Object.defineProperty;var k=(t,e)=>()=>(t&&(e=t(t=0)),e);var ct=(t,e)=>{f
         <div id="setlist-search-dropdown" class="setlist-search-dropdown" hidden></div>
       </div>
       <details class="setlist-custom-details">
-        <summary>DB\u5916\u306E\u66F2\u3092\u624B\u52D5\u8FFD\u52A0</summary>
+        <summary>\u691C\u7D22\u3067\u898B\u3064\u304B\u3089\u306A\u3044\u66F2\u3092\u8FFD\u52A0\u3059\u308B</summary>
         <div class="setlist-custom-add">
-          <input id="setlist-custom-title" class="text-input" type="text" placeholder="\u66F2\u540D">
-          <input id="setlist-custom-artist" class="text-input" type="text" placeholder="\u30A2\u30FC\u30C6\u30A3\u30B9\u30C8\uFF08\u4EFB\u610F\uFF09">
-          <input id="setlist-custom-key" class="text-input" type="text" placeholder="\u30AD\u30FC\uFF08\u4EFB\u610F\uFF09">
-          <button class="btn primary" type="button" data-setlist-action="add-custom">\u8FFD\u52A0</button>
+          <input id="setlist-custom-title" class="text-input" type="text"
+                 placeholder="\u66F2\u540D\uFF08\u4F8B\uFF1A\u30B7\u30E3\u30EB\u30EB\uFF09" autocomplete="off">
+          <div class="setlist-custom-row2">
+            <input id="setlist-custom-artist" class="text-input" type="text"
+                   placeholder="\u30A2\u30FC\u30C6\u30A3\u30B9\u30C8\u540D\uFF08\u4EFB\u610F\uFF09" autocomplete="off">
+            <input id="setlist-custom-key" class="text-input setlist-custom-key-inp" type="text"
+                   placeholder="\u30AD\u30FC" maxlength="5" autocomplete="off">
+            <button class="btn primary" type="button" data-setlist-action="add-custom">\u8FFD\u52A0</button>
+          </div>
         </div>
       </details>
     </div>
@@ -395,14 +400,14 @@ var Na=Object.defineProperty;var k=(t,e)=>()=>(t&&(e=t(t=0)),e);var ct=(t,e)=>{f
           <span class="setlist-dd-plus">\uFF0B</span>
           <div class="setlist-dd-body">
             <div class="setlist-dd-title">\u300C${f(o.trim())}\u300D\u3092\u65B0\u898F\u8FFD\u52A0</div>
-            <div class="setlist-dd-meta">DB\u5916\u306E\u66F2\u3068\u3057\u3066\u8FFD\u52A0</div>
+            <div class="setlist-dd-meta">\u66F2\u30EA\u30B9\u30C8\u306B\u306A\u3044\u66F2\u3068\u3057\u3066\u8FFD\u52A0</div>
           </div>
         </div>`,s=[...u,p]):(e.innerHTML=`
         <div class="setlist-dd-item setlist-dd-new" data-dd-idx="0">
           <span class="setlist-dd-plus">\uFF0B</span>
           <div class="setlist-dd-body">
             <div class="setlist-dd-title">\u300C${f(o.trim())}\u300D\u3092\u65B0\u898F\u8FFD\u52A0</div>
-            <div class="setlist-dd-meta">DB\u5916\u306E\u66F2\u3068\u3057\u3066\u8FFD\u52A0\uFF08\u30A2\u30FC\u30C6\u30A3\u30B9\u30C8\u5165\u529B\u53EF\uFF09</div>
+            <div class="setlist-dd-meta">\u30A2\u30FC\u30C6\u30A3\u30B9\u30C8\u540D\u3092\u5165\u529B\u3057\u3066\u8FFD\u52A0\u3067\u304D\u307E\u3059</div>
           </div>
         </div>`,s=[p]),n=-1,e.hidden=!1,i()}function i(){e.querySelectorAll("[data-dd-idx]").forEach((o,c)=>o.classList.toggle("is-selected",c===n))}function r(o){let c=s[o];if(c)if(e.hidden=!0,s=[],n=-1,c._isNew){let d=document.querySelector(".setlist-custom-details"),u=document.getElementById("setlist-custom-title");d&&u?(d.open=!0,u.value=c.title,t.value="",document.getElementById("setlist-custom-artist")?.focus()):t.value=""}else t.value="",Ae(c)}t.addEventListener("input",()=>a(t.value)),t.addEventListener("keydown",o=>{if(e.hidden)return;let c=s.length;o.key==="ArrowDown"?(o.preventDefault(),n=(n+1)%c,i()):o.key==="ArrowUp"?(o.preventDefault(),n=(n-1+c)%c,i()):o.key==="Enter"?(o.preventDefault(),o.stopPropagation(),r(n>=0?n:0)):o.key==="Escape"&&(e.hidden=!0,n=-1)}),e.addEventListener("mousedown",o=>{let c=o.target.closest("[data-dd-idx]");c&&(o.preventDefault(),r(Number(c.dataset.ddIdx)))}),Le&&document.removeEventListener("click",Le),Le=o=>{!t.contains(o.target)&&!e.contains(o.target)&&(e.hidden=!0,n=-1)},document.addEventListener("click",Le)}function Tr(){xe&&(xe(),xe=null);let t=document.querySelector(".setlist-items");if(!t)return;let e=null,s=-1,n=null,a=0,i=null;function r(d){if(!e)return;let u=e.getBoundingClientRect();n.style.top=`${d.clientY-a}px`,n.style.left=`${u.left}px`,n.style.width=`${u.width}px`,n.style.visibility="hidden";let p=document.elementFromPoint(d.clientX,d.clientY);n.style.visibility="";let h=p?.closest(".setlist-item:not(.is-dragging)");i!==h&&(i?.classList.remove("drag-over"),h?.classList.add("drag-over"),i=h)}function o(d){document.removeEventListener("pointermove",r),document.removeEventListener("pointerup",o),document.removeEventListener("pointercancel",c);let u=i?Number(i.dataset.index):-1;n?.remove(),n=null,e?.classList.remove("is-dragging"),i?.classList.remove("drag-over");let p=s;if(e=null,s=-1,i=null,u!==-1&&u!==p){let h=l.setlist.items,[g]=h.splice(p,1),y=u>p?u-1:u;h.splice(y,0,g),at(),x()}}function c(){document.removeEventListener("pointermove",r),document.removeEventListener("pointerup",o),document.removeEventListener("pointercancel",c),n?.remove(),n=null,e?.classList.remove("is-dragging"),i?.classList.remove("drag-over"),e=null,s=-1,i=null}t.addEventListener("pointerdown",d=>{if(!d.target.closest(".setlist-drag-handle"))return;let u=d.target.closest(".setlist-item");if(!u)return;d.preventDefault(),e=u,s=Number(u.dataset.index);let p=u.getBoundingClientRect();a=d.clientY-p.top,n=u.cloneNode(!0),n.className=n.className+" setlist-drag-ghost",Object.assign(n.style,{position:"fixed",top:`${p.top}px`,left:`${p.left}px`,width:`${p.width}px`,pointerEvents:"none",zIndex:"9999"}),document.body.appendChild(n),u.classList.add("is-dragging"),document.addEventListener("pointermove",r),document.addEventListener("pointerup",o),document.addEventListener("pointercancel",c)}),xe=c}function Er(){let t=Hs(),e=[];return l.setlist.theme&&e.push(`# ${l.setlist.theme}`,""),t.forEach(s=>{e.push(ma(s))}),e.join(`
 `)}function ma(t){let e=String(t?.title||"").trim(),s=String(t?.artist||"").trim(),n=s?`${e} / ${s}`:e;return l.setlist.copyFormat==="timestamp"?`00:00\u3000${n}\u300000:00`:n}async function Mr(){let t=Er();if(!t.trim()){x("\u30B3\u30D4\u30FC\u3059\u308B\u66F2\u304C\u3042\u308A\u307E\u305B\u3093");return}try{await navigator.clipboard.writeText(t),x("\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F")}catch{x("\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F")}}async function Ar(t){let e=Hs()[t];if(!e){x("\u30B3\u30D4\u30FC\u3059\u308B\u66F2\u304C\u3042\u308A\u307E\u305B\u3093");return}try{await navigator.clipboard.writeText(ma(e)),x("1\u66F2\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F")}catch{x("\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F")}}function Cr(t,e){let s=t.rank===1?"r1":t.rank===2?"r2":t.rank===3?"r3":"",n=t.lastSung?`<span class="last-date">${L(t.lastSung)}</span><span class="badge ${ut(t.daysSinceLast)}">${t.daysSinceLast}\u65E5\u524D</span>`:'<span class="last-date">\u5C65\u6B74\u672A\u78BA\u8A8D</span><span class="badge never">\u8981\u78BA\u8A8D</span>',a=ts(t.title,e),i=ts(t.artist,e),r=ee(t,l.songsQuery),o=dt(t.key);return`
