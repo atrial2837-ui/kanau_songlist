@@ -405,6 +405,48 @@ function youtubeThumbTiny(url) {
   return id ? `https://i.ytimg.com/vi/${id}/default.jpg` : '';
 }
 
+// ─── ミニプレイヤー 進捗バー ──────────────────────────────────────────────────
+
+function _miniStopProgress() {
+  if (_miniProgressInterval) { clearInterval(_miniProgressInterval); _miniProgressInterval = null; }
+}
+
+function _miniStartProgress() {
+  _miniStopProgress();
+  _miniProgressInterval = setInterval(() => {
+    if (!_miniPlayer) return;
+    try {
+      const dur = _miniPlayer.getDuration?.() || 0;
+      const cur = _miniPlayer.getCurrentTime?.() || 0;
+      const pct = dur > 0 ? Math.min((cur / dur) * 100, 100) : 0;
+      const fill = $('#yt-mini-progress-fill');
+      if (fill) fill.style.width = `${pct}%`;
+      const st = _miniPlayer.getPlayerState?.();
+      const isPlaying = st === window.YT?.PlayerState?.PLAYING;
+      const playBtn = $('#yt-mini-play');
+      if (playBtn) playBtn.setAttribute('data-playing', isPlaying ? '1' : '0');
+    } catch (_) {}
+  }, 400);
+}
+
+function _miniDestroyPlayer() {
+  _miniStopProgress();
+  if (_miniPlayer) { try { _miniPlayer.destroy(); } catch (_) {} _miniPlayer = null; }
+  const container = $('#yt-player-container');
+  if (container) container.innerHTML = '';
+}
+
+// ─── ミニプレイヤー 復帰 ─────────────────────────────────────────────────────
+
+function _miniResumeAt() {
+  if (_miniPlayer?.getCurrentTime) {
+    try { return _miniPlayer.getCurrentTime(); } catch (_) {}
+  }
+  return Math.max(0, _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000);
+}
+
+// ─── YouTube IFrame API ───────────────────────────────────────────────────────
+
 function playYouTubeInline(url, startAt = 0, streamTitle = '') {
   const id = youtubeVideoId(url);
   if (!id) return;
@@ -412,22 +454,59 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
     window.open(String(url || ''), '_blank', 'noopener');
     return;
   }
+  _loadYtApi();
   initYouTubePlayer();
   const container = $('#yt-player-container');
   const panel = $('#yt-player-panel');
-  const openLink = $('#yt-player-open');
   if (!container || !panel) return;
-  const startParam = startAt > 0 ? `&start=${Math.floor(startAt)}` : '';
-  container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1${startParam}&vq=hd1080" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>`;
-  if (openLink) openLink.href = String(url || '');
-  // ミニプレイヤー情報更新
+
+  // 前のミニプレイヤーを破棄
+  _miniDestroyPlayer();
+
+  // UI 更新
   const titleEl = $('#yt-mini-title');
   if (titleEl) titleEl.textContent = streamTitle || 'インライン再生';
-  const songEl = $('#yt-mini-song');
-  if (songEl) songEl.textContent = '';
-  // ストリームコンテキストがある場合のみ展開ボタンを表示
+  const hintEl = $('#yt-mini-hint');
+  if (hintEl) hintEl.textContent = _svLastStream ? '▲ タップして配信ビューワーへ戻る' : '';
   panel.classList.toggle('has-stream', !!_svLastStream);
   panel.hidden = false;
+
+  // YT.Player を生成（API 準備完了後）
+  _onYtReady(() => {
+    const playerDiv = document.createElement('div');
+    container.appendChild(playerDiv);
+    try {
+      _miniPlayer = new window.YT.Player(playerDiv, {
+        videoId: id,
+        width: '100%',
+        height: '100%',
+        playerVars: {
+          autoplay: 1,
+          playsinline: 1,
+          rel: 0,
+          controls: 0,
+          disablekb: 1,
+          modestbranding: 1,
+          ...(startAt > 0 ? { start: Math.floor(startAt) } : {}),
+        },
+        events: {
+          onReady: (event) => {
+            if (startAt > 5) { try { event.target.seekTo(startAt, true); } catch (_) {} }
+            _miniStartProgress();
+          },
+          onStateChange: (event) => {
+            const isPlaying = event.data === window.YT.PlayerState.PLAYING;
+            const playBtn = $('#yt-mini-play');
+            if (playBtn) playBtn.setAttribute('data-playing', isPlaying ? '1' : '0');
+          },
+        },
+      });
+    } catch (_) {
+      // フォールバック: iframe
+      const startParam = startAt > 0 ? `&start=${Math.floor(startAt)}` : '';
+      container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1${startParam}" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>`;
+    }
+  });
 }
 
 function initYouTubePlayer() {
@@ -438,34 +517,56 @@ function initYouTubePlayer() {
   panel.innerHTML = `
     <div class="yt-mini-video-wrap">
       <div id="yt-player-container"></div>
-      <button class="yt-mini-expand" id="yt-mini-expand" type="button" aria-label="大画面で見る">
-        <span class="yt-mini-expand-icon">⛶</span>
-        <span class="yt-mini-expand-label">大画面で見る</span>
-      </button>
+    </div>
+    <div class="yt-mini-progress-wrap">
+      <div class="yt-mini-progress-bar" id="yt-mini-progress-bar" title="クリックでシーク">
+        <div class="yt-mini-progress-fill" id="yt-mini-progress-fill"></div>
+      </div>
     </div>
     <div class="yt-mini-bar">
-      <div class="yt-mini-info">
+      <button class="yt-mini-play-btn" id="yt-mini-play" type="button" data-playing="0" aria-label="再生/停止"></button>
+      <button class="yt-mini-info yt-mini-restore" id="yt-mini-restore" type="button" aria-label="配信ビューワーへ戻る">
         <span class="yt-mini-stream-title" id="yt-mini-title">インライン再生</span>
-        <span class="yt-mini-song-name" id="yt-mini-song"></span>
-      </div>
-      <a id="yt-player-open" href="#" target="_blank" rel="noopener" class="yt-mini-yt-btn" title="YouTubeで開く">↗</a>
+        <span class="yt-mini-hint" id="yt-mini-hint"></span>
+      </button>
       <button id="yt-player-close" type="button" class="yt-mini-close-btn" aria-label="閉じる">✕</button>
     </div>
   `;
   document.body.appendChild(panel);
 
+  // 閉じる
   $('#yt-player-close').addEventListener('click', () => {
     panel.hidden = true;
-    const container = $('#yt-player-container');
-    if (container) container.innerHTML = '';
+    _miniDestroyPlayer();
     _svLastStream = null;
   });
 
-  $('#yt-mini-expand').addEventListener('click', () => {
+  // 再生 / 停止トグル
+  $('#yt-mini-play').addEventListener('click', () => {
+    if (!_miniPlayer) return;
+    try {
+      const st = _miniPlayer.getPlayerState?.();
+      if (st === window.YT?.PlayerState?.PLAYING) { _miniPlayer.pauseVideo(); }
+      else { _miniPlayer.playVideo(); }
+    } catch (_) {}
+  });
+
+  // タイトルバークリック → 配信ビューワーへ戻る
+  $('#yt-mini-restore').addEventListener('click', () => {
     if (!_svLastStream) return;
-    const elapsed = (Date.now() - _svMiniStartWallTime) / 1000;
-    const resumeAt = Math.max(0, _svMiniStartAt + elapsed);
-    openStreamViewer(_svLastStream, resumeAt);
+    openStreamViewer(_svLastStream, _miniResumeAt());
+  });
+
+  // プログレスバークリック → シーク
+  $('#yt-mini-progress-bar').addEventListener('click', (e) => {
+    if (!_miniPlayer) return;
+    const bar = e.currentTarget;
+    const rect = bar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    try {
+      const dur = _miniPlayer.getDuration?.() || 0;
+      if (dur > 0) _miniPlayer.seekTo(pct * dur, true);
+    } catch (_) {}
   });
 }
 
@@ -504,6 +605,8 @@ let _epPrevTab = 'timeline';  // 埋め込みプレイヤーを開く前のタ�
 /** @type {Object<number, Array<{timeSeconds: number, note: string|null}>>} */
 let _svCommunityTs = {};      // songIndex → 承認済みコミュニティタイムスタンプ
 let _svAutoPlay = false;      // 連続再生フラグ
+let _miniPlayer = null;           // ミニプレイヤーの YT.Player インスタンス
+let _miniProgressInterval = null; // 進捗バー更新タイマー
 
 /** 埋め込みプレイヤーパネルを表示（タブバーの active はリセット） */
 function showPlayerPanel() {
@@ -1070,8 +1173,7 @@ function openStreamViewer(stream, resumeAt = 0) {
   const miniPanel = $('#yt-player-panel');
   if (miniPanel && !miniPanel.hidden) {
     miniPanel.hidden = true;
-    const miniContainer = $('#yt-player-container');
-    if (miniContainer) miniContainer.innerHTML = '';
+    _miniDestroyPlayer();
   }
   _svLastStream = null;
 
