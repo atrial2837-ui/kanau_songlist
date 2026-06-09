@@ -2802,53 +2802,111 @@ mark.hl {
   color: var(--ink-mute);
 }
 
+/* ── プレイリスト行 ──────────────────────────────────────────────────── */
+
 .pl-modal-item {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 11px 16px;
+  padding: 12px 16px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border-soft);
   color: var(--ink);
   text-align: left;
-  cursor: pointer;
   font-family: inherit;
   font-size: 13px;
-  gap: 8px;
-  transition: background 0.1s;
+  gap: 12px;
+  transition: background 0.12s, border-left-color 0.12s;
+  border-left: 3px solid transparent;
 }
 .pl-modal-item:last-child { border-bottom: none; }
-.pl-modal-item:hover:not(:disabled) { background: var(--surface-2); }
-.pl-modal-item:disabled { opacity: 0.6; cursor: default; }
+
+/* 未登録行: クリック可能 */
+.pl-modal-item--free {
+  cursor: pointer;
+}
+.pl-modal-item--free:hover {
+  background: var(--primary-soft);
+  border-left-color: var(--primary);
+}
+.pl-modal-item--free:active { background: color-mix(in srgb, var(--primary) 18%, var(--surface)); }
+
+/* 登録済み行: クリック不可 */
+.pl-modal-item--added {
+  cursor: default;
+  background: var(--surface-2);
+  opacity: 0.75;
+}
+
+/* プレイリスト名 + 枠数をまとめるブロック */
+.pl-modal-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
 .pl-modal-item-name {
-  flex: 1;
   font-weight: 700;
+  font-size: 13.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--ink);
 }
 
 .pl-modal-item-count {
   font-size: 11px;
   color: var(--ink-mute);
-  flex-shrink: 0;
+  font-weight: 500;
 }
 
-.pl-modal-check {
-  font-size: 11px;
-  color: var(--green-text);
+/* ステータスバッジ（右端） */
+.pl-modal-item-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
   font-weight: 700;
-  flex-shrink: 0;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
 }
 
-.pl-modal-item--added { background: var(--surface-2); }
+/* 未登録バッジ */
+.status--free {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--ink-mute);
+}
+.pl-modal-item--free:hover .status--free {
+  background: var(--primary);
+  border-color: var(--primary-strong);
+  color: #fff;
+}
 
+/* 登録済みバッジ */
+.status--added {
+  background: color-mix(in srgb, #22c55e 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, #22c55e 30%, transparent);
+  color: #16a34a;
+}
+
+.pl-modal-status-check {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* 新規作成ボタン */
 .pl-modal-new {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   width: 100%;
   padding: 14px 16px;
   background: transparent;
@@ -2861,6 +2919,19 @@ mark.hl {
   transition: background 0.12s;
 }
 .pl-modal-new:hover { background: var(--primary-soft); }
+
+.pl-modal-new-icon {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 400;
+}
+
+/* モーダルヘッダタイトル */
+.pl-modal-head-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
 
 /* トースト通知 */
 #pl-toast {

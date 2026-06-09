@@ -356,53 +356,68 @@ export function showAddToPlaylistModal(skey, streamTitle) {
 
   const lists = getPlaylists();
 
-  modal.innerHTML = `
-    <div class="pl-modal-backdrop" id="pl-modal-backdrop"></div>
-    <div class="pl-modal-box">
-      <div class="pl-modal-head">
-        <span>プレイリストに追加</span>
-        <button class="pl-modal-close" id="pl-modal-close" type="button">✕</button>
-      </div>
-      <div class="pl-modal-sub">${escapeHtml(streamTitle || '配信')}</div>
-      <div class="pl-modal-list">
-        ${!lists.length
-          ? '<p class="pl-modal-empty">プレイリストがありません</p>'
-          : lists.map(pl => `
-            <button class="pl-modal-item${pl.streams.includes(skey) ? ' pl-modal-item--added' : ''}"
+  const _rebuildModal = () => {
+    const currentLists = getPlaylists();
+    const listHtml = !currentLists.length
+      ? '<p class="pl-modal-empty">プレイリストがありません<br><span style="font-size:11px">先に「新しいプレイリストを作成」してください</span></p>'
+      : currentLists.map(pl => {
+          const added = pl.streams.includes(skey);
+          return `
+            <button class="pl-modal-item${added ? ' pl-modal-item--added' : ' pl-modal-item--free'}"
               data-pl-add="${escapeHtml(pl.id)}"
-              ${pl.streams.includes(skey) ? 'disabled' : ''} type="button">
-              <span class="pl-modal-item-name">${escapeHtml(pl.name)}</span>
-              <span class="pl-modal-item-count">${pl.streams.length}枠</span>
-              ${pl.streams.includes(skey) ? '<span class="pl-modal-check">✓ 追加済み</span>' : '＋'}
-            </button>`).join('')}
-      </div>
-      <button class="pl-modal-new" id="pl-modal-new" type="button">＋ 新しいプレイリストを作成して追加</button>
-    </div>`;
-  modal.hidden = false;
+              ${added ? 'disabled aria-disabled="true"' : ''} type="button">
+              <div class="pl-modal-item-info">
+                <span class="pl-modal-item-name">${escapeHtml(pl.name)}</span>
+                <span class="pl-modal-item-count">${pl.streams.length}枠</span>
+              </div>
+              <span class="pl-modal-item-status${added ? ' status--added' : ' status--free'}">
+                ${added ? '<span class="pl-modal-status-check">✓</span> 登録済み' : '＋ 追加'}
+              </span>
+            </button>`;
+        }).join('');
+
+    modal.innerHTML = `
+      <div class="pl-modal-backdrop" id="pl-modal-backdrop"></div>
+      <div class="pl-modal-box" role="dialog" aria-modal="true" aria-label="プレイリストに追加">
+        <div class="pl-modal-head">
+          <span class="pl-modal-head-title">保存先を選択</span>
+          <button class="pl-modal-close" id="pl-modal-close" type="button" aria-label="閉じる">✕</button>
+        </div>
+        <div class="pl-modal-sub">${escapeHtml(streamTitle || '配信')}</div>
+        <div class="pl-modal-list" id="pl-modal-list">${listHtml}</div>
+        <button class="pl-modal-new" id="pl-modal-new" type="button">
+          <span class="pl-modal-new-icon">＋</span> 新しいプレイリストを作成
+        </button>
+      </div>`;
+    modal.hidden = false;
+
+    modal.querySelector('#pl-modal-close').addEventListener('click', close);
+    modal.querySelector('#pl-modal-backdrop').addEventListener('click', close);
+
+    modal.querySelector('#pl-modal-new').addEventListener('click', () => {
+      const name = prompt('プレイリスト名')?.trim();
+      if (!name) return;
+      const pl = createPlaylist(name);
+      addStreamToPlaylist(pl.id, skey);
+      close();
+      _showToast(`「${name}」に追加しました`);
+    });
+
+    // 未登録のプレイリスト行をクリックで即追加
+    modal.querySelectorAll('[data-pl-add]:not([disabled])').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const plId = btn.dataset.plAdd;
+        const pl = getPlaylists().find(p => p.id === plId);
+        addStreamToPlaylist(plId, skey);
+        // モーダルを再描画して登録済み表示に切り替え
+        _rebuildModal();
+        _showToast(`「${pl?.name}」に追加しました`);
+      });
+    });
+  };
 
   const close = () => { modal.hidden = true; };
-
-  modal.querySelector('#pl-modal-close').addEventListener('click', close);
-  modal.querySelector('#pl-modal-backdrop').addEventListener('click', close);
-
-  modal.querySelector('#pl-modal-new').addEventListener('click', () => {
-    const name = prompt('プレイリスト名')?.trim();
-    if (!name) return;
-    const pl = createPlaylist(name);
-    addStreamToPlaylist(pl.id, skey);
-    close();
-    _showToast(`「${name}」に追加しました`);
-  });
-
-  modal.querySelectorAll('[data-pl-add]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const plId = btn.dataset.plAdd;
-      const pl = getPlaylists().find(p => p.id === plId);
-      addStreamToPlaylist(plId, skey);
-      close();
-      _showToast(`「${pl?.name}」に追加しました`);
-    });
-  });
+  _rebuildModal();
 
   document.addEventListener('keydown', function onEsc(e) {
     if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
