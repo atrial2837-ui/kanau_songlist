@@ -1205,6 +1205,25 @@ mark.hl {
   min-height: unset !important;
 }
 
+/* プレイヤーセクション（動画 + 下部コンテンツのコンテナ） */
+.sv-player-section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 全画面: プレイヤーセクションが高さを埋める */
+#stream-viewer.sv-fullscreen .sv-player-section {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 全画面: 下部コンテンツを非表示 */
+#stream-viewer.sv-fullscreen .sv-below-player {
+  display: none;
+}
+
 /* 埋め込みモード: 動画を 16:9 アスペクト比に固定 */
 #stream-viewer:not(.sv-fullscreen) .sv-body {
   align-items: start;
@@ -3195,4 +3214,356 @@ mark.hl {
   .sv-cts-modal-btns { justify-content: stretch; }
   .sv-cts-modal-submit,
   .sv-cts-modal-cancel { flex: 1; text-align: center; }
+}
+
+/* ============================================================
+   Stream Viewer — Below Player (sv-bp-*)
+   プレイヤー下の前後ナビ / 連続再生 / 統計 / 関連 / プレイリスト追加
+   ============================================================ */
+
+.sv-bp-wrap {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-top: 1px solid var(--border-soft);
+}
+
+/* ─── セクション共通 ── */
+.sv-bp-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.sv-bp-section:last-child {
+  border-bottom: none;
+}
+
+/* セクション見出し */
+.sv-bp-sh {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-mute);
+  margin-bottom: 10px;
+}
+.sv-bp-sh-sub {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+}
+
+/* ─── 連続再生 + ナビ ── */
+.sv-bp-section--nav {
+  background: var(--surface-2);
+}
+
+.sv-bp-autoplay-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sv-bp-ap-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* トグルスイッチ */
+.sv-bp-ap-switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 19px;
+  background: var(--border);
+  border-radius: 10px;
+  transition: background 0.18s;
+  flex-shrink: 0;
+}
+.sv-bp-ap-switch--on {
+  background: var(--primary);
+}
+.sv-bp-ap-check {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.sv-bp-ap-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.sv-bp-ap-switch--on .sv-bp-ap-knob {
+  transform: translateX(15px);
+}
+
+.sv-bp-ap-hint {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.sv-bp-ap-hint--end {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* 前後ナビカード */
+.sv-bp-nav-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sv-bp-nav-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  transition: border-color 0.14s, transform 0.14s;
+}
+.sv-bp-nav-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.sv-bp-nav-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  font-size: 11px;
+  color: var(--ink-mute);
+  opacity: 0.45;
+  cursor: default;
+  transform: none !important;
+  border-color: var(--border-soft) !important;
+}
+
+.sv-bp-nav-dir {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary-strong);
+  padding: 7px 9px 3px;
+  letter-spacing: 0.02em;
+}
+
+.sv-bp-nav-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  background: var(--surface-3);
+}
+.sv-bp-nav-thumb--empty {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--surface-3);
+  display: block;
+}
+
+.sv-bp-nav-info {
+  padding: 7px 9px 9px;
+}
+.sv-bp-nav-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  margin-bottom: 3px;
+}
+.sv-bp-nav-meta {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+}
+
+/* ─── 配信統計 ── */
+.sv-bp-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sv-bp-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 10px 16px;
+  min-width: 70px;
+  gap: 3px;
+}
+.sv-bp-stat-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.sv-bp-stat-label {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  font-weight: 500;
+}
+
+/* ─── 関連配信 ── */
+.sv-bp-related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sv-bp-rel-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color 0.14s, background 0.14s;
+}
+.sv-bp-rel-card:hover {
+  border-color: var(--primary);
+  background: var(--surface-2);
+}
+.sv-bp-rel-thumb {
+  width: 72px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex-shrink: 0;
+  background: var(--surface-3);
+  display: block;
+}
+.sv-bp-rel-thumb--empty {
+  width: 72px;
+  height: 40px;
+  background: var(--surface-3);
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.sv-bp-rel-info {
+  flex: 1;
+  min-width: 0;
+}
+.sv-bp-rel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sv-bp-rel-meta {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  margin-top: 1px;
+}
+.sv-bp-rel-songs {
+  font-size: 10.5px;
+  color: var(--primary-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+.sv-bp-rel-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  border-radius: 6px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ─── プレイリスト追加 ── */
+.sv-bp-pl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.sv-bp-pl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color 0.13s, background 0.13s;
+}
+.sv-bp-pl-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.sv-bp-pl-btn--added {
+  opacity: 0.6;
+  cursor: default;
+}
+.sv-bp-pl-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.sv-bp-pl-status {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-strong);
+  flex-shrink: 0;
+}
+.sv-bp-pl-btn--added .sv-bp-pl-status {
+  color: #16a34a;
+}
+
+/* ─── モバイル ── */
+@media (max-width: 767px) {
+  .sv-bp-nav-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+  .sv-bp-stat-val { font-size: 16px; }
+  .sv-bp-stat { padding: 8px 12px; }
+}
+
+@media (max-width: 479px) {
+  .sv-bp-section { padding: 12px 14px; }
+  .sv-bp-nav-cards { grid-template-columns: 1fr; }
+  .sv-bp-nav-dir { padding: 6px 8px 2px; }
+  .sv-bp-nav-info { padding: 6px 8px 8px; }
 }
