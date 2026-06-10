@@ -175,6 +175,28 @@
 
   <section class="admin-panel">
     <div class="section-header">
+      <h2>歌みた・オリ曲 動画管理</h2>
+      <span class="badge" id="mv-count">—</span>
+    </div>
+    <p class="admin-note">サイトの「歌みた・オリ曲」タブに表示する動画を管理します。追加後、<strong>JSONダウンロード → <code>docs/data/music.json</code> に上書きしてコミット</strong>で反映されます。</p>
+    <div class="admin-form-grid">
+      <label>YouTube URL<input id="mv-url" type="url" placeholder="https://www.youtube.com/watch?v=..."></label>
+      <label>タイトル<input id="mv-title" type="text" placeholder="曲名"></label>
+      <label>種別<select id="mv-type"><option value="original">オリジナル曲</option><option value="cover">カバー曲（歌みた）</option></select></label>
+      <label>元アーティスト（カバーのみ）<input id="mv-artist" type="text" placeholder="例: YOASOBI"></label>
+      <label>公開日<input id="mv-date" type="date"></label>
+      <label>ID（空なら自動）<input id="mv-id" type="text" placeholder="mv001"></label>
+    </div>
+    <div class="admin-actions">
+      <button class="btn primary" id="mv-add-btn" type="button">追加して music.json をダウンロード</button>
+      <button class="btn ghost" id="mv-download-btn" type="button">現在の内容をダウンロード</button>
+    </div>
+    <p class="admin-note" id="mv-status"></p>
+    <div id="mv-list-wrap"></div>
+  </section>
+
+  <section class="admin-panel">
+    <div class="section-header">
       <h2>コミュニティタイムスタンプ申請</h2>
       <span class="badge" id="ts-count">—</span>
     </div>

@@ -1,0 +1,239 @@
+/**
+ * 音楽プレイヤーモジュール
+ * Spotify風の常駐底バー + キュー管理
+ *
+ * 使い方:
+ *   initMusicPlayer()  — 起動時に一度呼ぶ
+ *   notifyYtReady()    — main.js の onYouTubeIframeAPIReady から呼ぶ
+ *   playMusicQueue(videos, startIdx) — キューをセットして再生開始
+ */
+
+import { $, escapeHtml, youtubeVideoId, youtubeThumb } from './utils.js';
+
+/* ── 状態 ────────────────────────────────────────────────────────────────── */
+
+let _queue    = [];
+let _qIdx     = -1;
+let _ytPlayer = null;
+let _progIv   = null;
+
+let _ytReady = false;
+const _ytQ   = [];
+
+/* ── YT API 連携 ─────────────────────────────────────────────────────────── */
+
+/** main.js の window.onYouTubeIframeAPIReady から呼ぶ */
+export function notifyYtReady() {
+  _ytReady = true;
+  _ytQ.splice(0).forEach(fn => fn());
+}
+
+function _onYtReady(fn) {
+  if (_ytReady && window.YT?.Player) { fn(); return; }
+  _ytQ.push(fn);
+}
+
+/* ── 初期化 ──────────────────────────────────────────────────────────────── */
+
+export function initMusicPlayer() {
+  if ($('#music-bar')) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'music-bar';
+  bar.hidden = true;
+  bar.innerHTML = `
+    <div class="mbar-progress-track" id="mbar-progress-track">
+      <div class="mbar-progress-fill" id="mbar-progress-fill"></div>
+    </div>
+    <div class="mbar-body">
+      <div class="mbar-track-info">
+        <div class="mbar-video-wrap" id="mbar-video-wrap"></div>
+        <div class="mbar-text">
+          <span class="mbar-title" id="mbar-title">—</span>
+          <span class="mbar-sub"   id="mbar-sub">—</span>
+        </div>
+        <span class="mbar-type-badge" id="mbar-type-badge"></span>
+      </div>
+      <div class="mbar-controls">
+        <button class="mbar-ctrl-btn" id="mbar-prev" type="button" aria-label="前の曲">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
+          </svg>
+        </button>
+        <button class="mbar-play-btn" id="mbar-play" type="button" data-playing="0" aria-label="再生/停止"></button>
+        <button class="mbar-ctrl-btn" id="mbar-next" type="button" aria-label="次の曲">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mbar-end">
+        <span class="mbar-queue-info" id="mbar-queue-info"></span>
+        <button class="mbar-close-btn" id="mbar-close" type="button" aria-label="閉じる">✕</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bar);
+
+  $('#mbar-play').addEventListener('click', _togglePlay);
+  $('#mbar-prev').addEventListener('click', playPrev);
+  $('#mbar-next').addEventListener('click', playNext);
+  $('#mbar-close').addEventListener('click', closeMusicPlayer);
+  $('#mbar-progress-track').addEventListener('click', (e) => {
+    if (!_ytPlayer) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    try {
+      const dur = _ytPlayer.getDuration?.() || 0;
+      if (dur > 0) _ytPlayer.seekTo(pct * dur, true);
+    } catch (_) {}
+  });
+
+  // Esc キーで閉じる
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#music-bar')?.hidden) closeMusicPlayer();
+  });
+}
+
+/* ── 公開 API ─────────────────────────────────────────────────────────────── */
+
+export function playMusicQueue(videos, startIdx = 0) {
+  if (!videos?.length) return;
+  _queue = videos.slice();
+  _qIdx  = Math.max(0, Math.min(startIdx, _queue.length - 1));
+  _loadTrack(_qIdx);
+}
+
+export function playNext() {
+  if (!_queue.length) return;
+  _qIdx = (_qIdx + 1) % _queue.length;
+  _loadTrack(_qIdx);
+}
+
+export function playPrev() {
+  if (!_queue.length) return;
+  _qIdx = (_qIdx - 1 + _queue.length) % _queue.length;
+  _loadTrack(_qIdx);
+}
+
+export function closeMusicPlayer() {
+  const bar = $('#music-bar');
+  if (!bar) return;
+  bar.hidden = true;
+  document.body.classList.remove('has-music-bar');
+  _stopProg();
+  if (_ytPlayer) { try { _ytPlayer.destroy(); } catch (_) {} _ytPlayer = null; }
+  _queue = []; _qIdx = -1;
+  const wrap = $('#mbar-video-wrap');
+  if (wrap) wrap.innerHTML = '';
+}
+
+/** 外部から一時停止（ストリームビューワー起動時など） */
+export function pauseMusicPlayer() {
+  if (_ytPlayer) { try { _ytPlayer.pauseVideo(); } catch (_) {} }
+}
+
+export function isMusicBarVisible() {
+  return !$('#music-bar')?.hidden;
+}
+
+/* ── 内部: トラック読み込み ─────────────────────────────────────────────── */
+
+function _loadTrack(idx) {
+  const video = _queue[idx];
+  if (!video) return;
+
+  _updateBarInfo(video);
+  _showBar();
+
+  const id = youtubeVideoId(video.url);
+  if (!id) return;
+
+  _onYtReady(() => {
+    const wrap = $('#mbar-video-wrap');
+    if (!wrap) return;
+
+    if (_ytPlayer) {
+      try { _ytPlayer.loadVideoById({ videoId: id, startSeconds: 0 }); return; } catch (_) {}
+    }
+
+    // 新規プレイヤー生成
+    wrap.innerHTML = '';
+    const div = document.createElement('div');
+    wrap.appendChild(div);
+    try {
+      _ytPlayer = new window.YT.Player(div, {
+        videoId: id,
+        width: '100%',
+        height: '100%',
+        playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1 },
+        events: {
+          onReady: () => _startProg(),
+          onStateChange: (ev) => {
+            const pl = ev.data === window.YT?.PlayerState?.PLAYING;
+            const btn = $('#mbar-play');
+            if (btn) btn.setAttribute('data-playing', pl ? '1' : '0');
+            if (pl) _startProg();
+            if (ev.data === window.YT?.PlayerState?.ENDED) playNext();
+          },
+        },
+      });
+    } catch (_) {}
+  });
+}
+
+function _updateBarInfo(video) {
+  const title = $('#mbar-title');
+  const sub   = $('#mbar-sub');
+  const badge = $('#mbar-type-badge');
+  const qi    = $('#mbar-queue-info');
+  const prev  = $('#mbar-prev');
+  const next  = $('#mbar-next');
+
+  if (title) title.textContent = video.title || '—';
+  if (sub)   sub.textContent   = video.type === 'cover' && video.originalArtist
+    ? video.originalArtist
+    : 'かなうオリジナル';
+  if (badge) {
+    badge.textContent = video.type === 'cover' ? 'カバー' : 'オリジナル';
+    badge.dataset.type = video.type;
+  }
+  if (qi)   qi.textContent = _queue.length > 1 ? `${_qIdx + 1} / ${_queue.length}` : '';
+  if (prev) prev.disabled = _queue.length <= 1;
+  if (next) next.disabled = _queue.length <= 1;
+}
+
+function _showBar() {
+  const bar = $('#music-bar');
+  if (!bar) return;
+  bar.hidden = false;
+  document.body.classList.add('has-music-bar');
+}
+
+function _togglePlay() {
+  if (!_ytPlayer) return;
+  try {
+    const st = _ytPlayer.getPlayerState?.();
+    if (st === window.YT?.PlayerState?.PLAYING) _ytPlayer.pauseVideo();
+    else _ytPlayer.playVideo();
+  } catch (_) {}
+}
+
+/* ── プログレスバー ──────────────────────────────────────────────────────── */
+
+function _startProg() {
+  _stopProg();
+  _progIv = setInterval(() => {
+    if (!_ytPlayer) return;
+    try {
+      const dur = _ytPlayer.getDuration?.() || 0;
+      const cur = _ytPlayer.getCurrentTime?.() || 0;
+      const pct = dur > 0 ? Math.min((cur / dur) * 100, 100) : 0;
+      const fill = $('#mbar-progress-fill');
+      if (fill) fill.style.width = `${pct}%`;
+    } catch (_) {}
+  }, 500);
+}
+
+function _stopProg() {
+  if (_progIv) { clearInterval(_progIv); _progIv = null; }
+}

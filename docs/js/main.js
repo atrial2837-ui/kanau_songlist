@@ -606,6 +606,8 @@ const _ytApiQueue = [];
 window.onYouTubeIframeAPIReady = () => {
   _ytApiReady = true;
   _ytApiQueue.splice(0).forEach(fn => fn());
+  // 音楽プレイヤーモジュールに YT API 準備完了を通知
+  import('./music-player.js').then(m => m.notifyYtReady()).catch(() => {});
 };
 
 function _loadYtApi() {
@@ -1353,6 +1355,8 @@ function openStreamViewer(stream, resumeAt = 0) {
     _miniDestroyPlayer();
   }
   _svLastStream = null;
+  // 音楽プレイヤーを一時停止
+  import('./music-player.js').then(m => m.pauseMusicPlayer()).catch(() => {});
 
   // 全画面中なら埋め込みに戻してから開く
   if (_svFullscreen) {
@@ -2020,6 +2024,7 @@ initSongModal();
 initMobileMenu();
 initPageTopToast();
 initWelcomeTip();
+import('./music-player.js').then(m => m.initMusicPlayer()).catch(() => {});
 
 // グローバル検索パレット初期化
 initSearchPalette((result) => {

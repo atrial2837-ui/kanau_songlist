@@ -486,7 +486,125 @@ async function initTimestamps() {
   loadTimestamps();
 }
 
+/* ─── 音楽動画管理 ───────────────────────────────────────────────────────── */
+
+let _mvVideos = [];
+
+function _youtubeThumb(url) {
+  try {
+    const id = new URL(url).searchParams.get('v') || new URL(url).pathname.split('/').pop();
+    return id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : '';
+  } catch (_) { return ''; }
+}
+
+function _renderMvList() {
+  const wrap = $('#mv-list-wrap');
+  const badge = $('#mv-count');
+  if (!wrap) return;
+  if (badge) badge.textContent = _mvVideos.length;
+  if (!_mvVideos.length) {
+    wrap.innerHTML = '<p class="admin-note">動画が登録されていません</p>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>ID</th><th>サムネ</th><th>タイトル</th><th>種別</th><th>元アーティスト</th><th>公開日</th><th></th></tr></thead>
+        <tbody>
+          ${_mvVideos.map((v, i) => `
+            <tr>
+              <td style="font-size:11px;color:var(--ink-mute)">${v.id}</td>
+              <td>${v.url ? `<img src="${_youtubeThumb(v.url)}" width="80" alt="" referrerpolicy="no-referrer" style="border-radius:4px">` : '—'}</td>
+              <td>${v.title || '—'}</td>
+              <td>${v.type === 'cover' ? 'カバー' : 'オリジナル'}</td>
+              <td>${v.originalArtist || '—'}</td>
+              <td>${v.publishedAt || '—'}</td>
+              <td><button class="btn ghost" data-mv-del="${i}" type="button" style="padding:4px 10px;font-size:12px">削除</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  wrap.querySelectorAll('[data-mv-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.mvDel);
+      if (!confirm(`「${_mvVideos[idx]?.title}」を削除しますか？`)) return;
+      _mvVideos.splice(idx, 1);
+      _saveMvData();
+    });
+  });
+}
+
+function _saveMvData() {
+  // サーバーサイドAPIなし: JSONをダウンロードしてリポジトリにコミットする
+  const json = JSON.stringify({ videos: _mvVideos }, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'music.json'; a.click();
+  URL.revokeObjectURL(url);
+  const status = $('#mv-status');
+  if (status) status.textContent = 'music.json をダウンロードしました。docs/data/ に上書きしてコミットしてください。';
+  _renderMvList();
+}
+
+function initMusicVideos() {
+  const addBtn = $('#mv-add-btn');
+  if (!addBtn) return;
+
+  // music.json を読み込む
+  fetch('/data/music.json')
+    .then(r => r.json())
+    .then(j => { _mvVideos = j.videos || []; _renderMvList(); })
+    .catch(() => { _mvVideos = []; _renderMvList(); });
+
+  $('#mv-download-btn')?.addEventListener('click', _saveMvData);
+
+  addBtn.addEventListener('click', () => {
+    const url     = $('#mv-url')?.value.trim();
+    const title   = $('#mv-title')?.value.trim();
+    const type    = $('#mv-type')?.value || 'original';
+    const artist  = $('#mv-artist')?.value.trim() || null;
+    const date    = $('#mv-date')?.value || '';
+    const manualId = $('#mv-id')?.value.trim();
+
+    if (!url || !title) {
+      const s = $('#mv-status');
+      if (s) s.textContent = 'URL とタイトルは必須です';
+      return;
+    }
+
+    const id = manualId || `mv${String(Date.now()).slice(-6)}`;
+    if (_mvVideos.find(v => v.id === id)) {
+      const s = $('#mv-status');
+      if (s) s.textContent = `ID "${id}" はすでに存在します`;
+      return;
+    }
+
+    _mvVideos.push({
+      id,
+      title,
+      type,
+      originalArtist: type === 'cover' ? artist : null,
+      channel: 'new',
+      url,
+      publishedAt: date || null,
+    });
+
+    // フォームリセット
+    ['mv-url','mv-title','mv-artist','mv-date','mv-id'].forEach(id => {
+      const el = $(`#${id}`);
+      if (el) el.value = '';
+    });
+
+    _saveMvData();
+  });
+}
+
+/* ─── 起動 ───────────────────────────────────────────────────────────────── */
+
 $('#refresh-status').addEventListener('click', loadStatus);
 initManagement();
 loadStatus();
 initTimestamps();
+initMusicVideos();

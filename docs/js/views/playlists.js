@@ -2,11 +2,12 @@
  * プレイリスト管理ビュー
  *
  * Sub-tabs:
- *   「歌枠一覧」 — 全配信枠をサムネグリッド表示（4列×6行、ページネーション）
- *   「マイリスト」— localStorage 保存のユーザー作成プレイリスト
+ *   「歌枠一覧」  — 全配信枠をサムネグリッド表示
+ *   「歌みた・オリ曲」— music.json の動画ライブラリ（グリッド/リスト/カテゴリ切替）
+ *   「マイリスト」 — localStorage 保存のユーザー作成プレイリスト
  *
  * localStorage データ形式:
- *   kanau-playlists = [{ id, name, createdAt, streams: [streamKey,...] }]
+ *   kanau-playlists = [{ id, name, createdAt, streams: [streamKey|"mv:<id>",...] }]
  */
 
 import { state } from '../store.js';
@@ -20,6 +21,8 @@ const PER_PAGE    = 24; // 4列 × 6行
 let _activeSubTab = 'all-streams';
 let _streamPage   = 1;
 let _streamSort   = 'newest';
+let _musicView    = 'grid';     // 'grid' | 'list' | 'category'
+let _musicVideos  = null;       // キャッシュ済み music.json の videos 配列
 
 /* ── データ操作（localStorage） ─────────────────────────────────────────── */
 
@@ -85,6 +88,9 @@ export function renderPlaylists() {
         <button class="pl-subtab${_activeSubTab === 'all-streams'  ? ' active' : ''}"
           data-pl-subtab="all-streams"  role="tab"
           aria-selected="${_activeSubTab === 'all-streams'}">歌枠一覧</button>
+        <button class="pl-subtab${_activeSubTab === 'music' ? ' active' : ''}"
+          data-pl-subtab="music" role="tab"
+          aria-selected="${_activeSubTab === 'music'}">歌みた・オリ曲</button>
         <button class="pl-subtab${_activeSubTab === 'my-playlists' ? ' active' : ''}"
           data-pl-subtab="my-playlists" role="tab"
           aria-selected="${_activeSubTab === 'my-playlists'}">
@@ -95,7 +101,9 @@ export function renderPlaylists() {
       <div class="pl-subtab-body" id="pl-subtab-body">
         ${_activeSubTab === 'all-streams'
           ? _renderAllStreams(allStreams, _streamPage)
-          : _renderMyPlaylists(allStreams)}
+          : _activeSubTab === 'music'
+            ? _renderMusicLoading()
+            : _renderMyPlaylists(allStreams)}
       </div>
     </div>
   `;
@@ -108,6 +116,7 @@ export function renderPlaylists() {
       _activeSubTab = subtabBtn.dataset.plSubtab;
       if (_activeSubTab === 'all-streams') _streamPage = 1;
       renderPlaylists();
+      if (_activeSubTab === 'music') _loadAndRenderMusic();
       return;
     }
 
@@ -125,6 +134,32 @@ export function renderPlaylists() {
     if (pageBtn && !pageBtn.disabled) {
       _streamPage = Number(pageBtn.dataset.plPage);
       _renderPageInPlace(allStreams);
+      return;
+    }
+
+    // ── 音楽ビュー切替 ──
+    const viewBtn = e.target.closest('[data-music-view]');
+    if (viewBtn) {
+      _musicView = viewBtn.dataset.musicView;
+      const body = $('#pl-subtab-body');
+      if (body && _musicVideos) body.innerHTML = _renderMusicLibrary(_musicVideos);
+      return;
+    }
+
+    // ── 音楽再生 ──
+    const playMusicBtn = e.target.closest('[data-play-music]');
+    if (playMusicBtn && _musicVideos?.length) {
+      const idx = Number(playMusicBtn.dataset.playMusic);
+      import('../music-player.js').then(m => m.playMusicQueue(_musicVideos, idx));
+      return;
+    }
+
+    // ── 音楽動画をプレイリストに追加 ──
+    const addMvBtn = e.target.closest('[data-playlist-add-mv]');
+    if (addMvBtn) {
+      const mvId    = addMvBtn.dataset.playlistAddMv;
+      const title   = addMvBtn.dataset.streamTitle || '';
+      showAddToPlaylistModal('mv:' + mvId, title);
       return;
     }
 
@@ -235,6 +270,141 @@ function _renderPageInPlace(allStreams) {
   body.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/* ── 歌みた・オリ曲ライブラリ ──────────────────────────────────────────── */
+
+function _renderMusicLoading() {
+  return `<div class="pl-empty-state"><p>読み込み中…</p></div>`;
+}
+
+async function _loadAndRenderMusic() {
+  if (_musicVideos === null) {
+    try {
+      const res = await fetch('/data/music.json');
+      const json = await res.json();
+      _musicVideos = json.videos || [];
+    } catch (_) {
+      _musicVideos = [];
+    }
+  }
+  const body = $('#pl-subtab-body');
+  if (body && _activeSubTab === 'music') {
+    body.innerHTML = _renderMusicLibrary(_musicVideos);
+  }
+}
+
+function _renderMusicLibrary(videos) {
+  const viewBar = `
+    <div class="pl-music-viewbar">
+      <span class="pl-music-count">${videos.length}件</span>
+      <div class="pl-music-views">
+        <button class="pl-music-view-btn${_musicView === 'grid'     ? ' active' : ''}" data-music-view="grid"     type="button">グリッド</button>
+        <button class="pl-music-view-btn${_musicView === 'list'     ? ' active' : ''}" data-music-view="list"     type="button">リスト</button>
+        <button class="pl-music-view-btn${_musicView === 'category' ? ' active' : ''}" data-music-view="category" type="button">カテゴリ</button>
+      </div>
+    </div>`;
+
+  if (!videos.length) {
+    return `${viewBar}<div class="pl-empty-state"><p>動画が登録されていません</p><p class="pl-empty-hint">管理画面から登録できます</p></div>`;
+  }
+
+  if (_musicView === 'grid')     return viewBar + _renderMusicGrid(videos);
+  if (_musicView === 'list')     return viewBar + _renderMusicList(videos);
+  if (_musicView === 'category') return viewBar + _renderMusicCategory(videos);
+  return viewBar + _renderMusicGrid(videos);
+}
+
+function _musicCard(video, globalIdx) {
+  const thumb = youtubeThumb(video.url);
+  const thumbFb = youtubeThumbFallback(video.url);
+  const badge = video.type === 'cover' ? 'カバー' : 'オリジナル';
+  const badgeClass = video.type === 'cover' ? 'mv-badge-cover' : 'mv-badge-original';
+  const sub = video.type === 'cover' && video.originalArtist ? video.originalArtist : 'かなう';
+  return `
+    <div class="mv-card">
+      <button class="mv-card-thumb-btn" type="button" data-play-music="${globalIdx}" aria-label="再生">
+        ${thumb
+          ? `<img class="mv-card-thumb" src="${escapeHtml(thumb)}" data-fallback="${escapeHtml(thumbFb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+          : '<div class="mv-card-thumb mv-card-thumb-placeholder"></div>'}
+        <span class="mv-card-play-icon">▶</span>
+        <span class="mv-type-badge ${badgeClass}">${badge}</span>
+      </button>
+      <div class="mv-card-info">
+        <span class="mv-card-title">${escapeHtml(video.title || '—')}</span>
+        <span class="mv-card-sub">${escapeHtml(sub)}</span>
+      </div>
+      <div class="mv-card-actions">
+        <button class="mv-add-btn" type="button"
+          data-playlist-add-mv="${escapeHtml(video.id)}"
+          data-stream-title="${escapeHtml(video.title || '')}"
+          title="プレイリストに追加">＋</button>
+      </div>
+    </div>`;
+}
+
+function _musicListRow(video, globalIdx) {
+  const badge = video.type === 'cover' ? 'カバー' : 'オリジナル';
+  const badgeClass = video.type === 'cover' ? 'mv-badge-cover' : 'mv-badge-original';
+  const sub = video.type === 'cover' && video.originalArtist ? video.originalArtist : 'かなう';
+  return `
+    <div class="mv-list-row">
+      <span class="mv-list-num">${globalIdx + 1}</span>
+      <button class="mv-list-play" type="button" data-play-music="${globalIdx}" aria-label="再生">▶</button>
+      <div class="mv-list-info">
+        <span class="mv-list-title">${escapeHtml(video.title || '—')}</span>
+        <span class="mv-list-sub">${escapeHtml(sub)}</span>
+      </div>
+      <span class="mv-type-badge ${badgeClass}">${badge}</span>
+      <button class="mv-add-btn" type="button"
+        data-playlist-add-mv="${escapeHtml(video.id)}"
+        data-stream-title="${escapeHtml(video.title || '')}"
+        title="プレイリストに追加">＋</button>
+    </div>`;
+}
+
+function _renderMusicGrid(videos) {
+  return `<div class="mv-grid">${videos.map((v, i) => _musicCard(v, i)).join('')}</div>`;
+}
+
+function _renderMusicList(videos) {
+  return `<div class="mv-list">${videos.map((v, i) => _musicListRow(v, i)).join('')}</div>`;
+}
+
+function _renderMusicCategory(videos) {
+  // カテゴリビューでは全動画リストのインデックスをそのまま使う
+  const originals = videos
+    .map((v, i) => ({ v, i }))
+    .filter(({ v }) => v.type === 'original');
+  const covers = videos
+    .map((v, i) => ({ v, i }))
+    .filter(({ v }) => v.type === 'cover');
+
+  return `
+    <div class="mv-category">
+      <div class="mv-cat-section">
+        <h3 class="mv-cat-heading">オリジナル曲 <span class="mv-cat-count">${originals.length}</span></h3>
+        ${originals.length
+          ? `<div class="mv-grid">${originals.map(({ v, i }) => _musicCard(v, i)).join('')}</div>`
+          : '<p class="mv-cat-empty">なし</p>'}
+      </div>
+      <div class="mv-cat-section">
+        <h3 class="mv-cat-heading">カバー曲（歌みた） <span class="mv-cat-count">${covers.length}</span></h3>
+        ${covers.length
+          ? `<div class="mv-grid">${covers.map(({ v, i }) => _musicCard(v, i)).join('')}</div>`
+          : '<p class="mv-cat-empty">なし</p>'}
+      </div>
+    </div>`;
+}
+
+/** 外部から music.json キャッシュにアクセス */
+export function getMusicVideos() { return _musicVideos || []; }
+
+/** 音楽 playlist item ("mv:<id>") から動画オブジェクトを解決 */
+export function resolveMusicVideoId(mvKey) {
+  if (!mvKey?.startsWith('mv:')) return null;
+  const id = mvKey.slice(3);
+  return (_musicVideos || []).find(v => v.id === id) || null;
+}
+
 /* ── マイリスト ────────────────────────────────────────────────────────── */
 
 function _renderMyPlaylists(allStreams) {
@@ -261,44 +431,62 @@ function _renderMyPlaylists(allStreams) {
 }
 
 function _renderPlaylistCard(pl, allStreams) {
-  const streams = pl.streams.map(skey => ({
-    skey,
-    stream: allStreams.find(s => streamKey(s) === skey),
-  }));
+  const entries = pl.streams.map(skey => {
+    const isMv = skey.startsWith('mv:');
+    const mv   = isMv ? resolveMusicVideoId(skey) : null;
+    return { skey, isMv, mv, stream: isMv ? null : allStreams.find(s => streamKey(s) === skey) };
+  });
 
-  const coverThumbs = streams
-    .filter(({ stream }) => stream?.url)
-    .slice(0, 1)
-    .map(({ stream }) => {
-      const thumb = youtubeThumb(stream.url);
-      return thumb
-        ? `<img class="pl-card-cover" src="${escapeHtml(thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
-        : '';
-    }).join('');
+  const firstUrl = entries.find(({ stream, mv }) => stream?.url || mv?.url)?.stream?.url
+    || entries.find(({ mv }) => mv?.url)?.mv?.url;
+  const coverThumbs = firstUrl
+    ? `<img class="pl-card-cover" src="${escapeHtml(youtubeThumb(firstUrl))}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+    : '';
 
-  const totalItems = streams.length;
-  const items = streams.map(({ skey, stream }, rowIdx) => {
+  const totalItems = entries.length;
+  const items = entries.map(({ skey, isMv, mv, stream }, rowIdx) => {
     const moveKey = escapeHtml(pl.id + '|:|' + skey);
+    const sortBtns = `
+      <div class="pl-sort-btns">
+        <button class="pl-sort-btn" data-pl-move="${moveKey}|:|up"
+          type="button" title="上へ" ${rowIdx === 0 ? 'disabled' : ''}>↑</button>
+        <button class="pl-sort-btn" data-pl-move="${moveKey}|:|down"
+          type="button" title="下へ" ${rowIdx === totalItems - 1 ? 'disabled' : ''}>↓</button>
+      </div>`;
+    const rmBtn = `<button class="pl-rm-btn" data-pl-rm-stream="${moveKey}" type="button" title="削除">✕</button>`;
+
+    if (isMv) {
+      if (!mv) return `
+        <div class="pl-stream-row pl-stream-missing">${sortBtns}
+          <span class="pl-stream-title">（動画データなし）</span>${rmBtn}
+        </div>`;
+      const badge = mv.type === 'cover' ? 'カバー' : 'オリジナル';
+      const sub   = mv.type === 'cover' && mv.originalArtist ? mv.originalArtist : 'かなう';
+      const mvIdx = (_musicVideos || []).indexOf(mv);
+      return `
+        <div class="pl-stream-row">
+          ${sortBtns}
+          <div class="pl-stream-info">
+            <span class="pl-stream-date"><span class="mv-badge-inline mv-type-${mv.type}">${badge}</span></span>
+            <span class="pl-stream-title">${escapeHtml(mv.title || '—')}</span>
+            <span class="pl-stream-meta">${escapeHtml(sub)}</span>
+          </div>
+          <div class="pl-stream-actions">
+            ${mvIdx >= 0
+              ? `<button class="pl-play-stream-btn" data-play-music-pl="${mvIdx}" type="button" title="再生">▶</button>`
+              : ''}
+            ${rmBtn}
+          </div>
+        </div>`;
+    }
+
     if (!stream) return `
-      <div class="pl-stream-row pl-stream-missing">
-        <div class="pl-sort-btns">
-          <button class="pl-sort-btn" data-pl-move="${moveKey}|:|up"
-            type="button" title="上へ" ${rowIdx === 0 ? 'disabled' : ''}>↑</button>
-          <button class="pl-sort-btn" data-pl-move="${moveKey}|:|down"
-            type="button" title="下へ" ${rowIdx === totalItems - 1 ? 'disabled' : ''}>↓</button>
-        </div>
-        <span class="pl-stream-title">（配信データなし）</span>
-        <button class="pl-rm-btn" data-pl-rm-stream="${moveKey}"
-          type="button" title="削除">✕</button>
+      <div class="pl-stream-row pl-stream-missing">${sortBtns}
+        <span class="pl-stream-title">（配信データなし）</span>${rmBtn}
       </div>`;
     return `
       <div class="pl-stream-row">
-        <div class="pl-sort-btns">
-          <button class="pl-sort-btn" data-pl-move="${moveKey}|:|up"
-            type="button" title="上へ" ${rowIdx === 0 ? 'disabled' : ''}>↑</button>
-          <button class="pl-sort-btn" data-pl-move="${moveKey}|:|down"
-            type="button" title="下へ" ${rowIdx === totalItems - 1 ? 'disabled' : ''}>↓</button>
-        </div>
+        ${sortBtns}
         <div class="pl-stream-info">
           <span class="pl-stream-date">${fmtDate(stream.date)}</span>
           <span class="pl-stream-title">${escapeHtml(stream.title || '配信')}</span>
@@ -309,15 +497,17 @@ function _renderPlaylistCard(pl, allStreams) {
             ? `<button class="pl-play-stream-btn" data-pl-play-stream="${escapeHtml(skey)}"
                 type="button" title="再生">▶</button>`
             : ''}
-          <button class="pl-rm-btn" data-pl-rm-stream="${moveKey}"
-            type="button" title="削除">✕</button>
+          ${rmBtn}
         </div>
       </div>`;
   }).join('');
 
-  // YouTube共有可能な動画IDを収集
-  const videoIds = streams
-    .map(({ stream }) => stream?.url ? youtubeVideoId(stream.url) : '')
+  // YouTube共有可能な動画IDを収集（stream のみ、mv: は除外）
+  const videoIds = entries
+    .map(({ stream, mv }) => {
+      const url = stream?.url || mv?.url;
+      return url ? youtubeVideoId(url) : '';
+    })
     .filter(Boolean);
 
   return `
@@ -327,7 +517,7 @@ function _renderPlaylistCard(pl, allStreams) {
         <div class="pl-card-head-info">
           <button class="pl-card-name" data-pl-rename="${escapeHtml(pl.id)}"
             type="button" title="クリックで名前変更">${escapeHtml(pl.name)}</button>
-          <span class="pl-card-count">${pl.streams.length}枠</span>
+          <span class="pl-card-count">${pl.streams.length}件</span>
         </div>
         <button class="pl-del-btn" data-pl-del="${escapeHtml(pl.id)}"
           type="button" title="プレイリストを削除">🗑</button>
@@ -377,6 +567,13 @@ function _handleMyPlaylistsClick(e, allStreams) {
     const skey = playBtn.dataset.plPlayStream;
     const found = allStreams.find(s => streamKey(s) === skey);
     if (found?.url) window.__openStreamViewer?.(found);
+    return;
+  }
+  // 再生（プレイリスト内の音楽動画）
+  const playMvBtn = e.target.closest('[data-play-music-pl]');
+  if (playMvBtn && _musicVideos?.length) {
+    const idx = Number(playMvBtn.dataset.playMusicPl);
+    import('../music-player.js').then(m => m.playMusicQueue(_musicVideos, idx));
     return;
   }
   // プレイリスト名変更
