@@ -316,7 +316,7 @@ function _renderMusicLibrary(videos) {
 function _mvBadge(video) {
   switch (video.type) {
     case 'cover':     return { label: 'カバー',    cls: 'mv-badge-cover',     sub: video.originalArtist || 'カバー曲' };
-    case 'office':    return { label: '事務所',    cls: 'mv-badge-office',    sub: '事務所オリ曲' };
+    case 'office':    return { label: 'Re:AcT',    cls: 'mv-badge-office',    sub: 'Re:AcT' };
     case 'character': return { label: 'キャラ',    cls: 'mv-badge-character', sub: video.character || 'キャラソン' };
     default:          return { label: 'オリジナル', cls: 'mv-badge-original',  sub: 'かなう' };
   }

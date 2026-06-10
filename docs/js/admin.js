@@ -512,7 +512,7 @@ function _renderMvList() {
         <thead><tr><th>ID</th><th>サムネ</th><th>タイトル</th><th>種別</th><th>追加情報</th><th>公開日</th><th></th></tr></thead>
         <tbody>
           ${_mvVideos.map((v, i) => {
-            const typeLabel = { original: 'オリ曲', office: '事務所', character: 'キャラ', cover: 'カバー' }[v.type] || v.type;
+            const typeLabel = { original: 'オリ曲', office: 'Re:AcT', character: 'キャラ', cover: 'カバー' }[v.type] || v.type;
             const extra = v.type === 'cover' ? (v.originalArtist || '—') : v.type === 'character' ? (v.character || '—') : '—';
             return `
             <tr>
@@ -602,7 +602,9 @@ function initMusicVideos() {
       if (el) el.value = '';
     });
 
-    _saveMvData();
+    _renderMvList();
+    const status = $('#mv-status');
+    if (status) status.textContent = `「${title}」を追加しました。準備ができたら「music.json をダウンロード」してください。`;
   });
 }
 

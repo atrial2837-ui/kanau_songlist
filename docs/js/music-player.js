@@ -192,12 +192,12 @@ function _updateBarInfo(video) {
   if (title) title.textContent = video.title || '—';
   if (sub) {
     if (video.type === 'cover')         sub.textContent = video.originalArtist || 'カバー曲';
-    else if (video.type === 'office')   sub.textContent = '事務所オリ曲';
+    else if (video.type === 'office')   sub.textContent = 'Re:AcT';
     else if (video.type === 'character') sub.textContent = video.character || 'キャラソン';
     else                                sub.textContent = 'かなうオリジナル';
   }
   if (badge) {
-    const labels = { original: 'オリジナル', office: '事務所', character: 'キャラ', cover: 'カバー' };
+    const labels = { original: 'オリジナル', office: 'Re:AcT', character: 'キャラ', cover: 'カバー' };
     badge.textContent = labels[video.type] || 'オリジナル';
     badge.dataset.type = video.type;
   }
