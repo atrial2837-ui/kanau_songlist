@@ -425,6 +425,7 @@ function _miniStopProgress() {
 function _miniStartProgress() {
   _miniStopProgress();
   _miniProgressInterval = setInterval(() => {
+    _syncMiniPos(); // ミニ化中の座標ずれを常時補正（非ミニ化時は no-op）
     if (!_miniPlayer) return;
     try {
       const dur = _miniPlayer.getDuration?.() || 0;
@@ -504,7 +505,11 @@ function _svMinify() {
   document.body.style.overflow = '';
 
   hidePlayerPanel();
+  // タブ切替直後のリフローやアニメーションで座標がずれるため多段同期
   _syncMiniPos();
+  requestAnimationFrame(_syncMiniPos);
+  setTimeout(_syncMiniPos, 120);
+  setTimeout(_syncMiniPos, 400);
   window.addEventListener('resize', _syncMiniPos);
   _miniStartProgress();
   try {

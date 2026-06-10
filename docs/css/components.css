@@ -4750,8 +4750,19 @@ body.has-music-bar { padding-bottom: 72px; }
 /* position:fixed をビューポート基準にする（全画面時と同じ手法） */
 body.has-sv-mini .container { z-index: auto; }
 
-/* タブが非アクティブでも #panel-player を描画させ iframe を生かす */
-body.has-sv-mini #panel-player { display: block; }
+/* タブが非アクティブでも #panel-player を描画させ iframe を生かす。
+   min-height / background はレイアウトに空白を作るため打ち消す（上詰め）。
+   transform（fadeIn アニメ由来）が残ると position:fixed の基準が
+   ビューポートでなくなり座標がずれるため必ず無効化する */
+body.has-sv-mini #panel-player:not(.active) {
+  display: block;
+  min-height: 0;
+  height: 0;
+  background: none;
+  overflow: visible;
+  animation: none;
+  transform: none;
+}
 
 /* ビューワー本体はレイアウトから消す（display:none は不可 — iframe が落ちる） */
 #stream-viewer.sv-minified {
