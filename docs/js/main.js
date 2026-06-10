@@ -1489,14 +1489,13 @@ function openStreamViewer(stream, resumeAt = 0) {
   initStreamViewer();
   _loadYtApi();
 
-  // ミニプレイヤーを閉じてストリームコンテキストをクリア
+  // ミニプレイヤーが表示中なら即時破棄（同一ページで2プレイヤー競合を防ぐ）
   const miniPanel = $('#yt-player-panel');
-  const hasMiniPlaying = !!(miniPanel && !miniPanel.hidden && _miniPlayer);
-  if (!hasMiniPlaying && miniPanel && !miniPanel.hidden) {
+  if (miniPanel && !miniPanel.hidden) {
+    try { _miniPlayer?.pauseVideo(); } catch (_) {}
     miniPanel.hidden = true;
     _miniDestroyPlayer();
   }
-  // hasMiniPlaying の場合: ストリームが再生開始するまでミニを維持（シームレス引き継ぎ）
   _svLastStream = null;
   // 音楽プレイヤーを一時停止
   import('./music-player.js').then(m => m.pauseMusicPlayer()).catch(() => {});
@@ -1567,25 +1566,11 @@ function openStreamViewer(stream, resumeAt = 0) {
 
   const startSec = Math.floor(resumeAt);
 
-  // ミニが存続中の場合: ストリームが再生開始しなければ5秒後に強制終了
-  let miniCleanupTimer = null;
-  if (hasMiniPlaying) {
-    miniCleanupTimer = setTimeout(() => {
-      if (miniPanel && !miniPanel.hidden) { miniPanel.hidden = true; _miniDestroyPlayer(); }
-    }, 5000);
-  }
-  const _destroyMiniOnHandoff = () => {
-    if (!hasMiniPlaying) return;
-    if (miniCleanupTimer) { clearTimeout(miniCleanupTimer); miniCleanupTimer = null; }
-    if (miniPanel && !miniPanel.hidden) { miniPanel.hidden = true; _miniDestroyPlayer(); }
-  };
-
   _onYtReady(() => {
     if (gen !== _svGen || viewer.hidden) return;
     wrap.innerHTML = '';
     const playerDiv = document.createElement('div');
     wrap.appendChild(playerDiv);
-    let _miniDestroyed = false;
     try {
       _svPlayer = new window.YT.Player(playerDiv, {
         videoId: id,
@@ -1613,8 +1598,6 @@ function openStreamViewer(stream, resumeAt = 0) {
             if (gen !== _svGen) return;
             if (event.data === window.YT.PlayerState.PLAYING) {
               try { event.target.setPlaybackQuality('hd1080'); } catch (_) {}
-              // ストリーム再生開始 → ミニを停止（音途切れなし）
-              if (!_miniDestroyed) { _miniDestroyed = true; _destroyMiniOnHandoff(); }
             }
             if (event.data === window.YT.PlayerState.ENDED && _svAutoPlay) {
               _svPlayNext();
@@ -1622,13 +1605,11 @@ function openStreamViewer(stream, resumeAt = 0) {
           },
           onError: () => {
             if (gen !== _svGen) return;
-            if (!_miniDestroyed) { _miniDestroyed = true; _destroyMiniOnHandoff(); }
             wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0${startSec > 0 ? `&start=${startSec}` : ''}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
           },
         },
       });
     } catch (_) {
-      _destroyMiniOnHandoff();
       wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0${startSec > 0 ? `&start=${startSec}` : ''}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
     }
   });
@@ -1698,18 +1679,18 @@ function closeStreamViewer({ instant = false } = {}) {
         try {
           _miniPlayer = new window.YT.Player(playerDiv, {
             videoId, width: '100%', height: '100%',
-            playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1 },
+            playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1, start: Math.floor(rt) },
             events: {
               onReady: (ev) => {
                 const v = _storedVol();
-                try { ev.target.setVolume(v); ev.target.seekTo(rt, true); ev.target.playVideo(); } catch (_) {}
+                try { ev.target.setVolume(v); } catch (_) {}
                 _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, v);
-                _miniStartProgress();
               },
               onStateChange: (ev) => {
                 const isPlaying = ev.data === window.YT?.PlayerState?.PLAYING;
                 const btn = $('#yt-mini-play');
                 if (btn) btn.setAttribute('data-playing', isPlaying ? '1' : '0');
+                if (isPlaying) _miniStartProgress();
               },
             },
           });
@@ -1771,6 +1752,7 @@ function closeStreamViewer({ instant = false } = {}) {
 
     _onYtReady(() => {
       if (gen !== _svGen) { clearTimeout(fallback); viewer.classList.remove('sv-to-mini'); delete viewer.dataset.svTransitioning; return; }
+      const rt = _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000;
       const playerDiv = document.createElement('div');
       container.appendChild(playerDiv);
       try {
@@ -1778,12 +1760,11 @@ function closeStreamViewer({ instant = false } = {}) {
           videoId,
           width: '100%',
           height: '100%',
-          playerVars: { autoplay: 0, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1 },
+          playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1, start: Math.floor(rt) },
           events: {
             onReady: (ev) => {
-              const rt = _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000;
               const v = _storedVol();
-              try { ev.target.setVolume(v); ev.target.seekTo(rt, true); ev.target.playVideo(); } catch (_) {}
+              try { ev.target.setVolume(v); } catch (_) {}
               _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, v);
             },
             onStateChange: (ev) => {
@@ -1791,7 +1772,6 @@ function closeStreamViewer({ instant = false } = {}) {
               const btn = $('#yt-mini-play');
               if (btn) btn.setAttribute('data-playing', isPlaying ? '1' : '0');
               if (isPlaying && gen === _svGen) {
-                // ミニが再生中 → ストリームをここで初めて停止（音途切れなし）
                 clearTimeout(fallback);
                 _finishClose();
                 _miniStartProgress();
