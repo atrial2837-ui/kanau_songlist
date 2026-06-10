@@ -622,15 +622,15 @@ function hidePlayerPanel() {
 }
 
 /** 埋め込み → 全画面に切り替え
- *  .container { z-index: 1 } がスタッキングコンテキストを作るため、
- *  全画面時は <body> 直下に移動してトップバーより前面に出す */
+ *  DOM を移動すると iframe がリロードされ再生位置がリセットされるため、
+ *  DOM は動かさず body クラスで .container の stacking context を解除して
+ *  position:fixed が root レベルで機能するようにする */
 function enterStreamFullscreen() {
   _svFullscreen = true;
   const viewer = $('#stream-viewer');
   if (!viewer) return;
-  // body 直下に移動 → z-index 競合を回避
-  document.body.appendChild(viewer);
   viewer.classList.add('sv-fullscreen');
+  document.body.classList.add('has-sv-fullscreen');
   document.body.style.overflow = 'hidden';
   const closeBtn = $('#sv-close');
   if (closeBtn) closeBtn.title = '通常表示に戻る（Esc）';
@@ -1327,11 +1327,8 @@ function openStreamViewer(stream, resumeAt = 0) {
   if (_svFullscreen) {
     _svFullscreen = false;
     const existingViewer = $('#stream-viewer');
-    if (existingViewer) {
-      existingViewer.classList.remove('sv-fullscreen');
-      const panelEl = $('#panel-player');
-      if (panelEl) panelEl.appendChild(existingViewer);
-    }
+    if (existingViewer) existingViewer.classList.remove('sv-fullscreen');
+    document.body.classList.remove('has-sv-fullscreen');
     document.body.style.overflow = '';
   }
   _svFullscreen = false;
@@ -1428,10 +1425,8 @@ function closeStreamViewer() {
   if (_svFullscreen) {
     _svFullscreen = false;
     viewer.classList.remove('sv-fullscreen');
+    document.body.classList.remove('has-sv-fullscreen');
     document.body.style.overflow = '';
-    // #panel-player に戻す
-    const panelEl = $('#panel-player');
-    if (panelEl) panelEl.appendChild(viewer);
     const closeBtn = $('#sv-close');
     if (closeBtn) closeBtn.title = 'ミニプレイヤーで再生を続けながら戻ります（Esc）';
     const fsBtn = $('#sv-fullscreen-btn');

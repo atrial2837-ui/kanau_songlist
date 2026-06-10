@@ -1545,6 +1545,11 @@ mark.hl {
 
 #stream-viewer[hidden] { display: none; }
 
+/* 全画面時: DOM を移動せず CSS だけで fullscreen 化する。
+   .container が z-index:1 で stacking context を作るため、
+   body クラスで z-index:auto に戻し position:fixed が root 基準になるようにする */
+body.has-sv-fullscreen .container { z-index: auto; }
+
 /* ── 全画面モード（.sv-fullscreen クラスで切り替え） ── */
 #stream-viewer.sv-fullscreen {
   position: fixed !important;
