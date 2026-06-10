@@ -166,6 +166,16 @@ async function renderTab(tab = state.activeTab, options = {}) {
 
 function activateTab(tab, options = {}) {
   if (!isValidTab(tab)) tab = 'dashboard';
+
+  // ブラウザ操作などで埋め込みモードのままタブ切替が来た場合、ミニプレイヤーへ引き継ぐ
+  const streamViewer = $('#stream-viewer');
+  if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen) {
+    _epPrevTab = tab;
+    _pendingTabOptions = options;
+    closeStreamViewer();
+    return;
+  }
+
   state.activeTab = tab;
   syncActiveTabUi(tab);
   if (options.updateUrl !== false) writeUrlState({ tab });
@@ -454,6 +464,24 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
     window.open(String(url || ''), '_blank', 'noopener');
     return;
   }
+
+  // 埋め込みモードでビューワーが開いていたら、ミニプレイヤーへの引き継ぎなしで閉じる
+  {
+    const svViewer = $('#stream-viewer');
+    if (svViewer && !svViewer.hidden && !_svFullscreen) {
+      ++_svGen;
+      svViewer.hidden = true;
+      svViewer._currentStream = null;
+      _svPlayer = null;
+      const wrap = $('#sv-player-wrap');
+      if (wrap) wrap.innerHTML = '';
+      document.body.style.overflow = '';
+      _svLastStream = null;
+      _pendingTabOptions = {};
+      hidePlayerPanel();
+    }
+  }
+
   _loadYtApi();
   initYouTubePlayer();
   const container = $('#yt-player-container');
@@ -602,6 +630,7 @@ let _svMiniStartAt = 0;       // seconds into video when mini player started
 let _svMiniStartWallTime = 0; // Date.now() when mini player started
 let _svFullscreen = false;    // stream viewer が全画面モードか
 let _epPrevTab = 'timeline';  // 埋め込みプレイヤーを開く前のタブ
+let _pendingTabOptions = {};  // activateTab → closeStreamViewer → hidePlayerPanel に引き継ぐ options
 /** @type {Object<number, Array<{timeSeconds: number, note: string|null}>>} */
 let _svCommunityTs = {};      // songIndex → 承認済みコミュニティタイムスタンプ
 let _svAutoPlay = false;      // 連続再生フラグ
@@ -618,7 +647,9 @@ function showPlayerPanel() {
 
 /** 前のタブに戻る */
 function hidePlayerPanel() {
-  activateTab(_epPrevTab || 'timeline');
+  const opts = _pendingTabOptions;
+  _pendingTabOptions = {};
+  activateTab(_epPrevTab || 'timeline', opts);
 }
 
 /** 埋め込み → 全画面に切り替え
