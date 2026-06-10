@@ -371,6 +371,122 @@ function initManagement() {
   });
 }
 
+/* ── コミュニティタイムスタンプ審査 ──────────────────────────────────────── */
+
+let _tsFilter  = 'pending';
+let _tsData    = null; // loadAll() の結果キャッシュ（配信・曲名参照用）
+
+function fmtSeconds(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function resolveTs(item) {
+  const ch   = _tsData?.channels?.[item.channel_code];
+  const stream = ch?.streams?.find(s => s.index === item.stream_index);
+  const song   = stream?.songs?.[item.song_index];
+  return {
+    streamTitle: stream?.title || `第${item.stream_index}枠`,
+    songTitle:   song ? `${song.title} / ${song.artist || ''}` : `曲${item.song_index + 1}`,
+    date:        stream?.date || '',
+  };
+}
+
+function renderTimestamps(items) {
+  const wrap = $('#ts-table-wrap');
+  $('#ts-count').textContent = `${items.length}件`;
+  if (!items.length) {
+    wrap.innerHTML = '<p class="admin-note">該当する申請はありません</p>';
+    return;
+  }
+  wrap.innerHTML = `
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ch</th><th>配信</th><th>曲</th><th>時間</th><th>コメント</th><th>申請日</th>
+          ${_tsFilter === 'pending' ? '<th>操作</th>' : '<th>審査日</th>'}
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map(item => {
+          const { streamTitle, songTitle, date } = resolveTs(item);
+          const chLabel = item.channel_code === 'new' ? '新ch' : '旧ch';
+          const createdAt = item.created_at ? fmtDate(new Date(item.created_at)) : '—';
+          const reviewedAt = item.reviewed_at ? fmtDate(new Date(item.reviewed_at)) : '—';
+          const actionCell = _tsFilter === 'pending'
+            ? `<td>
+                <button class="btn ghost" data-ts-approve="${item.id}" type="button" style="margin-right:4px">承認</button>
+                <button class="btn ghost" data-ts-reject="${item.id}"  type="button">却下</button>
+               </td>`
+            : `<td>${reviewedAt}</td>`;
+          return `
+            <tr>
+              <td>${chLabel}</td>
+              <td title="${escapeHtml(streamTitle)}">${escapeHtml(streamTitle.length > 20 ? streamTitle.slice(0, 20) + '…' : streamTitle)}<br><small>${escapeHtml(date)}</small></td>
+              <td>${escapeHtml(songTitle)}</td>
+              <td><strong>${fmtSeconds(item.time_seconds)}</strong></td>
+              <td>${escapeHtml(item.submitter_note || '—')}</td>
+              <td>${createdAt}</td>
+              ${actionCell}
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function loadTimestamps() {
+  $('#ts-status').textContent = '読み込み中…';
+  $('#ts-table-wrap').innerHTML = '<p class="admin-note">読み込み中…</p>';
+  try {
+    const data = await adminApi(`timestamps?status=${_tsFilter}&limit=100`);
+    $('#ts-status').textContent = '';
+    renderTimestamps(data.items || []);
+  } catch (err) {
+    $('#ts-status').textContent = `エラー: ${err.message || err}`;
+    $('#ts-table-wrap').innerHTML = '';
+  }
+}
+
+async function initTimestamps() {
+  // 配信・曲名参照用にデータをキャッシュ
+  try { _tsData = await loadAll(); } catch (_) {}
+
+  document.querySelectorAll('.ts-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ts-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _tsFilter = btn.dataset.tsFilter;
+      loadTimestamps();
+    });
+  });
+
+  $('#ts-table-wrap').addEventListener('click', async (e) => {
+    const approveBtn = e.target.closest('[data-ts-approve]');
+    const rejectBtn  = e.target.closest('[data-ts-reject]');
+    if (!approveBtn && !rejectBtn) return;
+
+    const id     = approveBtn ? approveBtn.dataset.tsApprove : rejectBtn.dataset.tsReject;
+    const action = approveBtn ? 'approve' : 'reject';
+    const label  = approveBtn ? '承認' : '却下';
+
+    if (!confirm(`この申請を${label}しますか？`)) return;
+    $('#ts-status').textContent = `${label}中…`;
+    try {
+      await adminApi(`timestamps/${id}/${action}`, {});
+      $('#ts-status').textContent = `${label}しました`;
+      loadTimestamps();
+    } catch (err) {
+      $('#ts-status').textContent = `エラー: ${err.message || err}`;
+    }
+  });
+
+  loadTimestamps();
+}
+
 $('#refresh-status').addEventListener('click', loadStatus);
 initManagement();
 loadStatus();
+initTimestamps();
