@@ -505,6 +505,7 @@ function _svMinify() {
   document.body.style.overflow = '';
 
   hidePlayerPanel();
+  _svUpdateUrl();
   // タブ切替直後のリフローやアニメーションで座標がずれるため多段同期
   _syncMiniPos();
   requestAnimationFrame(_syncMiniPos);
@@ -535,6 +536,7 @@ function _svUnminify() {
   const panel = $('#yt-player-panel');
   if (panel) panel.hidden = true;
   showPlayerPanel();
+  _svUpdateUrl();
   setTimeout(() => { $('#sv-close')?.focus({ preventScroll: true }); }, 50);
   return true;
 }
@@ -555,7 +557,61 @@ function _svDiscardMini() {
   const panel = $('#yt-player-panel');
   if (panel) panel.hidden = true;
   _svLastStream = null;
+  _svUpdateUrl();
   return true;
+}
+
+// ─── ビューワーの URL 同期・共有 ─────────────────────────────────────────────
+
+/** ビューワーの表示状態を URL の ?v= に反映する（共有用ディープリンク） */
+function _svUpdateUrl() {
+  const viewer = $('#stream-viewer');
+  const open = viewer && !viewer.hidden && !viewer.classList.contains('sv-minified');
+  const id = open && viewer._currentStream?.url ? youtubeVideoId(viewer._currentStream.url) : '';
+  writeUrlState({ v: id || '', t: 0 }, { replace: true });
+}
+
+/** 現在の動画・再生位置の共有 URL を生成 */
+function _svShareUrl() {
+  const viewer = $('#stream-viewer');
+  const stream = viewer?._currentStream;
+  if (!stream?.url) return null;
+  const id = youtubeVideoId(stream.url);
+  if (!id) return null;
+  const t = Math.floor(_svPlayer?.getCurrentTime?.() ?? 0);
+  const params = new URLSearchParams();
+  params.set('v', id);
+  if (t > 5) params.set('t', String(t));
+  return { url: `${location.origin}${location.pathname}?${params}`, title: stream.title || '' };
+}
+
+/** URL の ?v= から配信/MV を探して開く（初回ロード時のディープリンク） */
+async function _maybeOpenSharedVideo() {
+  const url = readUrlState();
+  if (!url.v) return;
+  const v = url.v;
+  const t = url.t;
+
+  // 配信データから探す（全チャンネル横断）
+  try { await ensureFullData(); } catch (_) {}
+  const dsets = [];
+  if (state.channelData?.combined) dsets.push(state.channelData.combined);
+  Object.values(state.channelData?.channels || {}).forEach(d => { if (d) dsets.push(d); });
+  for (const ds of dsets) {
+    const found = (ds.streams || []).find(s => youtubeVideoId(s.url) === v);
+    if (found) { openStreamViewer(found, t); return; }
+  }
+
+  // MV（music.json）から探す
+  try {
+    const res = await fetch('data/music.json');
+    const music = await res.json();
+    const mv = (music?.videos || []).find(m => youtubeVideoId(m.url) === v);
+    if (mv) { openStreamViewer({ url: mv.url, title: mv.title, isMv: true }, t); return; }
+  } catch (_) {}
+
+  // データに無い動画でも MV モードで再生
+  openStreamViewer({ url: `https://www.youtube.com/watch?v=${v}`, title: '', isMv: true }, t);
 }
 
 // ─── YouTube IFrame API ───────────────────────────────────────────────────────
@@ -585,6 +641,7 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
         _svLastStream = null;
         _pendingTabOptions = {};
         hidePlayerPanel();
+        _svUpdateUrl();
       }
     }
   }
@@ -1442,6 +1499,7 @@ function initStreamViewer() {
           <button class="vol-btn" id="sv-vol-btn" type="button" aria-label="音量">🔊</button>
           <input class="vol-slider" id="sv-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
         </div>
+        <button class="sv-share-btn" id="sv-share-btn" type="button" title="この動画の共有リンクをコピー">🔗 共有</button>
         <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener">↗ YouTubeで開く</a>
       </div>
       <div class="sv-body">
@@ -1478,6 +1536,36 @@ function initStreamViewer() {
   panel.appendChild(el);
 
   $('#sv-close').addEventListener('click', () => closeStreamViewer());
+
+  // 共有ボタン: 再生位置付きリンクを共有（Web Share API → クリップボード）
+  $('#sv-share-btn').addEventListener('click', async () => {
+    const share = _svShareUrl();
+    if (!share) return;
+    if (navigator.share) {
+      try { await navigator.share({ title: share.title, url: share.url }); return; }
+      catch (_) { return; } // キャンセル時は何もしない
+    }
+    let ok = false;
+    try { await navigator.clipboard.writeText(share.url); ok = true; }
+    catch (_) {
+      // フォールバック: 一時 textarea + execCommand
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = share.url;
+        ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        ta.remove();
+      } catch (_) {}
+    }
+    const btn = $('#sv-share-btn');
+    if (btn) {
+      btn.textContent = ok ? '✓ コピーしました' : 'コピーできません';
+      btn.classList.add('sv-share-copied');
+      setTimeout(() => { btn.textContent = '🔗 共有'; btn.classList.remove('sv-share-copied'); }, 1600);
+    }
+  });
 
   // 全画面ボタン
   $('#sv-fullscreen-btn').addEventListener('click', enterStreamFullscreen);
@@ -1679,6 +1767,7 @@ function openStreamViewer(stream, resumeAt = 0) {
 
   viewer.hidden = false;
   document.body.style.overflow = ''; // 埋め込みモードではスクロールロックしない
+  _svUpdateUrl();
   // フォーカス先: 埋め込み時はスクロールを引き起こさないよう遅延
   setTimeout(() => { $('#sv-close')?.focus({ preventScroll: true }); }, 50);
 
@@ -1767,6 +1856,7 @@ function closeStreamViewer() {
   if (wrap) wrap.innerHTML = '';
   document.body.style.overflow = '';
   hidePlayerPanel();
+  _svUpdateUrl();
 }
 
 // プレイリストビューからストリームを開けるようにグローバル公開
@@ -2194,6 +2284,8 @@ async function init() {
       autoLoad: true,
       initial: true,
     });
+    // ?v= 付き URL → 該当の配信/MV をビューワーで開く（共有リンク）
+    _maybeOpenSharedVideo();
   } catch (e) {
     console.error('[init] failed:', e);
     showError(e);

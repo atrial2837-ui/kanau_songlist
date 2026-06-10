@@ -1,4 +1,4 @@
-import{I as j,J as x,K as b,d as p,e as $,f as u,i as r,t as m,u as y,v as f,w,x as M,y as k,z as H}from"./chunk-5JCHYUC5.js";function _(){let{songs:t,streams:d}=$.data,e=[...t].sort((o,h)=>h.count-o.count).slice(0,5),s=e[0]?.count||1,i=d.slice(0,5),c=p(),a=w(t,c),n=u("#panel-dashboard"),S=H(d,c),g=M(d).slice(-12),T=Math.max(1,...g.map(o=>o.songs)),L=`
+import{d as p,e as $}from"./chunk-RBEKY5OM.js";import{D as j,E as x,F as b,a as u,d as r,o as m,p as y,q as f,r as w,s as M,t as k,u as H}from"./chunk-FKVR6ZKV.js";function _(){let{songs:t,streams:d}=$.data,e=[...t].sort((o,h)=>h.count-o.count).slice(0,5),s=e[0]?.count||1,i=d.slice(0,5),c=p(),a=w(t,c),n=u("#panel-dashboard"),S=H(d,c),g=M(d).slice(-12),T=Math.max(1,...g.map(o=>o.songs)),L=`
     <div class="card dashboard-card dashboard-activity-card">
       <div class="card-title">\u{1F4C8} \u4ECA\u6708\u306E\u6D3B\u52D5</div>
       <div class="dashboard-metric-list">

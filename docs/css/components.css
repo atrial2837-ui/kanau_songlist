@@ -1794,6 +1794,36 @@ body.has-sv-fullscreen .container { z-index: auto; }
   text-decoration: none;
 }
 
+/* ── 共有ボタン ── */
+.sv-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.sv-share-btn:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
+.sv-share-btn.sv-share-copied {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
 /* ── Body ── */
 .sv-body {
   display: grid;
@@ -2197,6 +2227,7 @@ body.has-sv-fullscreen .container { z-index: auto; }
 
   .sv-close-btn { padding: 5px 10px; font-size: 11px; }
   .sv-yt-link   { padding: 5px 10px; font-size: 11px; }
+  .sv-share-btn { padding: 5px 10px; font-size: 11px; }
   .sv-bc-btn    { font-size: 10px; }
   .sv-bc-current { font-size: 10.5px; }
   .sv-stream-meta  { font-size: 10px; }
@@ -2245,6 +2276,18 @@ body.has-sv-fullscreen .container { z-index: auto; }
   color: #7ecfee;
 }
 #stream-viewer.sv-fullscreen .sv-yt-link:hover {
+  background: rgba(74, 178, 220, 0.28);
+  border-color: rgba(74, 178, 220, 0.7);
+  color: #b4e6f7;
+}
+
+#stream-viewer.sv-fullscreen .sv-share-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.72);
+}
+#stream-viewer.sv-fullscreen .sv-share-btn:hover,
+#stream-viewer.sv-fullscreen .sv-share-btn.sv-share-copied {
   background: rgba(74, 178, 220, 0.28);
   border-color: rgba(74, 178, 220, 0.7);
   color: #b4e6f7;
