@@ -385,12 +385,12 @@ function fmtSeconds(s) {
 }
 
 function resolveTs(item) {
-  const ch   = _tsData?.channels?.[item.channel_code];
-  const stream = ch?.streams?.find(s => s.index === item.stream_index);
-  const song   = stream?.songs?.[item.song_index];
+  const ch     = _tsData?.channels?.[item.channelCode];
+  const stream = ch?.streams?.find(s => Number(s.index) === Number(item.streamIndex));
+  const song   = stream?.songs?.[item.songIndex];
   return {
-    streamTitle: stream?.title || `第${item.stream_index}枠`,
-    songTitle:   song ? `${song.title} / ${song.artist || ''}` : `曲${item.song_index + 1}`,
+    streamTitle: stream?.title || `第${item.streamIndex}枠`,
+    songTitle:   song ? `${song.title} / ${song.artist || ''}` : `曲${item.songIndex + 1}`,
     date:        stream?.date || '',
   };
 }
@@ -413,9 +413,9 @@ function renderTimestamps(items) {
       <tbody>
         ${items.map(item => {
           const { streamTitle, songTitle, date } = resolveTs(item);
-          const chLabel = item.channel_code === 'new' ? '新ch' : '旧ch';
-          const createdAt = item.created_at ? fmtDate(new Date(item.created_at)) : '—';
-          const reviewedAt = item.reviewed_at ? fmtDate(new Date(item.reviewed_at)) : '—';
+          const chLabel = item.channelCode === 'new' ? '新ch' : '旧ch';
+          const createdAt  = item.createdAt  ? fmtDate(new Date(item.createdAt))  : '—';
+          const reviewedAt = item.reviewedAt ? fmtDate(new Date(item.reviewedAt)) : '—';
           const actionCell = _tsFilter === 'pending'
             ? `<td>
                 <button class="btn ghost" data-ts-approve="${item.id}" type="button" style="margin-right:4px">承認</button>
@@ -427,8 +427,8 @@ function renderTimestamps(items) {
               <td>${chLabel}</td>
               <td title="${escapeHtml(streamTitle)}">${escapeHtml(streamTitle.length > 20 ? streamTitle.slice(0, 20) + '…' : streamTitle)}<br><small>${escapeHtml(date)}</small></td>
               <td>${escapeHtml(songTitle)}</td>
-              <td><strong>${fmtSeconds(item.time_seconds)}</strong></td>
-              <td>${escapeHtml(item.submitter_note || '—')}</td>
+              <td><strong>${fmtSeconds(item.timeSeconds)}</strong></td>
+              <td>${escapeHtml(item.submitterNote || '—')}</td>
               <td>${createdAt}</td>
               ${actionCell}
             </tr>`;
