@@ -154,6 +154,15 @@ export function renderPlaylists() {
       return;
     }
 
+    // ── 動画視聴（ストリームビューワーで開く）──
+    const watchMusicBtn = e.target.closest('[data-watch-music]');
+    if (watchMusicBtn && _musicVideos?.length) {
+      const idx = Number(watchMusicBtn.dataset.watchMusic);
+      const video = _musicVideos[idx];
+      if (video?.url) window.__openStreamViewer?.({ url: video.url, title: video.title, isMv: true });
+      return;
+    }
+
     // ── 音楽動画をプレイリストに追加 ──
     const addMvBtn = e.target.closest('[data-playlist-add-mv]');
     if (addMvBtn) {
@@ -340,6 +349,9 @@ function _musicCard(video, globalIdx) {
         <span class="mv-card-sub">${escapeHtml(sub)}</span>
       </div>
       <div class="mv-card-actions">
+        <button class="mv-watch-btn" type="button" data-watch-music="${globalIdx}" title="動画で見る">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
+        </button>
         <button class="mv-add-btn" type="button"
           data-playlist-add-mv="${escapeHtml(video.id)}"
           data-stream-title="${escapeHtml(video.title || '')}"
@@ -359,6 +371,9 @@ function _musicListRow(video, globalIdx) {
         <span class="mv-list-sub">${escapeHtml(sub)}</span>
       </div>
       <span class="mv-type-badge ${badgeClass}">${badge}</span>
+      <button class="mv-watch-btn" type="button" data-watch-music="${globalIdx}" title="動画で見る">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
+      </button>
       <button class="mv-add-btn" type="button"
         data-playlist-add-mv="${escapeHtml(video.id)}"
         data-stream-title="${escapeHtml(video.title || '')}"
@@ -376,27 +391,24 @@ function _renderMusicList(videos) {
 
 function _renderMusicCategory(videos) {
   // カテゴリビューでは全動画リストのインデックスをそのまま使う
-  const originals = videos
-    .map((v, i) => ({ v, i }))
-    .filter(({ v }) => v.type === 'original');
-  const covers = videos
-    .map((v, i) => ({ v, i }))
-    .filter(({ v }) => v.type === 'cover');
+  const indexed = videos.map((v, i) => ({ v, i }));
+  const sections = [
+    { key: 'original',  label: 'オリジナル曲（個人）' },
+    { key: 'office',    label: 'Re:AcT オリ曲' },
+    { key: 'character', label: 'キャラソン / 声優オリ曲' },
+    { key: 'cover',     label: 'カバー曲（歌みた）' },
+  ].map(({ key, label }) => ({
+    label,
+    items: indexed.filter(({ v }) => v.type === key),
+  })).filter(({ items }) => items.length > 0);
 
   return `
     <div class="mv-category">
+      ${sections.map(({ label, items }) => `
       <div class="mv-cat-section">
-        <h3 class="mv-cat-heading">オリジナル曲 <span class="mv-cat-count">${originals.length}</span></h3>
-        ${originals.length
-          ? `<div class="mv-grid">${originals.map(({ v, i }) => _musicCard(v, i)).join('')}</div>`
-          : '<p class="mv-cat-empty">なし</p>'}
-      </div>
-      <div class="mv-cat-section">
-        <h3 class="mv-cat-heading">カバー曲（歌みた） <span class="mv-cat-count">${covers.length}</span></h3>
-        ${covers.length
-          ? `<div class="mv-grid">${covers.map(({ v, i }) => _musicCard(v, i)).join('')}</div>`
-          : '<p class="mv-cat-empty">なし</p>'}
-      </div>
+        <h3 class="mv-cat-heading">${label} <span class="mv-cat-count">${items.length}</span></h3>
+        <div class="mv-grid">${items.map(({ v, i }) => _musicCard(v, i)).join('')}</div>
+      </div>`).join('')}
     </div>`;
 }
 

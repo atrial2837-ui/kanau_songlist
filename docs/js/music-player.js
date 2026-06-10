@@ -19,6 +19,11 @@ let _progIv   = null;
 
 let _ytReady = false;
 const _ytQ   = [];
+let _apiLoader = null;
+
+const _storedVol = () => Math.max(0, Math.min(100, parseInt(localStorage.getItem('kanaVol') ?? '100') || 100));
+const _saveVol   = v  => localStorage.setItem('kanaVol', String(v));
+const _volIcon   = v  => v === 0 ? '🔇' : v < 50 ? '🔉' : '🔊';
 
 /* ── YT API 連携 ─────────────────────────────────────────────────────────── */
 
@@ -27,6 +32,9 @@ export function notifyYtReady() {
   _ytReady = true;
   _ytQ.splice(0).forEach(fn => fn());
 }
+
+/** main.js から _loadYtApi を注入する（循環 import 回避） */
+export function setApiLoader(fn) { _apiLoader = fn; }
 
 function _onYtReady(fn) {
   if (_ytReady && window.YT?.Player) { fn(); return; }
@@ -68,6 +76,13 @@ export function initMusicPlayer() {
         </button>
       </div>
       <div class="mbar-end">
+        <div class="mbar-volume">
+          <button class="vol-btn" id="mbar-vol-btn" type="button" aria-label="音量">🔊</button>
+          <input class="vol-slider" id="mbar-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
+        </div>
+        <button class="mbar-expand-btn" id="mbar-expand" type="button" title="動画で見る" aria-label="動画で見る">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
+        </button>
         <span class="mbar-queue-info" id="mbar-queue-info"></span>
         <button class="mbar-close-btn" id="mbar-close" type="button" aria-label="閉じる">✕</button>
       </div>
@@ -78,6 +93,41 @@ export function initMusicPlayer() {
   $('#mbar-prev').addEventListener('click', playPrev);
   $('#mbar-next').addEventListener('click', playNext);
   $('#mbar-close').addEventListener('click', closeMusicPlayer);
+
+  const volSlider = $('#mbar-vol-slider');
+  const volBtn    = $('#mbar-vol-btn');
+  if (volSlider) {
+    const v0 = _storedVol();
+    volSlider.value = v0;
+    volSlider.style.setProperty('--pct', `${v0}%`);
+    if (volBtn) volBtn.textContent = _volIcon(v0);
+    volSlider.addEventListener('input', e => {
+      const v = parseInt(e.target.value);
+      e.target.style.setProperty('--pct', `${v}%`);
+      _saveVol(v);
+      if (volBtn) volBtn.textContent = _volIcon(v);
+      if (_ytPlayer) try { _ytPlayer.setVolume(v); } catch (_) {}
+    });
+  }
+  if (volBtn) {
+    let _preMute = 80;
+    volBtn.addEventListener('click', () => {
+      if (!volSlider) return;
+      const cur = parseInt(volSlider.value);
+      const newV = cur > 0 ? 0 : (_preMute || 80);
+      if (cur > 0) _preMute = cur;
+      volSlider.value = newV;
+      volSlider.style.setProperty('--pct', `${newV}%`);
+      volBtn.textContent = _volIcon(newV);
+      if (_ytPlayer) try { _ytPlayer.setVolume(newV); } catch (_) {}
+    });
+  }
+
+  $('#mbar-expand').addEventListener('click', () => {
+    const video = _queue[_qIdx];
+    if (video?.url) window.__openStreamViewer?.({ url: video.url, title: video.title, isMv: true });
+  });
+
   $('#mbar-progress-track').addEventListener('click', (e) => {
     if (!_ytPlayer) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -148,6 +198,8 @@ function _loadTrack(idx) {
   const id = youtubeVideoId(video.url);
   if (!id) return;
 
+  if (_apiLoader) _apiLoader();
+
   _onYtReady(() => {
     const wrap = $('#mbar-video-wrap');
     if (!wrap) return;
@@ -167,7 +219,15 @@ function _loadTrack(idx) {
         height: '100%',
         playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1 },
         events: {
-          onReady: () => _startProg(),
+          onReady: ev => {
+            const v = _storedVol();
+            try { ev.target.setVolume(v); } catch (_) {}
+            const s = $('#mbar-vol-slider');
+            if (s) { s.value = v; s.style.setProperty('--pct', `${v}%`); }
+            const b = $('#mbar-vol-btn');
+            if (b) b.textContent = _volIcon(v);
+            _startProg();
+          },
           onStateChange: (ev) => {
             const pl = ev.data === window.YT?.PlayerState?.PLAYING;
             const btn = $('#mbar-play');

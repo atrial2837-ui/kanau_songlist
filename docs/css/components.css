@@ -4515,7 +4515,7 @@ body.has-music-bar { padding-bottom: 72px; }
 }
 .mv-list-row {
   display: grid;
-  grid-template-columns: 28px 30px 1fr auto auto;
+  grid-template-columns: 28px 30px 1fr auto auto auto;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
@@ -4588,12 +4588,103 @@ body.has-music-bar { padding-bottom: 72px; }
 .mv-badge-inline.mv-type-character { background: #ede9fe;              color: #5b21b6; }
 .mv-badge-inline.mv-type-cover     { background: var(--accent-soft);   color: var(--accent-strong);  }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   音量コントロール（共通）
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.vol-btn {
+  width: 28px; height: 28px;
+  border: none; background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer; font-size: 15px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  transition: color 0.12s, background 0.12s;
+  padding: 0; flex-shrink: 0;
+}
+.vol-btn:hover { color: var(--ink); background: var(--surface-3); }
+
+.vol-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 72px; height: 3px;
+  border-radius: 2px;
+  cursor: pointer; outline: none; flex-shrink: 0;
+  background: linear-gradient(
+    to right,
+    var(--primary) var(--pct, 100%),
+    var(--border-strong) var(--pct, 100%)
+  );
+}
+.vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.vol-slider::-moz-range-thumb {
+  width: 12px; height: 12px;
+  border-radius: 50%; border: none;
+  background: var(--primary); cursor: pointer;
+}
+
+/* 音楽バー: 音量 + 動画展開ボタン */
+.mbar-volume { display: flex; align-items: center; gap: 4px; }
+
+.mbar-expand-btn {
+  width: 28px; height: 28px;
+  border: none; background: transparent;
+  color: var(--ink-mute);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  transition: color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.mbar-expand-btn:hover { color: var(--primary); background: var(--primary-soft); }
+
+/* ストリームビューワー: 音量 */
+.sv-volume-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+/* ミニプレイヤー: 音量 */
+.yt-mini-vol-wrap { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.yt-mini-vol-wrap .vol-slider { width: 60px; }
+
+/* MV モード: セットリストパネルを非表示 */
+#stream-viewer.sv-mv-mode .sv-panel { display: none; }
+#stream-viewer.sv-mv-mode .sv-import-toggle { display: none; }
+#stream-viewer.sv-mv-mode .sv-cts-bulk-btn { display: none; }
+
+/* 動画で見るボタン */
+.mv-watch-btn {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-mute);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+.mv-watch-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.mv-card-actions { gap: 6px; }
+
 /* ── レスポンシブ ── */
 @media (max-width: 700px) {
   .mbar-body { grid-template-columns: 1fr auto; padding: 0 12px; }
   .mbar-end { display: none; }
   .mbar-video-wrap { width: 64px; height: 36px; }
   .mv-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .mv-list-row { grid-template-columns: 20px 28px 1fr auto; }
+  .mv-list-row { grid-template-columns: 20px 28px 1fr auto auto; }
   .mv-list-row .mv-type-badge { display: none; }
+}
+@media (max-width: 500px) {
+  .sv-volume-wrap .vol-slider { display: none; }
+  .yt-mini-vol-wrap .vol-slider { width: 44px; }
 }

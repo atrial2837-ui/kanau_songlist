@@ -172,7 +172,7 @@ function activateTab(tab, options = {}) {
   if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen) {
     _epPrevTab = tab;
     _pendingTabOptions = options;
-    closeStreamViewer();
+    closeStreamViewer({ instant: true });
     return;
   }
 
@@ -519,6 +519,9 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
         },
         events: {
           onReady: (event) => {
+            const v = _storedVol();
+            try { event.target.setVolume(v); } catch (_) {}
+            _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, v);
             if (startAt > 5) { try { event.target.seekTo(startAt, true); } catch (_) {} }
             _miniStartProgress();
           },
@@ -557,6 +560,10 @@ function initYouTubePlayer() {
         <span class="yt-mini-stream-title" id="yt-mini-title">インライン再生</span>
         <span class="yt-mini-hint" id="yt-mini-hint"></span>
       </button>
+      <div class="yt-mini-vol-wrap">
+        <button class="vol-btn" id="yt-mini-vol-btn" type="button" aria-label="音量">🔊</button>
+        <input class="vol-slider" id="yt-mini-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
+      </div>
       <button id="yt-player-close" type="button" class="yt-mini-close-btn" aria-label="閉じる">✕</button>
     </div>
   `;
@@ -596,6 +603,33 @@ function initYouTubePlayer() {
       if (dur > 0) _miniPlayer.seekTo(pct * dur, true);
     } catch (_) {}
   });
+
+  // 音量
+  const miniVolSlider = $('#yt-mini-vol-slider');
+  const miniVolBtn    = $('#yt-mini-vol-btn');
+  if (miniVolSlider) {
+    const v0 = _storedVol();
+    miniVolSlider.value = v0;
+    miniVolSlider.style.setProperty('--pct', `${v0}%`);
+    if (miniVolBtn) miniVolBtn.textContent = _volIcon(v0);
+    miniVolSlider.addEventListener('input', e => {
+      const v = parseInt(e.target.value);
+      e.target.style.setProperty('--pct', `${v}%`);
+      _saveVol(v);
+      if (miniVolBtn) miniVolBtn.textContent = _volIcon(v);
+      if (_miniPlayer) try { _miniPlayer.setVolume(v); } catch (_) {}
+    });
+  }
+  if (miniVolBtn) {
+    let _preMute = 80;
+    miniVolBtn.addEventListener('click', () => {
+      if (!miniVolSlider) return;
+      const cur = parseInt(miniVolSlider.value);
+      const newV = cur > 0 ? 0 : (_preMute || 80);
+      if (cur > 0) _preMute = cur;
+      _applyVol(miniVolSlider, miniVolBtn, _miniPlayer, newV);
+    });
+  }
 }
 
 // ─── YouTube IFrame API ───────────────────────────────────────────────────────
@@ -624,6 +658,16 @@ function _onYtReady(fn) {
 }
 
 // ─── Stream Viewer ────────────────────────────────────────────────────────────
+
+const _storedVol = () => Math.max(0, Math.min(100, parseInt(localStorage.getItem('kanaVol') ?? '100') || 100));
+const _saveVol   = v  => localStorage.setItem('kanaVol', String(v));
+const _volIcon   = v  => v === 0 ? '🔇' : v < 50 ? '🔉' : '🔊';
+
+function _applyVol(slider, btn, player, v) {
+  if (slider) { slider.value = v; slider.style.setProperty('--pct', `${v}%`); }
+  if (btn) btn.textContent = _volIcon(v);
+  if (player) try { player.setVolume(v); } catch (_) {}
+}
 
 let _svPlayer = null;
 let _svGen = 0;
@@ -1285,6 +1329,10 @@ function initStreamViewer() {
         </div>
         <button class="sv-fullscreen-btn" id="sv-fullscreen-btn" type="button"
           title="大画面で再生" aria-pressed="false">⛶</button>
+        <div class="sv-volume-wrap">
+          <button class="vol-btn" id="sv-vol-btn" type="button" aria-label="音量">🔊</button>
+          <input class="vol-slider" id="sv-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
+        </div>
         <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener">↗ YouTubeで開く</a>
       </div>
       <div class="sv-body">
@@ -1324,6 +1372,34 @@ function initStreamViewer() {
 
   // 全画面ボタン
   $('#sv-fullscreen-btn').addEventListener('click', enterStreamFullscreen);
+
+  // 音量
+  const svVolSlider = $('#sv-vol-slider');
+  const svVolBtn    = $('#sv-vol-btn');
+  if (svVolSlider) {
+    const v0 = _storedVol();
+    svVolSlider.value = v0;
+    svVolSlider.style.setProperty('--pct', `${v0}%`);
+    if (svVolBtn) svVolBtn.textContent = _volIcon(v0);
+    svVolSlider.addEventListener('input', e => {
+      const v = parseInt(e.target.value);
+      e.target.style.setProperty('--pct', `${v}%`);
+      _saveVol(v);
+      if (svVolBtn) svVolBtn.textContent = _volIcon(v);
+      if (_svPlayer) try { _svPlayer.setVolume(v); } catch (_) {}
+    });
+  }
+  if (svVolBtn) {
+    let _preMute = 80;
+    svVolBtn.addEventListener('click', () => {
+      if (!svVolSlider) return;
+      const cur = parseInt(svVolSlider.value);
+      const newV = cur > 0 ? 0 : (_preMute || 80);
+      if (cur > 0) _preMute = cur;
+      _applyVol(svVolSlider, svVolBtn, _svPlayer, newV);
+      _saveVol(newV);
+    });
+  }
 
   // パンくずナビゲーション
   el.querySelectorAll('[data-bc-tab]').forEach(btn => {
@@ -1440,25 +1516,45 @@ function openStreamViewer(stream, resumeAt = 0) {
 
   const viewer = $('#stream-viewer');
   viewer.classList.remove('sv-fullscreen');
+  viewer.classList.toggle('sv-mv-mode', !!stream.isMv);
   viewer._currentStream = stream;
   const gen = ++_svGen;
+
+  // パンくずリンクを用途に合わせて切り替え（MV: プレイリスト / 配信: タイムライン）
+  const bcBtns = viewer.querySelectorAll('[data-bc-tab]');
+  if (bcBtns[1]) {
+    if (stream.isMv) {
+      bcBtns[1].dataset.bcTab = 'playlists';
+      bcBtns[1].textContent = 'プレイリスト';
+    } else {
+      bcBtns[1].dataset.bcTab = 'timeline';
+      bcBtns[1].textContent = 'タイムライン';
+    }
+  }
 
   // パンくずタイトルを更新
   const bcTitleEl = $('#sv-bc-title');
   if (bcTitleEl) bcTitleEl.textContent = stream.title || '配信';
   const metaEl = $('#sv-stream-meta');
-  if (metaEl) metaEl.textContent = `${fmtDate(stream.date)}　第${stream.index}枠　🎤 ${stream.songs.length}曲`;
+  if (metaEl) metaEl.textContent = stream.isMv ? '' : `${fmtDate(stream.date)}　第${stream.index}枠　🎤 ${stream.songs.length}曲`;
   const ytLink = $('#sv-yt-link');
   if (ytLink) ytLink.href = stream.url;
   const songCount = $('#sv-song-count');
-  if (songCount) songCount.textContent = `${stream.songs.length}曲`;
+  if (songCount) songCount.textContent = stream.isMv ? '' : `${stream.songs.length}曲`;
 
-  _svCommunityTs = {}; // 前の配信のコミュニティタイムスタンプをリセット
-  const ts = _svLoadTs(stream);
-  _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
-  // コミュニティタイムスタンプを非同期取得（取得完了後にセットリストを再描画）
-  _svLoadCommunityTs(stream);
-  _svRenderBelowPlayer(stream);
+  _svCommunityTs = {};
+  if (stream.isMv) {
+    // MV モード: セットリスト不要、プレイヤー下エリアもクリア
+    const setlist = $('#sv-setlist');
+    if (setlist) setlist.innerHTML = '';
+    const belowPlayer = $('#sv-below-player');
+    if (belowPlayer) belowPlayer.innerHTML = '';
+  } else {
+    const ts = _svLoadTs(stream);
+    _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+    _svLoadCommunityTs(stream);
+    _svRenderBelowPlayer(stream);
+  }
 
   viewer.hidden = false;
   document.body.style.overflow = ''; // 埋め込みモードではスクロールロックしない
@@ -1504,10 +1600,11 @@ function openStreamViewer(stream, resumeAt = 0) {
         },
         events: {
           onReady: (event) => {
-            // HD 画質優先（adaptive QA より先に設定）
+            const v = _storedVol();
+            try { event.target.setVolume(v); } catch (_) {}
+            _applyVol($('#sv-vol-slider'), $('#sv-vol-btn'), null, v);
             try { event.target.setPlaybackQuality('hd1080'); } catch (_) {}
             try { event.target.setPlaybackQualityRange('hd720', 'hd1080'); } catch (_) {}
-            // start パラメータより seekTo の方が中間地点で確実
             if (startSec > 5) {
               try { event.target.seekTo(startSec, true); } catch (_) {}
             }
@@ -1537,7 +1634,7 @@ function openStreamViewer(stream, resumeAt = 0) {
   });
 }
 
-function closeStreamViewer() {
+function closeStreamViewer({ instant = false } = {}) {
   const viewer = $('#stream-viewer');
   if (!viewer || viewer.hidden || viewer.dataset.svTransitioning) return;
 
@@ -1552,6 +1649,18 @@ function closeStreamViewer() {
     const fsBtn = $('#sv-fullscreen-btn');
     if (fsBtn) fsBtn.setAttribute('aria-pressed', 'false');
     return; // 動画はそのまま継続再生
+  }
+
+  // ── タブ遷移など instant 指定 → 即時クローズ（音の途切れあり、遅延なし）──
+  if (instant) {
+    viewer.hidden = true;
+    viewer._currentStream = null;
+    _svPlayer = null;
+    const wrap = $('#sv-player-wrap');
+    if (wrap) wrap.innerHTML = '';
+    document.body.style.overflow = '';
+    hidePlayerPanel();
+    return;
   }
 
   // ── 埋め込みモードの場合 → ミニプレイヤーへシームレス引き継ぎ ──
@@ -1583,7 +1692,10 @@ function closeStreamViewer() {
     panel.classList.add('has-stream');
     panel.hidden = false;
 
+    let _finishClosed = false;
     const _finishClose = () => {
+      if (_finishClosed) return;
+      _finishClosed = true;
       if (gen !== _svGen) { viewer.classList.remove('sv-to-mini'); delete viewer.dataset.svTransitioning; return; }
       viewer.classList.remove('sv-to-mini');
       delete viewer.dataset.svTransitioning;
@@ -1614,7 +1726,9 @@ function closeStreamViewer() {
           events: {
             onReady: (ev) => {
               const rt = _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000;
-              try { ev.target.seekTo(rt, true); ev.target.playVideo(); } catch (_) {}
+              const v = _storedVol();
+              try { ev.target.setVolume(v); ev.target.seekTo(rt, true); ev.target.playVideo(); } catch (_) {}
+              _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, v);
             },
             onStateChange: (ev) => {
               const isPlaying = ev.data === window.YT?.PlayerState?.PLAYING;
@@ -2098,7 +2212,7 @@ $$('.tab-btn').forEach(btn => {
     // 埋め込みモード（非全画面）でストリームが再生中 → ミニプレイヤーへ引き継ぐ
     if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen) {
       _epPrevTab = tab; // closeStreamViewer 内の hidePlayerPanel がこのタブへ遷移する
-      closeStreamViewer();
+      closeStreamViewer({ instant: true });
       return;
     }
     activateTab(tab);
@@ -2177,7 +2291,7 @@ initSongModal();
 initMobileMenu();
 initPageTopToast();
 initWelcomeTip();
-import('./music-player.js').then(m => m.initMusicPlayer()).catch(() => {});
+import('./music-player.js').then(m => { m.setApiLoader(_loadYtApi); m.initMusicPlayer(); }).catch(() => {});
 
 // グローバル検索パレット初期化
 initSearchPalette((result) => {
