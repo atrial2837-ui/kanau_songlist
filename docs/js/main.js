@@ -563,12 +563,19 @@ function _svDiscardMini() {
 
 // ─── ビューワーの URL 同期・共有 ─────────────────────────────────────────────
 
-/** ビューワーの表示状態を URL の ?v= に反映する（共有用ディープリンク） */
+let _svUrlTimer = null; // 視聴中に再生位置を URL へ定期反映するタイマー
+
+/** ビューワーの表示状態を URL の ?v= / ?t= に反映する。
+ *  視聴中は 5 秒ごとに再生位置も更新するため、リロードしても続きから再生できる */
 function _svUpdateUrl() {
   const viewer = $('#stream-viewer');
   const open = viewer && !viewer.hidden && !viewer.classList.contains('sv-minified');
   const id = open && viewer._currentStream?.url ? youtubeVideoId(viewer._currentStream.url) : '';
-  writeUrlState({ v: id || '', t: 0 }, { replace: true });
+  let t = 0;
+  if (id) { try { t = Math.floor(_svPlayer?.getCurrentTime?.() ?? 0); } catch (_) {} }
+  writeUrlState({ v: id || '', t: t > 5 ? t : 0 }, { replace: true });
+  if (id && !_svUrlTimer) _svUrlTimer = setInterval(_svUpdateUrl, 5000);
+  if (!id && _svUrlTimer) { clearInterval(_svUrlTimer); _svUrlTimer = null; }
 }
 
 /** 現在の動画・再生位置の共有 URL を生成 */
