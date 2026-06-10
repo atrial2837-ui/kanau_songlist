@@ -313,12 +313,19 @@ function _renderMusicLibrary(videos) {
   return viewBar + _renderMusicGrid(videos);
 }
 
+function _mvBadge(video) {
+  switch (video.type) {
+    case 'cover':     return { label: 'カバー',    cls: 'mv-badge-cover',     sub: video.originalArtist || 'カバー曲' };
+    case 'office':    return { label: '事務所',    cls: 'mv-badge-office',    sub: '事務所オリ曲' };
+    case 'character': return { label: 'キャラ',    cls: 'mv-badge-character', sub: video.character || 'キャラソン' };
+    default:          return { label: 'オリジナル', cls: 'mv-badge-original',  sub: 'かなう' };
+  }
+}
+
 function _musicCard(video, globalIdx) {
   const thumb = youtubeThumb(video.url);
   const thumbFb = youtubeThumbFallback(video.url);
-  const badge = video.type === 'cover' ? 'カバー' : 'オリジナル';
-  const badgeClass = video.type === 'cover' ? 'mv-badge-cover' : 'mv-badge-original';
-  const sub = video.type === 'cover' && video.originalArtist ? video.originalArtist : 'かなう';
+  const { label: badge, cls: badgeClass, sub } = _mvBadge(video);
   return `
     <div class="mv-card">
       <button class="mv-card-thumb-btn" type="button" data-play-music="${globalIdx}" aria-label="再生">
@@ -342,9 +349,7 @@ function _musicCard(video, globalIdx) {
 }
 
 function _musicListRow(video, globalIdx) {
-  const badge = video.type === 'cover' ? 'カバー' : 'オリジナル';
-  const badgeClass = video.type === 'cover' ? 'mv-badge-cover' : 'mv-badge-original';
-  const sub = video.type === 'cover' && video.originalArtist ? video.originalArtist : 'かなう';
+  const { label: badge, cls: badgeClass, sub } = _mvBadge(video);
   return `
     <div class="mv-list-row">
       <span class="mv-list-num">${globalIdx + 1}</span>
@@ -460,14 +465,14 @@ function _renderPlaylistCard(pl, allStreams) {
         <div class="pl-stream-row pl-stream-missing">${sortBtns}
           <span class="pl-stream-title">（動画データなし）</span>${rmBtn}
         </div>`;
-      const badge = mv.type === 'cover' ? 'カバー' : 'オリジナル';
-      const sub   = mv.type === 'cover' && mv.originalArtist ? mv.originalArtist : 'かなう';
+      const { label: badge, sub } = _mvBadge(mv);
+      const mvTypeKey = mv.type || 'original';
       const mvIdx = (_musicVideos || []).indexOf(mv);
       return `
         <div class="pl-stream-row">
           ${sortBtns}
           <div class="pl-stream-info">
-            <span class="pl-stream-date"><span class="mv-badge-inline mv-type-${mv.type}">${badge}</span></span>
+            <span class="pl-stream-date"><span class="mv-badge-inline mv-type-${mvTypeKey}">${badge}</span></span>
             <span class="pl-stream-title">${escapeHtml(mv.title || '—')}</span>
             <span class="pl-stream-meta">${escapeHtml(sub)}</span>
           </div>

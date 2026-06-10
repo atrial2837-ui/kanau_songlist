@@ -509,18 +509,22 @@ function _renderMvList() {
   wrap.innerHTML = `
     <div class="admin-table-wrap">
       <table class="admin-table">
-        <thead><tr><th>ID</th><th>サムネ</th><th>タイトル</th><th>種別</th><th>元アーティスト</th><th>公開日</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>サムネ</th><th>タイトル</th><th>種別</th><th>追加情報</th><th>公開日</th><th></th></tr></thead>
         <tbody>
-          ${_mvVideos.map((v, i) => `
+          ${_mvVideos.map((v, i) => {
+            const typeLabel = { original: 'オリ曲', office: '事務所', character: 'キャラ', cover: 'カバー' }[v.type] || v.type;
+            const extra = v.type === 'cover' ? (v.originalArtist || '—') : v.type === 'character' ? (v.character || '—') : '—';
+            return `
             <tr>
               <td style="font-size:11px;color:var(--ink-mute)">${v.id}</td>
               <td>${v.url ? `<img src="${_youtubeThumb(v.url)}" width="80" alt="" referrerpolicy="no-referrer" style="border-radius:4px">` : '—'}</td>
               <td>${v.title || '—'}</td>
-              <td>${v.type === 'cover' ? 'カバー' : 'オリジナル'}</td>
-              <td>${v.originalArtist || '—'}</td>
+              <td>${typeLabel}</td>
+              <td style="font-size:12px">${extra}</td>
               <td>${v.publishedAt || '—'}</td>
               <td><button class="btn ghost" data-mv-del="${i}" type="button" style="padding:4px 10px;font-size:12px">削除</button></td>
-            </tr>`).join('')}
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>`;
@@ -561,12 +565,13 @@ function initMusicVideos() {
   $('#mv-download-btn')?.addEventListener('click', _saveMvData);
 
   addBtn.addEventListener('click', () => {
-    const url     = $('#mv-url')?.value.trim();
-    const title   = $('#mv-title')?.value.trim();
-    const type    = $('#mv-type')?.value || 'original';
-    const artist  = $('#mv-artist')?.value.trim() || null;
-    const date    = $('#mv-date')?.value || '';
-    const manualId = $('#mv-id')?.value.trim();
+    const url       = $('#mv-url')?.value.trim();
+    const title     = $('#mv-title')?.value.trim();
+    const type      = $('#mv-type')?.value || 'original';
+    const artist    = $('#mv-artist')?.value.trim() || null;
+    const character = $('#mv-character')?.value.trim() || null;
+    const date      = $('#mv-date')?.value || '';
+    const manualId  = $('#mv-id')?.value.trim();
 
     if (!url || !title) {
       const s = $('#mv-status');
@@ -585,14 +590,14 @@ function initMusicVideos() {
       id,
       title,
       type,
-      originalArtist: type === 'cover' ? artist : null,
-      channel: 'new',
+      ...(type === 'cover'     ? { originalArtist: artist || null } : {}),
+      ...(type === 'character' ? { character: character || null }   : {}),
       url,
       publishedAt: date || null,
     });
 
     // フォームリセット
-    ['mv-url','mv-title','mv-artist','mv-date','mv-id'].forEach(id => {
+    ['mv-url','mv-title','mv-artist','mv-character','mv-date','mv-id'].forEach(id => {
       const el = $(`#${id}`);
       if (el) el.value = '';
     });
