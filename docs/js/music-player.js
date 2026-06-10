@@ -55,11 +55,14 @@ export function initMusicPlayer() {
     </div>
     <div class="mbar-body">
       <div class="mbar-track-info">
-        <div class="mbar-video-wrap" id="mbar-video-wrap"></div>
-        <div class="mbar-text">
+        <div class="mbar-thumb-wrap">
+          <div class="mbar-video-wrap" id="mbar-video-wrap"></div>
+          <button class="mbar-thumb-overlay" id="mbar-thumb-overlay" type="button" aria-label="動画を開く" title="動画を開く"></button>
+        </div>
+        <button class="mbar-text" id="mbar-track-info-btn" type="button" title="動画を開く">
           <span class="mbar-title" id="mbar-title">—</span>
           <span class="mbar-sub"   id="mbar-sub">—</span>
-        </div>
+        </button>
         <span class="mbar-type-badge" id="mbar-type-badge"></span>
       </div>
       <div class="mbar-controls">
@@ -123,10 +126,13 @@ export function initMusicPlayer() {
     });
   }
 
-  $('#mbar-expand').addEventListener('click', () => {
+  const _openInViewer = () => {
     const video = _queue[_qIdx];
     if (video?.url) window.__openStreamViewer?.({ url: video.url, title: video.title, isMv: true });
-  });
+  };
+  $('#mbar-expand').addEventListener('click', _openInViewer);
+  $('#mbar-thumb-overlay').addEventListener('click', _openInViewer);
+  $('#mbar-track-info-btn').addEventListener('click', _openInViewer);
 
   $('#mbar-progress-track').addEventListener('click', (e) => {
     if (!_ytPlayer) return;

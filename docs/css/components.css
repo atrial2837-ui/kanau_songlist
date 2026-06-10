@@ -4250,20 +4250,70 @@ body.has-music-bar { padding-bottom: 72px; }
   min-width: 0;
 }
 
+.mbar-thumb-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  width: 88px;
+  height: 50px;
+  border-radius: 6px;
+}
+
 .mbar-video-wrap {
   width: 88px;
   height: 50px;
   border-radius: 6px;
   overflow: hidden;
-  flex: 0 0 auto;
   background: var(--surface-3);
 }
 .mbar-video-wrap > div { width: 100%; height: 100%; }
 
+.mbar-thumb-overlay {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.mbar-thumb-overlay::before {
+  content: '▶';
+  font-size: 18px;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.15s;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+.mbar-thumb-overlay:hover,
+.mbar-thumb-overlay:focus-visible {
+  background: rgba(0,0,0,0.45);
+  outline: none;
+}
+.mbar-thumb-overlay:hover::before,
+.mbar-thumb-overlay:focus-visible::before {
+  opacity: 1;
+}
+
 .mbar-text {
   min-width: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 4px;
+  transition: opacity 0.12s;
 }
+.mbar-text:hover { opacity: 0.72; }
 .mbar-title {
   display: block;
   font-size: 13px;
@@ -4272,6 +4322,7 @@ body.has-music-bar { padding-bottom: 72px; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 .mbar-sub {
   display: block;
@@ -4280,6 +4331,7 @@ body.has-music-bar { padding-bottom: 72px; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .mbar-type-badge {
