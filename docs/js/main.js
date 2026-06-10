@@ -892,6 +892,14 @@ function _svShowBulkProposeModal(stream) {
         <span class="sv-cts-modal-title">${isRevise ? '修正申請' : 'セトリ登録'}</span>
         <button class="sv-cts-modal-close" type="button" aria-label="閉じる">✕</button>
       </div>
+      <details class="sv-paste-area">
+        <summary class="sv-paste-summary">配信コメントから一括入力</summary>
+        <textarea class="sv-paste-textarea" placeholder="配信のタイムスタンプコメントを貼り付け&#10;例: 23:16　微かなカオリ / Perfume　27:58"></textarea>
+        <div class="sv-paste-btns">
+          <button class="sv-paste-apply btn ghost" type="button">解析して入力</button>
+          <span class="sv-paste-result" hidden></span>
+        </div>
+      </details>
       <p class="sv-bulk-hint">タイムスタンプを入力して一括申請できます。空欄の曲はスキップされます。</p>
       <div class="sv-bulk-rows">${rows}</div>
       <label class="sv-cts-modal-label" style="margin-top:10px">
@@ -912,6 +920,29 @@ function _svShowBulkProposeModal(stream) {
   modal.querySelector('.sv-cts-modal-close').addEventListener('click', close);
   modal.querySelector('.sv-cts-modal-cancel').addEventListener('click', close);
   modal.addEventListener('click', e => { if (e.target === modal) close(); });
+
+  // 配信コメント貼り付け → タイムスタンプ一括入力
+  modal.querySelector('.sv-paste-apply').addEventListener('click', () => {
+    const text = modal.querySelector('.sv-paste-textarea')?.value || '';
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let matched = 0;
+    for (const line of lines) {
+      const parsed = _parseTsCommentLine(line);
+      if (!parsed) continue;
+      const idx = _matchSongIdx(parsed.title, parsed.artist, stream.songs);
+      if (idx >= 0) {
+        const input = modal.querySelector(`[data-bulk-ts-idx="${idx}"]`);
+        if (input) { input.value = parsed.start; matched++; }
+      }
+    }
+    const result = modal.querySelector('.sv-paste-result');
+    if (result) {
+      result.textContent = matched > 0
+        ? `${lines.length}行を解析 → ${matched}曲に入力しました`
+        : '一致する曲が見つかりませんでした';
+      result.hidden = false;
+    }
+  });
 
   // ⏱ ボタン：現在時刻を入力欄にセット
   modal.querySelector('.sv-bulk-rows').addEventListener('click', e => {
@@ -1194,6 +1225,40 @@ function _parseTs(str) {
   return parseInt(m[4]) * 60 + parseInt(m[5]);
 }
 
+// 配信タイムスタンプコメントの1行をパース
+// 形式: "MM:SS　曲名 / アーティスト　MM:SS" または "H:MM:SS　…　H:MM:SS"
+function _parseTsCommentLine(line) {
+  const m = line.match(/^(\d{1,2}:\d{2}(?::\d{2})?)[\s　]+(.+?)\s*\/\s*(.+?)[\s　]+(\d{1,2}:\d{2}(?::\d{2})?)$/);
+  if (!m) return null;
+  return { start: m[1].trim(), title: m[2].trim(), artist: m[3].trim(), end: m[4].trim() };
+}
+
+// 文字列を正規化（大文字小文字・空白・記号を統一）してマッチングに使う
+function _normForMatch(s) {
+  return (s || '').toLowerCase()
+    .replace(/[\s　]/g, '')
+    .replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[・｡。、，,．.！!？?「」『』【】（）()]/g, '');
+}
+
+// パースした曲名・アーティストでセトリ内のインデックスを探す
+function _matchSongIdx(title, artist, songs) {
+  const nt = _normForMatch(title);
+  const na = _normForMatch(artist);
+  let bestIdx = -1, bestScore = 0;
+  for (let i = 0; i < songs.length; i++) {
+    const st = _normForMatch(songs[i].title);
+    const sa = _normForMatch(songs[i].artist);
+    let score = 0;
+    if (st === nt) score += 80;
+    else if (nt.length > 1 && (st.includes(nt) || nt.includes(st))) score += 40;
+    if (na && sa === na) score += 20;
+    else if (na && na.length > 1 && (sa.includes(na) || na.includes(sa))) score += 10;
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  }
+  return bestScore >= 40 ? bestIdx : -1;
+}
+
 function initStreamViewer() {
   if ($('#stream-viewer')) return;
   const panel = $('#panel-player');
@@ -1350,10 +1415,12 @@ function openStreamViewer(stream, resumeAt = 0) {
 
   // ミニプレイヤーを閉じてストリームコンテキストをクリア
   const miniPanel = $('#yt-player-panel');
-  if (miniPanel && !miniPanel.hidden) {
+  const hasMiniPlaying = !!(miniPanel && !miniPanel.hidden && _miniPlayer);
+  if (!hasMiniPlaying && miniPanel && !miniPanel.hidden) {
     miniPanel.hidden = true;
     _miniDestroyPlayer();
   }
+  // hasMiniPlaying の場合: ストリームが再生開始するまでミニを維持（シームレス引き継ぎ）
   _svLastStream = null;
   // 音楽プレイヤーを一時停止
   import('./music-player.js').then(m => m.pauseMusicPlayer()).catch(() => {});
@@ -1404,11 +1471,25 @@ function openStreamViewer(stream, resumeAt = 0) {
 
   const startSec = Math.floor(resumeAt);
 
+  // ミニが存続中の場合: ストリームが再生開始しなければ5秒後に強制終了
+  let miniCleanupTimer = null;
+  if (hasMiniPlaying) {
+    miniCleanupTimer = setTimeout(() => {
+      if (miniPanel && !miniPanel.hidden) { miniPanel.hidden = true; _miniDestroyPlayer(); }
+    }, 5000);
+  }
+  const _destroyMiniOnHandoff = () => {
+    if (!hasMiniPlaying) return;
+    if (miniCleanupTimer) { clearTimeout(miniCleanupTimer); miniCleanupTimer = null; }
+    if (miniPanel && !miniPanel.hidden) { miniPanel.hidden = true; _miniDestroyPlayer(); }
+  };
+
   _onYtReady(() => {
     if (gen !== _svGen || viewer.hidden) return;
     wrap.innerHTML = '';
     const playerDiv = document.createElement('div');
     wrap.appendChild(playerDiv);
+    let _miniDestroyed = false;
     try {
       _svPlayer = new window.YT.Player(playerDiv, {
         videoId: id,
@@ -1435,6 +1516,8 @@ function openStreamViewer(stream, resumeAt = 0) {
             if (gen !== _svGen) return;
             if (event.data === window.YT.PlayerState.PLAYING) {
               try { event.target.setPlaybackQuality('hd1080'); } catch (_) {}
+              // ストリーム再生開始 → ミニを停止（音途切れなし）
+              if (!_miniDestroyed) { _miniDestroyed = true; _destroyMiniOnHandoff(); }
             }
             if (event.data === window.YT.PlayerState.ENDED && _svAutoPlay) {
               _svPlayNext();
@@ -1442,11 +1525,13 @@ function openStreamViewer(stream, resumeAt = 0) {
           },
           onError: () => {
             if (gen !== _svGen) return;
+            if (!_miniDestroyed) { _miniDestroyed = true; _destroyMiniOnHandoff(); }
             wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0${startSec > 0 ? `&start=${startSec}` : ''}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
           },
         },
       });
     } catch (_) {
+      _destroyMiniOnHandoff();
       wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0${startSec > 0 ? `&start=${startSec}` : ''}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
     }
   });
@@ -1454,7 +1539,7 @@ function openStreamViewer(stream, resumeAt = 0) {
 
 function closeStreamViewer() {
   const viewer = $('#stream-viewer');
-  if (!viewer) return;
+  if (!viewer || viewer.hidden || viewer.dataset.svTransitioning) return;
 
   // ── 全画面モードの場合 → 埋め込みに戻るだけ（ミニプレイヤーは起動しない）──
   if (_svFullscreen) {
@@ -1469,29 +1554,97 @@ function closeStreamViewer() {
     return; // 動画はそのまま継続再生
   }
 
-  // ── 埋め込みモードの場合 → ミニプレイヤーへ引き継ぎ ──
+  // ── 埋め込みモードの場合 → ミニプレイヤーへシームレス引き継ぎ ──
   const stream = viewer._currentStream;
   const currentTime = _svPlayer?.getCurrentTime?.() ?? 0;
   const videoId = stream?.url ? youtubeVideoId(stream.url) : '';
 
   ++_svGen;
+  const gen = _svGen;
+
+  if (videoId && stream?.url) {
+    // ミニプレイヤーが再生を開始するまでストリームプレイヤーを存続させ、音を途切れさせない
+    _svLastStream = stream;
+    _svMiniStartAt = Math.floor(currentTime);
+    _svMiniStartWallTime = Date.now();
+
+    viewer.dataset.svTransitioning = '1';
+    viewer.classList.add('sv-to-mini'); // オーバーレイ表示（操作ブロック、音声継続）
+
+    _loadYtApi();
+    initYouTubePlayer();
+    const container = $('#yt-player-container');
+    const panel = $('#yt-player-panel');
+    _miniDestroyPlayer();
+    const titleEl = $('#yt-mini-title');
+    if (titleEl) titleEl.textContent = stream.title || '';
+    const hintEl = $('#yt-mini-hint');
+    if (hintEl) hintEl.textContent = '▲ タップして配信ビューワーへ戻る';
+    panel.classList.add('has-stream');
+    panel.hidden = false;
+
+    const _finishClose = () => {
+      if (gen !== _svGen) { viewer.classList.remove('sv-to-mini'); delete viewer.dataset.svTransitioning; return; }
+      viewer.classList.remove('sv-to-mini');
+      delete viewer.dataset.svTransitioning;
+      const oldSvPlayer = _svPlayer;
+      _svPlayer = null;
+      viewer.hidden = true;
+      viewer._currentStream = null;
+      const wrap = $('#sv-player-wrap');
+      if (wrap) wrap.innerHTML = '';
+      document.body.style.overflow = '';
+      hidePlayerPanel();
+      setTimeout(() => { try { oldSvPlayer?.destroy?.(); } catch (_) {} }, 100);
+    };
+
+    // ミニが起動しない場合のフォールバック（3秒後に強制クローズ）
+    const fallback = setTimeout(_finishClose, 3000);
+
+    _onYtReady(() => {
+      if (gen !== _svGen) { clearTimeout(fallback); viewer.classList.remove('sv-to-mini'); delete viewer.dataset.svTransitioning; return; }
+      const playerDiv = document.createElement('div');
+      container.appendChild(playerDiv);
+      try {
+        _miniPlayer = new window.YT.Player(playerDiv, {
+          videoId,
+          width: '100%',
+          height: '100%',
+          playerVars: { autoplay: 0, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1 },
+          events: {
+            onReady: (ev) => {
+              const rt = _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000;
+              try { ev.target.seekTo(rt, true); ev.target.playVideo(); } catch (_) {}
+            },
+            onStateChange: (ev) => {
+              const isPlaying = ev.data === window.YT?.PlayerState?.PLAYING;
+              const btn = $('#yt-mini-play');
+              if (btn) btn.setAttribute('data-playing', isPlaying ? '1' : '0');
+              if (isPlaying && gen === _svGen) {
+                // ミニが再生中 → ストリームをここで初めて停止（音途切れなし）
+                clearTimeout(fallback);
+                _finishClose();
+                _miniStartProgress();
+              }
+            },
+          },
+        });
+      } catch (_) {
+        clearTimeout(fallback);
+        _finishClose();
+      }
+    });
+    return;
+  }
+
+  // 動画なし → 即時クローズ
   viewer.hidden = true;
   viewer._currentStream = null;
   _svPlayer = null;
   const wrap = $('#sv-player-wrap');
   if (wrap) wrap.innerHTML = '';
   document.body.style.overflow = '';
-
-  // 前のタブに戻る
   hidePlayerPanel();
-
-  if (videoId && stream?.url) {
-    // ミニプレイヤー再開位置を記録してから起動
-    _svLastStream = stream;
-    _svMiniStartAt = Math.floor(currentTime);
-    _svMiniStartWallTime = Date.now();
-    playYouTubeInline(stream.url, _svMiniStartAt, stream.title || '');
-  }
 }
 
 // プレイリストビューからストリームを開けるようにグローバル公開

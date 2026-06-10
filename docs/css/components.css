@@ -1545,6 +1545,16 @@ mark.hl {
 
 #stream-viewer[hidden] { display: none; }
 
+/* ミニプレイヤーへの引き継ぎ中: 操作をブロックしつつ映像を覆う（音声は継続） */
+#stream-viewer.sv-to-mini::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 200;
+  cursor: wait;
+}
+
 /* 全画面時: DOM を移動せず CSS だけで fullscreen 化する。
    .container が z-index:1 で stacking context を作るため、
    body クラスで z-index:auto に戻し position:fixed が root 基準になるようにする */
@@ -3771,6 +3781,56 @@ body.has-sv-fullscreen .container { z-index: auto; }
   color: var(--ink-mute);
 }
 .sv-bulk-ts-now:hover { background: var(--primary-soft); border-color: var(--primary); }
+
+/* コメント貼り付けエリア */
+.sv-paste-area {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.sv-paste-summary {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-mute);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sv-paste-summary::before { content: '▶'; font-size: 9px; transition: transform .15s; }
+details[open] .sv-paste-summary::before { transform: rotate(90deg); }
+.sv-paste-summary::-webkit-details-marker { display: none; }
+.sv-paste-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 88px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: none;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--ink);
+  resize: vertical;
+}
+.sv-paste-textarea:focus { outline: none; }
+.sv-paste-btns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.sv-paste-result {
+  font-size: 11.5px;
+  color: var(--primary);
+}
 
 @media (max-width: 600px) {
   .sv-cts-modal-box { padding: 18px; }
