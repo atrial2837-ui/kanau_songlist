@@ -1651,15 +1651,71 @@ function closeStreamViewer({ instant = false } = {}) {
     return; // 動画はそのまま継続再生
   }
 
-  // ── タブ遷移など instant 指定 → 即時クローズ（音の途切れあり、遅延なし）──
+  // ── タブ遷移など instant 指定 → ビューワーを即時閉じ、ミニプレイヤーを非同期起動 ──
   if (instant) {
+    const stream = viewer._currentStream;
+    const videoId = stream?.url ? youtubeVideoId(stream.url) : '';
+    const currentTime = _svPlayer?.getCurrentTime?.() ?? 0;
+    const oldSvPlayer = _svPlayer;
+
+    ++_svGen;
+    const gen = _svGen;
+
+    _svPlayer = null;
     viewer.hidden = true;
     viewer._currentStream = null;
-    _svPlayer = null;
     const wrap = $('#sv-player-wrap');
     if (wrap) wrap.innerHTML = '';
     document.body.style.overflow = '';
+
+    // タブを即時切り替え
     hidePlayerPanel();
+
+    // ストリームプレイヤーを遅延破棄
+    setTimeout(() => { try { oldSvPlayer?.destroy?.(); } catch (_) {} }, 100);
+
+    if (videoId) {
+      _svLastStream = stream;
+      _svMiniStartAt = Math.floor(currentTime);
+      _svMiniStartWallTime = Date.now();
+
+      _loadYtApi();
+      initYouTubePlayer();
+      const container = $('#yt-player-container');
+      const panel = $('#yt-player-panel');
+      _miniDestroyPlayer();
+      const titleEl = $('#yt-mini-title');
+      if (titleEl) titleEl.textContent = stream.title || '';
+      const hintEl = $('#yt-mini-hint');
+      if (hintEl) hintEl.textContent = '▲ タップして配信ビューワーへ戻る';
+      if (panel) { panel.classList.add('has-stream'); panel.hidden = false; }
+
+      _onYtReady(() => {
+        if (gen !== _svGen || !container) return;
+        const rt = _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000;
+        const playerDiv = document.createElement('div');
+        container.appendChild(playerDiv);
+        try {
+          _miniPlayer = new window.YT.Player(playerDiv, {
+            videoId, width: '100%', height: '100%',
+            playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1 },
+            events: {
+              onReady: (ev) => {
+                const v = _storedVol();
+                try { ev.target.setVolume(v); ev.target.seekTo(rt, true); ev.target.playVideo(); } catch (_) {}
+                _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, v);
+                _miniStartProgress();
+              },
+              onStateChange: (ev) => {
+                const isPlaying = ev.data === window.YT?.PlayerState?.PLAYING;
+                const btn = $('#yt-mini-play');
+                if (btn) btn.setAttribute('data-playing', isPlaying ? '1' : '0');
+              },
+            },
+          });
+        } catch (_) {}
+      });
+    }
     return;
   }
 
