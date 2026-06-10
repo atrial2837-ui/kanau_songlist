@@ -1255,7 +1255,9 @@ function openStreamViewer(stream, resumeAt = 0) {
           },
           onStateChange: (event) => {
             if (gen !== _svGen) return;
-            // 再生終了 + 連続再生 ON → 次の（古い）配信を自動再生
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              try { event.target.setPlaybackQuality('hd1080'); } catch (_) {}
+            }
             if (event.data === window.YT.PlayerState.ENDED && _svAutoPlay) {
               _svPlayNext();
             }

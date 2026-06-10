@@ -1535,15 +1535,12 @@ mark.hl {
    Stream Viewer (埋め込みモード = テーマ準拠 / 全画面 = ダーク)
    ============================================================ */
 
-/* ── デフォルト: 埋め込みモード（サイトテーマに合わせる） ── */
+/* ── デフォルト: 埋め込みモード（ページスクロールに同化） ── */
 #stream-viewer {
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   background: var(--surface);
-  height: calc(100vh - 140px);
-  min-height: 520px;
 }
 
 #stream-viewer[hidden] { display: none; }
@@ -1786,6 +1783,10 @@ mark.hl {
 .sv-body {
   display: grid;
   grid-template-columns: 1fr 340px;
+}
+
+/* フルスクリーン時はボディが残り高さを埋める */
+#stream-viewer.sv-fullscreen .sv-body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
