@@ -375,6 +375,8 @@ function initManagement() {
 
 let _tsFilter  = 'pending';
 let _tsData    = null; // loadAll() の結果キャッシュ（配信・曲名参照用）
+let _tsItems   = [];
+let _tsBusy    = false;
 
 function fmtSeconds(s) {
   const h = Math.floor(s / 3600);
@@ -397,7 +399,14 @@ function resolveTs(item) {
 
 function renderTimestamps(items) {
   const wrap = $('#ts-table-wrap');
+  _tsItems = Array.isArray(items) ? items : [];
   $('#ts-count').textContent = `${items.length}件`;
+  const approveAllBtn = $('#ts-approve-all');
+  if (approveAllBtn) {
+    approveAllBtn.hidden = _tsFilter !== 'pending';
+    approveAllBtn.disabled = _tsBusy || _tsFilter !== 'pending' || !_tsItems.length;
+    approveAllBtn.textContent = _tsItems.length ? `表示中${_tsItems.length}件を一括承認` : '表示中を一括承認';
+  }
   if (!items.length) {
     wrap.innerHTML = '<p class="admin-note">該当する申請はありません</p>';
     return;
@@ -440,6 +449,8 @@ function renderTimestamps(items) {
 async function loadTimestamps() {
   $('#ts-status').textContent = '読み込み中…';
   $('#ts-table-wrap').innerHTML = '<p class="admin-note">読み込み中…</p>';
+  const approveAllBtn = $('#ts-approve-all');
+  if (approveAllBtn) approveAllBtn.disabled = true;
   try {
     const data = await adminApi(`timestamps?status=${_tsFilter}&limit=100`);
     $('#ts-status').textContent = '';
@@ -456,6 +467,7 @@ async function initTimestamps() {
 
   document.querySelectorAll('.ts-filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (_tsBusy) return;
       document.querySelectorAll('.ts-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       _tsFilter = btn.dataset.tsFilter;
@@ -463,7 +475,44 @@ async function initTimestamps() {
     });
   });
 
+  $('#ts-approve-all')?.addEventListener('click', async () => {
+    const pending = _tsFilter === 'pending' ? _tsItems.slice() : [];
+    if (!pending.length || _tsBusy) return;
+    if (!confirm(`表示中の${pending.length}件をすべて承認しますか？`)) return;
+
+    _tsBusy = true;
+    const approveAllBtn = $('#ts-approve-all');
+    const rowButtons = $('#ts-table-wrap')?.querySelectorAll('button');
+    if (approveAllBtn) {
+      approveAllBtn.disabled = true;
+      approveAllBtn.textContent = '一括承認中…';
+    }
+    rowButtons?.forEach(btn => { btn.disabled = true; });
+
+    let succeeded = 0;
+    const failed = [];
+    for (let i = 0; i < pending.length; i++) {
+      const item = pending[i];
+      $('#ts-status').textContent = `一括承認中… ${i + 1}/${pending.length}`;
+      try {
+        await adminApi(`timestamps/${item.id}/approve`, {});
+        succeeded++;
+      } catch (err) {
+        failed.push({ item, error: err });
+      }
+    }
+
+    _tsBusy = false;
+    if (failed.length) {
+      $('#ts-status').textContent = `${succeeded}件を承認しました。${failed.length}件は失敗しました。`;
+    } else {
+      $('#ts-status').textContent = `${succeeded}件を一括承認しました`;
+    }
+    loadTimestamps();
+  });
+
   $('#ts-table-wrap').addEventListener('click', async (e) => {
+    if (_tsBusy) return;
     const approveBtn = e.target.closest('[data-ts-approve]');
     const rejectBtn  = e.target.closest('[data-ts-reject]');
     if (!approveBtn && !rejectBtn) return;
