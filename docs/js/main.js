@@ -565,14 +565,35 @@ function _svDiscardMini() {
 
 let _svUrlTimer = null; // 視聴中に再生位置を URL へ定期反映するタイマー
 
+function _svCurrentTime(fallback = 0) {
+  const players = [_svPlayer, _miniPlayer];
+  for (const player of players) {
+    try {
+      const value = player?.getCurrentTime?.();
+      if (Number.isFinite(value)) return Math.max(0, Math.floor(value));
+    } catch (_) {}
+  }
+  return Math.max(0, Math.floor(Number(fallback) || 0));
+}
+
+function _svBuildShareUrl(id, t = 0, options = {}) {
+  if (!id) return '';
+  const current = readUrlState();
+  const params = new URLSearchParams();
+  const channel = current.channel || state.channel;
+  if (channel && channel !== 'new') params.set('ch', channel);
+  params.set('v', id);
+  if (options.includeTime !== false && t > 5) params.set('t', String(Math.floor(t)));
+  return `${location.origin}${location.pathname}?${params}`;
+}
+
 /** ビューワーの表示状態を URL の ?v= / ?t= に反映する。
  *  視聴中は 5 秒ごとに再生位置も更新するため、リロードしても続きから再生できる */
 function _svUpdateUrl() {
   const viewer = $('#stream-viewer');
   const open = viewer && !viewer.hidden && !viewer.classList.contains('sv-minified');
   const id = open && viewer._currentStream?.url ? youtubeVideoId(viewer._currentStream.url) : '';
-  let t = 0;
-  if (id) { try { t = Math.floor(_svPlayer?.getCurrentTime?.() ?? 0); } catch (_) {} }
+  const t = id ? _svCurrentTime(readUrlState().t) : 0;
   writeUrlState({ v: id || '', t: t > 5 ? t : 0 }, { replace: true });
   if (id && !_svUrlTimer) _svUrlTimer = setInterval(_svUpdateUrl, 5000);
   if (!id && _svUrlTimer) { clearInterval(_svUrlTimer); _svUrlTimer = null; }
@@ -585,17 +606,142 @@ function _svShareUrl() {
   if (!stream?.url) return null;
   const id = youtubeVideoId(stream.url);
   if (!id) return null;
-  const t = Math.floor(_svPlayer?.getCurrentTime?.() ?? 0);
-  const params = new URLSearchParams();
-  params.set('v', id);
-  if (t > 5) params.set('t', String(t));
-  return { url: `${location.origin}${location.pathname}?${params}`, title: stream.title || '' };
+  const t = _svCurrentTime(readUrlState().t);
+  return { url: _svBuildShareUrl(id, t), title: stream.title || '' };
+}
+
+// ─── 共有モーダル ────────────────────────────────────────────────────────────
+
+function _svInitShareModal() {
+  if ($('#sv-share-modal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'sv-share-modal';
+  modal.hidden = true;
+  modal.innerHTML = `
+    <div class="sv-share-backdrop"></div>
+    <div class="sv-share-dialog" role="dialog" aria-modal="true" aria-label="動画を共有">
+      <div class="sv-share-head">
+        <span class="sv-share-head-icon">♡</span>
+        <span class="sv-share-head-title">この歌枠をおすそわけ</span>
+        <button class="sv-share-close" id="sv-share-close" type="button" aria-label="閉じる">✕</button>
+      </div>
+      <div class="sv-share-charm" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="sv-share-video">
+        <span class="sv-share-video-icon">♪</span>
+        <span class="sv-share-video-title" id="sv-share-video-title"></span>
+      </div>
+      <label class="sv-share-ts" id="sv-share-ts-row">
+        <input type="checkbox" id="sv-share-ts-check">
+        <span class="sv-share-ts-toggle" aria-hidden="true"></span>
+        <span class="sv-share-ts-text"><strong id="sv-share-ts-label">0:00</strong> から聴いてもらう</span>
+      </label>
+      <div class="sv-share-url-row">
+        <input class="sv-share-url" id="sv-share-url" type="text" readonly aria-label="共有リンク">
+        <button class="sv-share-copy" id="sv-share-copy" type="button">リンクをコピー</button>
+      </div>
+      <div class="sv-share-sns">
+        <a class="sv-share-sns-btn sv-share-x" id="sv-share-x" href="#" target="_blank" rel="noopener">Xにのせる</a>
+        <a class="sv-share-sns-btn sv-share-line" id="sv-share-line" href="#" target="_blank" rel="noopener">LINEで送る</a>
+        <button class="sv-share-sns-btn sv-share-native" id="sv-share-native" type="button" hidden>ほかにも共有</button>
+      </div>
+      <div class="sv-share-foot">好きなところから、そっと届けられます</div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const close = () => { modal.hidden = true; };
+  modal.querySelector('.sv-share-backdrop').addEventListener('click', close);
+  $('#sv-share-close').addEventListener('click', close);
+  // Esc は capture で先取りし、ビューワー側の Esc 処理（閉じる）を抑止する
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.hidden) {
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    }
+  }, { capture: true });
+
+  const rebuild = () => {
+    const st = modal._shareState;
+    if (!st) return;
+    const useT = $('#sv-share-ts-check')?.checked && st.t > 0;
+    const url = _svBuildShareUrl(st.id, st.t, { includeTime: useT });
+    const input = $('#sv-share-url');
+    if (input) input.value = url;
+    const text = st.title ? `${st.title}` : '夢川かなう 歌唱データベース';
+    const x = $('#sv-share-x');
+    if (x) x.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    const line = $('#sv-share-line');
+    if (line) line.href = `https://line.me/R/share?text=${encodeURIComponent(`${text}\n${url}`)}`;
+    return url;
+  };
+  $('#sv-share-ts-check').addEventListener('change', rebuild);
+  modal._rebuild = rebuild;
+
+  $('#sv-share-url').addEventListener('focus', (e) => e.target.select());
+
+  $('#sv-share-copy').addEventListener('click', async () => {
+    const url = $('#sv-share-url')?.value;
+    if (!url) return;
+    let ok = false;
+    try { await navigator.clipboard.writeText(url); ok = true; }
+    catch (_) {
+      try {
+        const input = $('#sv-share-url');
+        input.select();
+        ok = document.execCommand('copy');
+      } catch (_) {}
+    }
+    const btn = $('#sv-share-copy');
+    if (btn) {
+      btn.textContent = ok ? 'コピーできました' : 'コピーできません';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'リンクをコピー'; btn.classList.remove('copied'); }, 1600);
+    }
+  });
+
+  const nativeBtn = $('#sv-share-native');
+  if (navigator.share && nativeBtn) {
+    nativeBtn.hidden = false;
+    nativeBtn.addEventListener('click', async () => {
+      const st = modal._shareState;
+      const url = $('#sv-share-url')?.value;
+      if (!url) return;
+      try { await navigator.share({ title: st?.title || '', url }); } catch (_) {}
+    });
+  }
+}
+
+/** 共有モーダルを開く */
+function _svOpenShareModal() {
+  const viewer = $('#stream-viewer');
+  const stream = viewer?._currentStream;
+  if (!stream?.url) return;
+  const id = youtubeVideoId(stream.url);
+  if (!id) return;
+  _svInitShareModal();
+  const modal = $('#sv-share-modal');
+  const t = _svCurrentTime(readUrlState().t);
+  modal._shareState = { id, t, title: stream.title || '' };
+
+  const titleEl = $('#sv-share-video-title');
+  if (titleEl) titleEl.textContent = stream.title || '(タイトルなし)';
+  const tsRow = $('#sv-share-ts-row');
+  const tsCheck = $('#sv-share-ts-check');
+  const tsLabel = $('#sv-share-ts-label');
+  if (tsRow) tsRow.hidden = t <= 5;
+  if (tsCheck) tsCheck.checked = t > 5;
+  if (tsLabel) tsLabel.textContent = _fmtTs(t);
+
+  modal._rebuild?.();
+  modal.hidden = false;
 }
 
 /** URL の ?v= から配信/MV を探して開く（初回ロード時のディープリンク） */
 async function _maybeOpenSharedVideo() {
   const url = readUrlState();
-  if (!url.v) return;
+  if (!url.v) return false;
   const v = url.v;
   const t = url.t;
 
@@ -606,7 +752,7 @@ async function _maybeOpenSharedVideo() {
   Object.values(state.channelData?.channels || {}).forEach(d => { if (d) dsets.push(d); });
   for (const ds of dsets) {
     const found = (ds.streams || []).find(s => youtubeVideoId(s.url) === v);
-    if (found) { openStreamViewer(found, t); return; }
+    if (found) { openStreamViewer(found, t); return true; }
   }
 
   // MV（music.json）から探す
@@ -614,11 +760,12 @@ async function _maybeOpenSharedVideo() {
     const res = await fetch('data/music.json');
     const music = await res.json();
     const mv = (music?.videos || []).find(m => youtubeVideoId(m.url) === v);
-    if (mv) { openStreamViewer({ url: mv.url, title: mv.title, isMv: true }, t); return; }
+    if (mv) { openStreamViewer({ url: mv.url, title: mv.title, isMv: true }, t); return true; }
   } catch (_) {}
 
   // データに無い動画でも MV モードで再生
   openStreamViewer({ url: `https://www.youtube.com/watch?v=${v}`, title: '', isMv: true }, t);
+  return true;
 }
 
 // ─── YouTube IFrame API ───────────────────────────────────────────────────────
@@ -1544,35 +1691,7 @@ function initStreamViewer() {
 
   $('#sv-close').addEventListener('click', () => closeStreamViewer());
 
-  // 共有ボタン: 再生位置付きリンクを共有（Web Share API → クリップボード）
-  $('#sv-share-btn').addEventListener('click', async () => {
-    const share = _svShareUrl();
-    if (!share) return;
-    if (navigator.share) {
-      try { await navigator.share({ title: share.title, url: share.url }); return; }
-      catch (_) { return; } // キャンセル時は何もしない
-    }
-    let ok = false;
-    try { await navigator.clipboard.writeText(share.url); ok = true; }
-    catch (_) {
-      // フォールバック: 一時 textarea + execCommand
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = share.url;
-        ta.style.cssText = 'position:fixed;opacity:0;';
-        document.body.appendChild(ta);
-        ta.select();
-        ok = document.execCommand('copy');
-        ta.remove();
-      } catch (_) {}
-    }
-    const btn = $('#sv-share-btn');
-    if (btn) {
-      btn.textContent = ok ? '✓ コピーしました' : 'コピーできません';
-      btn.classList.add('sv-share-copied');
-      setTimeout(() => { btn.textContent = '🔗 共有'; btn.classList.remove('sv-share-copied'); }, 1600);
-    }
-  });
+  $('#sv-share-btn').addEventListener('click', _svOpenShareModal);
 
   // 全画面ボタン
   $('#sv-fullscreen-btn').addEventListener('click', enterStreamFullscreen);
@@ -2273,8 +2392,9 @@ async function init() {
       startFullDataLoad();
     }
     const url = readUrlState();
+    const hasSharedVideo = !!url.v;
     state.songsQuery = url.q;
-    state.activeTab = isValidTab(url.tab) ? url.tab : 'dashboard';
+    state.activeTab = hasSharedVideo ? 'player' : (isValidTab(url.tab) ? url.tab : 'dashboard');
     syncActiveTabUi(state.activeTab);
     let initialChannel = url.channel || state.channel || DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) initialChannel = DEFAULT_CHANNEL;
@@ -2284,15 +2404,19 @@ async function init() {
     }
     if (!getDataset(initialChannel)) throw new Error('No channel data could be loaded');
     refreshChannelButtons();
-    hideLoading();
     switchChannel(initialChannel, {
       resetSearch: false,
       updateUrl: false,
       autoLoad: true,
       initial: true,
+      render: !hasSharedVideo,
     });
     // ?v= 付き URL → 該当の配信/MV をビューワーで開く（共有リンク）
-    _maybeOpenSharedVideo();
+    if (hasSharedVideo) {
+      const opened = await _maybeOpenSharedVideo();
+      if (!opened) activateTab(url.tab, { updateUrl: false, initial: true });
+    }
+    hideLoading();
   } catch (e) {
     console.error('[init] failed:', e);
     showError(e);
