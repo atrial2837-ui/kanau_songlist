@@ -169,10 +169,11 @@ function activateTab(tab, options = {}) {
 
   // ブラウザ操作などで埋め込みモードのままタブ切替が来た場合、ミニプレイヤーへ引き継ぐ
   const streamViewer = $('#stream-viewer');
-  if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen) {
+  if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen
+      && !streamViewer.classList.contains('sv-minified')) {
     _epPrevTab = tab;
     _pendingTabOptions = options;
-    closeStreamViewer({ instant: true });
+    closeStreamViewer();
     return;
   }
 
@@ -455,6 +456,103 @@ function _miniResumeAt() {
   return Math.max(0, _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000);
 }
 
+// ─── ストリームビューワーのミニ化 ────────────────────────────────────────────
+// iframe を作り直すと読み込み+バッファで数秒のラグが出るため、プレイヤーは
+// 破棄せず CSS でミニパネルの動画エリア位置に固定表示する（全画面と同じ
+// DOM 非移動テクニック）。音声・映像ともに一切途切れない。
+
+/** ミニ化中の動画ラップをミニパネルの動画エリアに重ねる（座標同期） */
+function _syncMiniPos() {
+  const viewer = $('#stream-viewer');
+  if (!viewer?.classList.contains('sv-minified')) return;
+  const wrap = $('#sv-player-wrap');
+  const target = document.querySelector('#yt-player-panel .yt-mini-video-wrap');
+  if (!wrap || !target) return;
+  const r = target.getBoundingClientRect();
+  wrap.style.left = `${r.left}px`;
+  wrap.style.top = `${r.top}px`;
+  wrap.style.width = `${r.width}px`;
+  wrap.style.height = `${r.height}px`;
+}
+
+/** ビューワー → ミニ化（プレイヤーをそのままミニ側コントロールに引き継ぐ） */
+function _svMinify() {
+  const viewer = $('#stream-viewer');
+  const stream = viewer?._currentStream;
+  if (!viewer || !stream || !_svPlayer) return false;
+  initYouTubePlayer();
+  const panel = $('#yt-player-panel');
+  if (!panel) return false;
+
+  _svLastStream = stream;
+  try { _svMiniStartAt = Math.floor(_svPlayer.getCurrentTime?.() ?? 0); } catch (_) { _svMiniStartAt = 0; }
+  _svMiniStartWallTime = Date.now();
+
+  const titleEl = $('#yt-mini-title');
+  if (titleEl) titleEl.textContent = stream.title || '';
+  const hintEl = $('#yt-mini-hint');
+  if (hintEl) hintEl.textContent = '▲ タップして配信ビューワーへ戻る';
+  panel.classList.add('has-stream');
+  panel.hidden = false;
+
+  // プレイヤーインスタンスごと引き継ぐ（iframe は DOM 移動しない＝リロードなし）
+  _miniPlayer = _svPlayer;
+  _svPlayer = null;
+
+  viewer.classList.add('sv-minified');
+  document.body.classList.add('has-sv-mini');
+  document.body.style.overflow = '';
+
+  hidePlayerPanel();
+  _syncMiniPos();
+  window.addEventListener('resize', _syncMiniPos);
+  _miniStartProgress();
+  try {
+    const st = _miniPlayer.getPlayerState?.();
+    $('#yt-mini-play')?.setAttribute('data-playing', st === window.YT?.PlayerState?.PLAYING ? '1' : '0');
+  } catch (_) {}
+  _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, _storedVol());
+  return true;
+}
+
+/** ミニ化 → ビューワー復帰（こちらもリロードなし） */
+function _svUnminify() {
+  const viewer = $('#stream-viewer');
+  if (!viewer?.classList.contains('sv-minified')) return false;
+  window.removeEventListener('resize', _syncMiniPos);
+  _miniStopProgress();
+  viewer.classList.remove('sv-minified');
+  document.body.classList.remove('has-sv-mini');
+  const wrap = $('#sv-player-wrap');
+  if (wrap) wrap.style.cssText = '';
+  _svPlayer = _miniPlayer;
+  _miniPlayer = null;
+  const panel = $('#yt-player-panel');
+  if (panel) panel.hidden = true;
+  showPlayerPanel();
+  setTimeout(() => { $('#sv-close')?.focus({ preventScroll: true }); }, 50);
+  return true;
+}
+
+/** ミニ化状態を完全破棄（別動画を開く・ミニを閉じる時） */
+function _svDiscardMini() {
+  const viewer = $('#stream-viewer');
+  if (!viewer?.classList.contains('sv-minified')) return false;
+  window.removeEventListener('resize', _syncMiniPos);
+  ++_svGen;
+  viewer.classList.remove('sv-minified');
+  document.body.classList.remove('has-sv-mini');
+  viewer.hidden = true;
+  viewer._currentStream = null;
+  const wrap = $('#sv-player-wrap');
+  if (wrap) { wrap.style.cssText = ''; wrap.innerHTML = ''; }
+  _miniDestroyPlayer();
+  const panel = $('#yt-player-panel');
+  if (panel) panel.hidden = true;
+  _svLastStream = null;
+  return true;
+}
+
 // ─── YouTube IFrame API ───────────────────────────────────────────────────────
 
 function playYouTubeInline(url, startAt = 0, streamTitle = '') {
@@ -469,16 +567,20 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
   {
     const svViewer = $('#stream-viewer');
     if (svViewer && !svViewer.hidden && !_svFullscreen) {
-      ++_svGen;
-      svViewer.hidden = true;
-      svViewer._currentStream = null;
-      _svPlayer = null;
-      const wrap = $('#sv-player-wrap');
-      if (wrap) wrap.innerHTML = '';
-      document.body.style.overflow = '';
-      _svLastStream = null;
-      _pendingTabOptions = {};
-      hidePlayerPanel();
+      if (svViewer.classList.contains('sv-minified')) {
+        _svDiscardMini();
+      } else {
+        ++_svGen;
+        svViewer.hidden = true;
+        svViewer._currentStream = null;
+        _svPlayer = null;
+        const wrap = $('#sv-player-wrap');
+        if (wrap) wrap.innerHTML = '';
+        document.body.style.overflow = '';
+        _svLastStream = null;
+        _pendingTabOptions = {};
+        hidePlayerPanel();
+      }
     }
   }
 
@@ -572,6 +674,7 @@ function initYouTubePlayer() {
   // 閉じる
   $('#yt-player-close').addEventListener('click', () => {
     panel.hidden = true;
+    if (_svDiscardMini()) return;
     _miniDestroyPlayer();
     _svLastStream = null;
   });
@@ -588,6 +691,7 @@ function initYouTubePlayer() {
 
   // タイトルバークリック → 配信ビューワーへ戻る
   $('#yt-mini-restore').addEventListener('click', () => {
+    if (_svUnminify()) return; // ミニ化中 → そのまま復帰（リロードなし）
     if (!_svLastStream) return;
     openStreamViewer(_svLastStream, _miniResumeAt());
   });
@@ -1368,7 +1472,7 @@ function initStreamViewer() {
   `;
   panel.appendChild(el);
 
-  $('#sv-close').addEventListener('click', () => closeStreamViewer({ instant: true }));
+  $('#sv-close').addEventListener('click', () => closeStreamViewer());
 
   // 全画面ボタン
   $('#sv-fullscreen-btn').addEventListener('click', enterStreamFullscreen);
@@ -1405,7 +1509,7 @@ function initStreamViewer() {
   el.querySelectorAll('[data-bc-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
       _epPrevTab = btn.dataset.bcTab;
-      closeStreamViewer({ instant: true });
+      closeStreamViewer();
     });
   });
 
@@ -1488,6 +1592,19 @@ function openStreamViewer(stream, resumeAt = 0) {
 
   initStreamViewer();
   _loadYtApi();
+
+  // ミニ化中で同じ動画 → そのまま復帰（リロードなし）
+  const curViewer = $('#stream-viewer');
+  if (curViewer?.classList.contains('sv-minified')) {
+    if (curViewer._currentStream?.url === stream.url) {
+      _svUnminify();
+      if (resumeAt > 0) {
+        try { _svPlayer?.seekTo(Math.floor(resumeAt), true); _svPlayer?.playVideo(); } catch (_) {}
+      }
+      return;
+    }
+    _svDiscardMini(); // 別の動画 → ミニ化中のプレイヤーを破棄して通常オープン
+  }
 
   // ミニプレイヤーが表示中なら即時破棄（同一ページで2プレイヤー競合を防ぐ）
   const miniPanel = $('#yt-player-panel');
@@ -1599,7 +1716,8 @@ function openStreamViewer(stream, resumeAt = 0) {
             if (event.data === window.YT.PlayerState.PLAYING) {
               try { event.target.setPlaybackQuality('hd1080'); } catch (_) {}
             }
-            if (event.data === window.YT.PlayerState.ENDED && _svAutoPlay) {
+            if (event.data === window.YT.PlayerState.ENDED && _svAutoPlay
+                && !viewer.classList.contains('sv-minified')) {
               _svPlayNext();
             }
           },
@@ -1615,9 +1733,9 @@ function openStreamViewer(stream, resumeAt = 0) {
   });
 }
 
-function closeStreamViewer({ instant = false } = {}) {
+function closeStreamViewer() {
   const viewer = $('#stream-viewer');
-  if (!viewer || viewer.hidden || viewer.dataset.svTransitioning) return;
+  if (!viewer || viewer.hidden || viewer.classList.contains('sv-minified')) return;
 
   // ── 全画面モードの場合 → 埋め込みに戻るだけ（ミニプレイヤーは起動しない）──
   if (_svFullscreen) {
@@ -1632,162 +1750,11 @@ function closeStreamViewer({ instant = false } = {}) {
     return; // 動画はそのまま継続再生
   }
 
-  // ── タブ遷移など instant 指定 → ビューワーを即時閉じ、ミニプレイヤーを非同期起動 ──
-  if (instant) {
-    const stream = viewer._currentStream;
-    const videoId = stream?.url ? youtubeVideoId(stream.url) : '';
-    const currentTime = _svPlayer?.getCurrentTime?.() ?? 0;
-    const oldSvPlayer = _svPlayer;
+  // ── 埋め込み → ミニ化: 同じ iframe を CSS で縮小表示（リロードなし・ゼロラグ）──
+  if (_svMinify()) return;
 
-    ++_svGen;
-    const gen = _svGen;
-
-    _svPlayer = null;
-    viewer.hidden = true;
-    viewer._currentStream = null;
-    const wrap = $('#sv-player-wrap');
-    if (wrap) wrap.innerHTML = '';
-    document.body.style.overflow = '';
-
-    // タブを即時切り替え
-    hidePlayerPanel();
-
-    // ストリームプレイヤーを遅延破棄
-    setTimeout(() => { try { oldSvPlayer?.destroy?.(); } catch (_) {} }, 100);
-
-    if (videoId) {
-      _svLastStream = stream;
-      _svMiniStartAt = Math.floor(currentTime);
-      _svMiniStartWallTime = Date.now();
-
-      _loadYtApi();
-      initYouTubePlayer();
-      const container = $('#yt-player-container');
-      const panel = $('#yt-player-panel');
-      _miniDestroyPlayer();
-      const titleEl = $('#yt-mini-title');
-      if (titleEl) titleEl.textContent = stream.title || '';
-      const hintEl = $('#yt-mini-hint');
-      if (hintEl) hintEl.textContent = '▲ タップして配信ビューワーへ戻る';
-      if (panel) { panel.classList.add('has-stream'); panel.hidden = false; }
-
-      _onYtReady(() => {
-        if (gen !== _svGen || !container) return;
-        const rt = _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000;
-        const playerDiv = document.createElement('div');
-        container.appendChild(playerDiv);
-        try {
-          _miniPlayer = new window.YT.Player(playerDiv, {
-            videoId, width: '100%', height: '100%',
-            playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1, start: Math.floor(rt) },
-            events: {
-              onReady: (ev) => {
-                const v = _storedVol();
-                try { ev.target.setVolume(v); } catch (_) {}
-                _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, v);
-              },
-              onStateChange: (ev) => {
-                const isPlaying = ev.data === window.YT?.PlayerState?.PLAYING;
-                const btn = $('#yt-mini-play');
-                if (btn) btn.setAttribute('data-playing', isPlaying ? '1' : '0');
-                if (isPlaying) _miniStartProgress();
-              },
-            },
-          });
-        } catch (_) {}
-      });
-    }
-    return;
-  }
-
-  // ── 埋め込みモードの場合 → ミニプレイヤーへシームレス引き継ぎ ──
-  const stream = viewer._currentStream;
-  const currentTime = _svPlayer?.getCurrentTime?.() ?? 0;
-  const videoId = stream?.url ? youtubeVideoId(stream.url) : '';
-
+  // プレイヤー未生成など → 通常クローズ
   ++_svGen;
-  const gen = _svGen;
-
-  if (videoId && stream?.url) {
-    // ミニプレイヤーが再生を開始するまでストリームプレイヤーを存続させ、音を途切れさせない
-    _svLastStream = stream;
-    _svMiniStartAt = Math.floor(currentTime);
-    _svMiniStartWallTime = Date.now();
-
-    viewer.dataset.svTransitioning = '1';
-    viewer.classList.add('sv-to-mini'); // オーバーレイ表示（操作ブロック、音声継続）
-
-    _loadYtApi();
-    initYouTubePlayer();
-    const container = $('#yt-player-container');
-    const panel = $('#yt-player-panel');
-    _miniDestroyPlayer();
-    const titleEl = $('#yt-mini-title');
-    if (titleEl) titleEl.textContent = stream.title || '';
-    const hintEl = $('#yt-mini-hint');
-    if (hintEl) hintEl.textContent = '▲ タップして配信ビューワーへ戻る';
-    panel.classList.add('has-stream');
-    panel.hidden = false;
-
-    let _finishClosed = false;
-    const _finishClose = () => {
-      if (_finishClosed) return;
-      _finishClosed = true;
-      if (gen !== _svGen) { viewer.classList.remove('sv-to-mini'); delete viewer.dataset.svTransitioning; return; }
-      viewer.classList.remove('sv-to-mini');
-      delete viewer.dataset.svTransitioning;
-      const oldSvPlayer = _svPlayer;
-      _svPlayer = null;
-      viewer.hidden = true;
-      viewer._currentStream = null;
-      const wrap = $('#sv-player-wrap');
-      if (wrap) wrap.innerHTML = '';
-      document.body.style.overflow = '';
-      hidePlayerPanel();
-      setTimeout(() => { try { oldSvPlayer?.destroy?.(); } catch (_) {} }, 100);
-    };
-
-    // ミニが起動しない場合のフォールバック（3秒後に強制クローズ）
-    const fallback = setTimeout(_finishClose, 3000);
-
-    _onYtReady(() => {
-      if (gen !== _svGen) { clearTimeout(fallback); viewer.classList.remove('sv-to-mini'); delete viewer.dataset.svTransitioning; return; }
-      const rt = _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000;
-      const playerDiv = document.createElement('div');
-      container.appendChild(playerDiv);
-      try {
-        _miniPlayer = new window.YT.Player(playerDiv, {
-          videoId,
-          width: '100%',
-          height: '100%',
-          playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1, start: Math.floor(rt) },
-          events: {
-            onReady: (ev) => {
-              const v = _storedVol();
-              try { ev.target.setVolume(v); } catch (_) {}
-              _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, v);
-            },
-            onStateChange: (ev) => {
-              const isPlaying = ev.data === window.YT?.PlayerState?.PLAYING;
-              const btn = $('#yt-mini-play');
-              if (btn) btn.setAttribute('data-playing', isPlaying ? '1' : '0');
-              if (isPlaying && gen === _svGen) {
-                clearTimeout(fallback);
-                _finishClose();
-                _miniStartProgress();
-              }
-            },
-          },
-        });
-      } catch (_) {
-        clearTimeout(fallback);
-        _finishClose();
-      }
-    });
-    return;
-  }
-
-  // 動画なし → 即時クローズ
   viewer.hidden = true;
   viewer._currentStream = null;
   _svPlayer = null;
@@ -2246,9 +2213,10 @@ $$('.tab-btn').forEach(btn => {
     const tab = btn.dataset.tab;
     const streamViewer = $('#stream-viewer');
     // 埋め込みモード（非全画面）でストリームが再生中 → ミニプレイヤーへ引き継ぐ
-    if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen) {
+    if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen
+        && !streamViewer.classList.contains('sv-minified')) {
       _epPrevTab = tab; // closeStreamViewer 内の hidePlayerPanel がこのタブへ遷移する
-      closeStreamViewer({ instant: true });
+      closeStreamViewer();
       return;
     }
     activateTab(tab);

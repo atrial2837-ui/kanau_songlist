@@ -4740,3 +4740,59 @@ body.has-music-bar { padding-bottom: 72px; }
   .sv-volume-wrap .vol-slider { display: none; }
   .yt-mini-vol-wrap .vol-slider { width: 44px; }
 }
+
+/* ============================================================
+   ミニ化モード (.sv-minified)
+   ビューワーの iframe を作り直さず、CSS でミニプレイヤーの
+   動画エリア位置に固定表示する（リロードなしのゼロラグ引き継ぎ）
+   ============================================================ */
+
+/* position:fixed をビューポート基準にする（全画面時と同じ手法） */
+body.has-sv-mini .container { z-index: auto; }
+
+/* タブが非アクティブでも #panel-player を描画させ iframe を生かす */
+body.has-sv-mini #panel-player { display: block; }
+
+/* ビューワー本体はレイアウトから消す（display:none は不可 — iframe が落ちる） */
+#stream-viewer.sv-minified {
+  position: static;
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  overflow: visible;
+}
+
+#stream-viewer.sv-minified .sv-header,
+#stream-viewer.sv-minified .sv-below-player,
+#stream-viewer.sv-minified .sv-panel { display: none; }
+
+#stream-viewer.sv-minified .sv-container,
+#stream-viewer.sv-minified .sv-body,
+#stream-viewer.sv-minified .sv-player-section {
+  display: block;
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  overflow: visible;
+}
+
+/* 動画ラップをミニパネルの動画エリアへ固定配置（座標は JS が同期） */
+#stream-viewer.sv-minified .sv-player-wrap {
+  position: fixed;
+  z-index: 1001; /* #yt-player-panel (1000) の直上 */
+  aspect-ratio: auto;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  border-radius: 11px 11px 0 0;
+  overflow: hidden;
+}
+
+/* ホバー時の進捗バー高さ変化はパネル高が変わり動画位置がずれるため無効化 */
+body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
