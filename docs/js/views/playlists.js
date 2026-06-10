@@ -19,6 +19,7 @@ const PER_PAGE    = 24; // 4列 × 6行
 
 let _activeSubTab = 'all-streams';
 let _streamPage   = 1;
+let _streamSort   = 'newest';
 
 /* ── データ操作（localStorage） ─────────────────────────────────────────── */
 
@@ -110,6 +111,15 @@ export function renderPlaylists() {
       return;
     }
 
+    // ── ソート ──
+    const sortBtn = e.target.closest('[data-pl-sort]');
+    if (sortBtn) {
+      _streamSort = sortBtn.dataset.plSort;
+      _streamPage = 1;
+      _renderPageInPlace(allStreams);
+      return;
+    }
+
     // ── ページネーション ──
     const pageBtn = e.target.closest('[data-pl-page]');
     if (pageBtn && !pageBtn.disabled) {
@@ -134,6 +144,21 @@ export function renderPlaylists() {
 
 /* ── 歌枠一覧グリッド ──────────────────────────────────────────────────── */
 
+const SORT_OPTIONS = [
+  { key: 'newest',      label: '新しい順' },
+  { key: 'oldest',      label: '古い順'   },
+  { key: 'most-songs',  label: '曲数↓'    },
+  { key: 'fewest-songs',label: '曲数↑'    },
+];
+
+function _sortStreams(streams, sort) {
+  const s = streams.slice();
+  if (sort === 'oldest')       return s.reverse();
+  if (sort === 'most-songs')   return s.sort((a, b) => (b.songs?.length ?? 0) - (a.songs?.length ?? 0));
+  if (sort === 'fewest-songs') return s.sort((a, b) => (a.songs?.length ?? 0) - (b.songs?.length ?? 0));
+  return s; // newest (default — already sorted newest-first in store)
+}
+
 function _renderAllStreams(streams, page) {
   if (!streams.length) {
     return `
@@ -143,11 +168,12 @@ function _renderAllStreams(streams, page) {
       </div>`;
   }
 
-  const total      = streams.length;
+  const sorted     = _sortStreams(streams, _streamSort);
+  const total      = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
   const safePage   = Math.min(Math.max(1, page), totalPages);
   const start      = (safePage - 1) * PER_PAGE;
-  const slice      = streams.slice(start, start + PER_PAGE);
+  const slice      = sorted.slice(start, start + PER_PAGE);
 
   const cards = slice.map(s => {
     const skey = streamKey(s);
@@ -181,7 +207,14 @@ function _renderAllStreams(streams, page) {
         ${safePage >= totalPages ? 'disabled' : ''} type="button" aria-label="次のページ">次へ</button>
     </div>` : '';
 
-  return `<div class="pl-stream-grid" id="pl-stream-grid">${cards}</div>${pagination}`;
+  const sortBar = `
+    <div class="pl-sort-bar">
+      ${SORT_OPTIONS.map(o => `
+        <button class="pl-sort-opt${_streamSort === o.key ? ' active' : ''}"
+          data-pl-sort="${o.key}" type="button">${o.label}</button>`).join('')}
+    </div>`;
+
+  return `${sortBar}<div class="pl-stream-grid" id="pl-stream-grid">${cards}</div>${pagination}`;
 }
 
 /** ページ切替時はグリッド部分だけ差し替えてスクロールを戻す */
