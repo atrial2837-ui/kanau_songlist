@@ -1679,11 +1679,11 @@ function closeStreamViewer({ instant = false } = {}) {
         try {
           _miniPlayer = new window.YT.Player(playerDiv, {
             videoId, width: '100%', height: '100%',
-            playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1, start: Math.floor(rt) },
+            playerVars: { autoplay: 0, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1, start: Math.floor(rt) },
             events: {
               onReady: (ev) => {
                 const v = _storedVol();
-                try { ev.target.setVolume(v); } catch (_) {}
+                try { ev.target.setVolume(v); ev.target.playVideo(); } catch (_) {}
                 _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, v);
               },
               onStateChange: (ev) => {
@@ -1760,11 +1760,16 @@ function closeStreamViewer({ instant = false } = {}) {
           videoId,
           width: '100%',
           height: '100%',
-          playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1, start: Math.floor(rt) },
+          // start パラメータは使わず onReady で seekTo — start は seamless 遷移時に問題を起こすことがある
+          playerVars: { autoplay: 0, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1 },
           events: {
             onReady: (ev) => {
               const v = _storedVol();
-              try { ev.target.setVolume(v); } catch (_) {}
+              try {
+                ev.target.setVolume(v);
+                if (rt > 1) ev.target.seekTo(rt, true);
+                ev.target.playVideo();
+              } catch (_) {}
               _applyVol($('#yt-mini-vol-slider'), $('#yt-mini-vol-btn'), null, v);
             },
             onStateChange: (ev) => {
