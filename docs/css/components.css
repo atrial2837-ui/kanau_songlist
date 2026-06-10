@@ -3678,11 +3678,91 @@ mark.hl {
   border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
 }
 
+/* セトリ登録ボタン（一括入力横） */
+.sv-cts-bulk-btn {
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  color: var(--primary-strong);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
+}
+.sv-cts-bulk-btn:hover { background: var(--primary); color: #fff; }
+
+/* 一括申請モーダル */
+.sv-bulk-modal-box { max-width: 540px; }
+
+.sv-bulk-hint {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  margin: 0;
+}
+
+.sv-bulk-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 6px;
+}
+
+.sv-bulk-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 88px 28px;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-bulk-num {
+  font-size: 11px;
+  color: var(--ink-mute);
+  text-align: right;
+}
+
+.sv-bulk-title {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-bulk-ts-input {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink);
+  width: 100%;
+}
+.sv-bulk-ts-input:focus { outline: none; border-color: var(--primary); }
+
+.sv-bulk-ts-now {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  color: var(--ink-mute);
+}
+.sv-bulk-ts-now:hover { background: var(--primary-soft); border-color: var(--primary); }
+
 @media (max-width: 600px) {
   .sv-cts-modal-box { padding: 18px; }
   .sv-cts-modal-btns { justify-content: stretch; }
   .sv-cts-modal-submit,
   .sv-cts-modal-cancel { flex: 1; text-align: center; }
+  .sv-bulk-row { grid-template-columns: 18px 1fr 78px 26px; }
 }
 
 /* ============================================================

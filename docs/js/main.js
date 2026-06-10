@@ -709,6 +709,7 @@ async function _svLoadCommunityTs(stream) {
   if (!el || el._currentStream !== stream) return;
   const setlistEl = $('#sv-setlist');
   if (setlistEl) _svRefreshSetlist(setlistEl, stream.songs, _svLoadTs(stream));
+  _svUpdateBulkBtn(stream);
 }
 
 /**
@@ -807,6 +808,145 @@ function _svShowProposeModal(stream, songIdx, songTitle) {
 
   // フォーカス
   setTimeout(() => modal.querySelector('#sv-cts-ts-input')?.focus(), 50);
+  document.addEventListener('keydown', function onEsc(e) {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
+  });
+}
+
+// ─── Bulk community timestamp proposal ───────────────────────────────────────
+
+/** セトリ登録ボタンのテキスト・表示状態を更新する */
+function _svUpdateBulkBtn(stream) {
+  const btn = $('#sv-cts-bulk-btn');
+  if (!btn || !stream?.songs?.length) return;
+  const registeredCount = Object.keys(_svCommunityTs).length;
+  const allRegistered   = registeredCount >= stream.songs.length;
+  btn.textContent = allRegistered ? '修正申請' : 'セトリ登録';
+  btn.hidden = false;
+}
+
+/** 全曲まとめてタイムスタンプを申請するモーダルを表示する */
+function _svShowBulkProposeModal(stream) {
+  $('#sv-bulk-modal')?.remove();
+
+  const localTs = _svLoadTs(stream); // 一括入力で保存済みのタイムスタンプ
+  const registeredCount = Object.keys(_svCommunityTs).length;
+  const allRegistered   = registeredCount >= stream.songs.length;
+  const isRevise = allRegistered;
+
+  const rows = stream.songs.map((song, idx) => {
+    const localVal = localTs[idx] != null ? _fmtTs(localTs[idx]) : '';
+    const communityVal = _svCommunityTs[idx]?.[0]?.timeSeconds != null
+      ? _fmtTs(_svCommunityTs[idx][0].timeSeconds) : '';
+    const prefill = localVal || communityVal;
+    return `
+      <div class="sv-bulk-row" data-idx="${idx}">
+        <span class="sv-bulk-num">${idx + 1}</span>
+        <span class="sv-bulk-title" title="${escapeHtml(song.title)}">${escapeHtml(song.title)}</span>
+        <input class="sv-bulk-ts-input" type="text" value="${escapeHtml(prefill)}"
+          placeholder="0:00" autocomplete="off" data-bulk-ts-idx="${idx}">
+        <button class="sv-bulk-ts-now" type="button" title="現在時刻を入力" data-bulk-now="${idx}">⏱</button>
+      </div>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'sv-bulk-modal';
+  modal.className = 'sv-cts-modal-overlay';
+  modal.innerHTML = `
+    <div class="sv-cts-modal-box sv-bulk-modal-box" role="dialog" aria-modal="true"
+      aria-label="${isRevise ? '修正申請' : 'セトリ登録'}">
+      <div class="sv-cts-modal-head">
+        <span class="sv-cts-modal-title">${isRevise ? '修正申請' : 'セトリ登録'}</span>
+        <button class="sv-cts-modal-close" type="button" aria-label="閉じる">✕</button>
+      </div>
+      <p class="sv-bulk-hint">タイムスタンプを入力して一括申請できます。空欄の曲はスキップされます。</p>
+      <div class="sv-bulk-rows">${rows}</div>
+      <label class="sv-cts-modal-label" style="margin-top:10px">
+        共通コメント（任意・200文字以内）
+        <input class="sv-cts-modal-input" id="sv-bulk-note" type="text" maxlength="200" placeholder="">
+      </label>
+      <p class="sv-cts-modal-hint">提案は管理者の審査後に公開されます。</p>
+      <div class="sv-cts-modal-btns">
+        <button class="sv-cts-modal-submit" id="sv-bulk-submit" type="button">一括申請する</button>
+        <button class="sv-cts-modal-cancel" type="button">キャンセル</button>
+      </div>
+      <p class="sv-cts-modal-status" id="sv-bulk-status" hidden></p>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  modal.querySelector('.sv-cts-modal-close').addEventListener('click', close);
+  modal.querySelector('.sv-cts-modal-cancel').addEventListener('click', close);
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+
+  // ⏱ ボタン：現在時刻を入力欄にセット
+  modal.querySelector('.sv-bulk-rows').addEventListener('click', e => {
+    const btn = e.target.closest('[data-bulk-now]');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.bulkNow, 10);
+    const time = _svPlayer?.getCurrentTime?.();
+    if (time != null) {
+      const input = modal.querySelector(`[data-bulk-ts-idx="${idx}"]`);
+      if (input) input.value = _fmtTs(Math.floor(time));
+    }
+  });
+
+  modal.querySelector('#sv-bulk-submit').addEventListener('click', async () => {
+    const note = modal.querySelector('#sv-bulk-note').value.trim() || null;
+    const statusEl = modal.querySelector('#sv-bulk-status');
+    const submitBtn = modal.querySelector('#sv-bulk-submit');
+
+    // 入力値を収集
+    const entries = [];
+    modal.querySelectorAll('[data-bulk-ts-idx]').forEach(input => {
+      const idx = parseInt(input.dataset.bulkTsIdx, 10);
+      const sec = _parseTs(input.value.trim());
+      if (sec !== null) entries.push({ songIndex: idx, timeSeconds: sec });
+    });
+
+    if (!entries.length) {
+      statusEl.textContent = 'タイムスタンプが1つも入力されていません';
+      statusEl.className = 'sv-cts-modal-status error';
+      statusEl.hidden = false;
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = `申請中… (0/${entries.length})`;
+    statusEl.hidden = true;
+
+    let succeeded = 0;
+    let failed = 0;
+    await Promise.all(entries.map(async entry => {
+      try {
+        const res = await fetch(
+          `/api/timestamps/${encodeURIComponent(stream.channel)}/${stream.index}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ songIndex: entry.songIndex, timeSeconds: entry.timeSeconds, submitterNote: note }),
+          }
+        );
+        if (res.ok) succeeded++; else failed++;
+      } catch (_) { failed++; }
+      submitBtn.textContent = `申請中… (${succeeded + failed}/${entries.length})`;
+    }));
+
+    if (failed === 0) {
+      statusEl.textContent = `${succeeded}曲分のタイムスタンプを申請しました！審査後に公開されます。`;
+      statusEl.className = 'sv-cts-modal-status success';
+      submitBtn.hidden = true;
+      modal.querySelector('.sv-cts-modal-cancel').textContent = '閉じる';
+    } else {
+      statusEl.textContent = `${succeeded}件成功 / ${failed}件失敗。失敗分を再試行してください。`;
+      statusEl.className = 'sv-cts-modal-status error';
+      submitBtn.disabled = false;
+      submitBtn.textContent = '一括申請する';
+    }
+    statusEl.hidden = false;
+  });
+
   document.addEventListener('keydown', function onEsc(e) {
     if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
   });
@@ -1061,6 +1201,7 @@ function initStreamViewer() {
             <span>セットリスト</span>
             <div class="sv-panel-head-right">
               <button class="sv-import-toggle" id="sv-import-toggle" type="button">一括入力</button>
+              <button class="sv-cts-bulk-btn" id="sv-cts-bulk-btn" type="button" hidden>セトリ登録</button>
               <span class="sv-song-count" id="sv-song-count"></span>
             </div>
           </div>
@@ -1122,6 +1263,11 @@ function initStreamViewer() {
     const area = $('#sv-import-area');
     if (area) area.hidden = true;
     input.value = '';
+  });
+
+  $('#sv-cts-bulk-btn').addEventListener('click', () => {
+    const stream = el._currentStream;
+    if (stream) _svShowBulkProposeModal(stream);
   });
 
   $('#sv-setlist').addEventListener('click', (e) => {
