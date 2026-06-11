@@ -6,6 +6,7 @@
 
 import { state } from '../store.js';
 import { escapeHtml, fmtDate } from '../utils.js';
+import { search as searchSongs } from '../search.js';
 
 let _active = -1;   // 現在ハイライトされている行インデックス
 let _flat   = [];   // キーボード選択用フラット配列
@@ -34,7 +35,7 @@ export function initSearchPalette(handlers) {
           id="omni-input"
           class="omni-input"
           type="search"
-          placeholder="曲名・アーティスト・配信・動画を検索…"
+          placeholder="曲・配信・動画を検索（スペース区切りで絞り込み）"
           autocomplete="off"
           spellcheck="false"
           aria-label="サイト内検索"
@@ -166,10 +167,13 @@ function _render(rawQuery) {
     return;
   }
 
-  // ── 曲 ─────────────────────────────────────────────────────────────────────
-  const matchedSongs = songs.filter(s =>
-    _norm(s.title).includes(q) || _norm(s.artist).includes(q)
-  ).slice(0, 8);
+  // ── 曲: 全曲リストと同じ検索エンジン（あいまい・ムード・複合キーワード対応）──
+  let matchedSongs = [];
+  try { matchedSongs = (searchSongs(rawQuery, songs).results || []).slice(0, 8); } catch (_) {}
+  if (!matchedSongs.length) {
+    // フォールバック: トークン分割 AND 検索
+    matchedSongs = songs.filter(s => _tokensMatch(rawQuery, `${s.title} ${s.artist}`)).slice(0, 8);
+  }
 
   if (matchedSongs.length) {
     html += _sectionLabel('🎵 曲');
@@ -191,11 +195,11 @@ function _render(rawQuery) {
     }
   }
 
-  // ── アーティスト ────────────────────────────────────────────────────────────
+  // ── アーティスト（トークン分割 AND 検索）──────────────────────────────────
   const seenArtists = new Set();
   const artistMatches = [];
   for (const s of songs) {
-    if (_norm(s.artist).includes(q) && !seenArtists.has(s.artist)) {
+    if (s.artist && _tokensMatch(rawQuery, s.artist) && !seenArtists.has(s.artist)) {
       seenArtists.add(s.artist);
       artistMatches.push(s.artist);
       if (artistMatches.length >= 4) break;
@@ -216,12 +220,13 @@ function _render(rawQuery) {
     }
   }
 
-  // ── 配信枠 ──────────────────────────────────────────────────────────────────
+  // ── 配信枠（トークン分割 AND 検索: 各語がタイトルか収録曲のどこかに一致）──
   if (streams.length) {
-    const matchedStreams = streams.filter(s =>
-      _norm(s.title).includes(q) ||
-      s.songs?.some(sg => _norm(sg.title).includes(q) || _norm(sg.artist).includes(q))
-    ).slice(0, 5);
+    const matchedStreams = streams.filter(s => {
+      const hay = _norm(`${s.title || ''} ${(s.songs || []).map(sg => `${sg.title || ''} ${sg.artist || ''}`).join(' ')}`);
+      const tokens = _queryTokens(rawQuery);
+      return tokens.length > 0 && tokens.every(t => hay.includes(t));
+    }).slice(0, 5);
 
     if (matchedStreams.length) {
       html += _sectionLabel('📅 配信枠');
@@ -322,6 +327,14 @@ function _queryTokens(query) {
     .split(/[\/／|｜\s]+/)
     .map(s => s.trim())
     .filter(Boolean);
+}
+
+/** 全トークンが対象テキストに含まれるか（スペース/スラッシュ区切りの AND 検索） */
+function _tokensMatch(query, text) {
+  const tokens = _queryTokens(query);
+  if (!tokens.length) return false;
+  const hay = _norm(text);
+  return tokens.every(t => hay.includes(t));
 }
 
 function _norm(s) {
