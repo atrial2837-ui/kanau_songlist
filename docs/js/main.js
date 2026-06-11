@@ -633,10 +633,16 @@ function _svMoveToMusicBar() {
   _miniStartProgress();
 
   import('./music-player.js')
-    .then(m => m.adoptExternalPlayer?.(musicTrack, _miniPlayer, {
-      restore: _svRestoreFromMusicBar,
-      close: _svDiscardMusicBar,
-    }))
+    .then(m => {
+      m.adoptExternalPlayer?.(musicTrack, _miniPlayer, {
+        restore: _svRestoreFromMusicBar,
+        close: _svDiscardMusicBar,
+      });
+      _syncMiniPos();
+      requestAnimationFrame(_syncMiniPos);
+      setTimeout(_syncMiniPos, 120);
+      setTimeout(_syncMiniPos, 400);
+    })
     .catch(() => {});
 }
 

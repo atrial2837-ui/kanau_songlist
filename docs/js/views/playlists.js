@@ -14,7 +14,7 @@ import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbFallback, youtubeVideoId } from '../utils.js';
 
 const STORAGE_KEY = 'kanau-playlists';
-const MUSIC_CACHE_KEY = 'kanau-music-videos-cache-v1';
+const MUSIC_CACHE_KEY = 'kanau-music-videos-cache-v2';
 const PER_PAGE    = 24; // 4列 × 6行
 
 /* ── モジュールレベルの状態（サブタブ / ページ） ─────────────────────────── */
@@ -25,6 +25,7 @@ let _streamSort   = 'newest';
 let _musicView    = 'grid';     // 'grid' | 'list' | 'category'
 let _musicVideos  = null;       // キャッシュ済み music.json の videos 配列
 let _musicLoadPromise = null;
+let _musicLoading = false;
 let _musicQuery   = '';
 let _musicSearchComposing = false;
 
@@ -306,7 +307,10 @@ function _renderPageInPlace(allStreams) {
 /* ── 歌みた・オリ曲ライブラリ ──────────────────────────────────────────── */
 
 function _renderMusicLoading() {
-  return `<div class="pl-empty-state"><p>読み込み中…</p></div>`;
+  const cached = _readMusicVideoCache();
+  if (_musicVideos === null && cached.length) _musicVideos = cached;
+  _musicLoading = true;
+  return _renderMusicLibrary(_musicVideos || []);
 }
 
 async function _loadAndRenderMusic() {
@@ -316,8 +320,14 @@ async function _loadAndRenderMusic() {
       _musicVideos = cached;
       const body = $('#pl-subtab-body');
       if (body && _activeSubTab === 'music') body.innerHTML = _renderMusicLibrary(_musicVideos);
+    } else {
+      _musicVideos = [];
+      const body = $('#pl-subtab-body');
+      if (body && _activeSubTab === 'music') body.innerHTML = _renderMusicLibrary(_musicVideos);
     }
+    _musicLoading = true;
     _musicVideos = await _fetchMusicVideos();
+    _musicLoading = false;
   }
   const body = $('#pl-subtab-body');
   if (body && _activeSubTab === 'music') {
@@ -353,10 +363,16 @@ function _renderMusicViewBar(videos) {
 function _renderMusicResults(videos) {
   const items = _filterMusicVideos(videos);
 
+  if (_musicLoading && !videos.length) {
+    return `<div class="pl-empty-state"><p>読み込み中…</p><p class="pl-empty-hint">検索欄はこのまま入力できます</p></div>`;
+  }
   if (!videos.length) {
     return `<div class="pl-empty-state"><p>動画が登録されていません</p><p class="pl-empty-hint">管理画面から登録できます</p></div>`;
   }
   if (!items.length) {
+    if (_musicLoading) {
+      return `<div class="pl-empty-state"><p>最新データを確認中…</p><p class="pl-empty-hint">「${escapeHtml(_musicQuery)}」の候補を読み込んでいます</p></div>`;
+    }
     return `<div class="pl-empty-state"><p>一致する動画がありません</p><p class="pl-empty-hint">「曲名 / アーティスト」のように区切って検索できます</p></div>`;
   }
 
