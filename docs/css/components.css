@@ -1747,7 +1747,8 @@ body.has-sv-fullscreen .container { z-index: auto; }
   text-overflow: ellipsis;
 }
 
-.sv-yt-link {
+.sv-yt-link,
+.sv-music-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1762,6 +1763,10 @@ body.has-sv-fullscreen .container { z-index: auto; }
   white-space: nowrap;
   flex-shrink: 0;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.sv-music-btn {
+  cursor: pointer;
 }
 
 /* ── 全画面ボタン ── */
@@ -1787,7 +1792,8 @@ body.has-sv-fullscreen .container { z-index: auto; }
   color: var(--primary-strong);
 }
 
-.sv-yt-link:hover {
+.sv-yt-link:hover,
+.sv-music-btn:hover {
   background: var(--primary-soft);
   border-color: var(--primary);
   color: var(--primary-strong);
@@ -2226,7 +2232,8 @@ body.has-sv-fullscreen .container { z-index: auto; }
   }
 
   .sv-close-btn { padding: 5px 10px; font-size: 11px; }
-  .sv-yt-link   { padding: 5px 10px; font-size: 11px; }
+  .sv-yt-link,
+  .sv-music-btn { padding: 5px 10px; font-size: 11px; }
   .sv-share-btn { padding: 5px 10px; font-size: 11px; }
   .sv-bc-btn    { font-size: 10px; }
   .sv-bc-current { font-size: 10.5px; }
@@ -2270,12 +2277,14 @@ body.has-sv-fullscreen .container { z-index: auto; }
 #stream-viewer.sv-fullscreen .sv-bc-current { color: rgba(255,255,255,0.92); }
 #stream-viewer.sv-fullscreen .sv-stream-meta { color: rgba(255,255,255,0.42); }
 
-#stream-viewer.sv-fullscreen .sv-yt-link {
+#stream-viewer.sv-fullscreen .sv-yt-link,
+#stream-viewer.sv-fullscreen .sv-music-btn {
   background: rgba(74, 178, 220, 0.14);
   border-color: rgba(74, 178, 220, 0.4);
   color: #7ecfee;
 }
-#stream-viewer.sv-fullscreen .sv-yt-link:hover {
+#stream-viewer.sv-fullscreen .sv-yt-link:hover,
+#stream-viewer.sv-fullscreen .sv-music-btn:hover {
   background: rgba(74, 178, 220, 0.28);
   border-color: rgba(74, 178, 220, 0.7);
   color: #b4e6f7;

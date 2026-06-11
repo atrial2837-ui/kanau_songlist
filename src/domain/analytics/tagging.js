@@ -72,10 +72,10 @@ export function inferGenreMoodTags(genre) {
       return ['かわいい', '盛り上がる'];
     case 'ディズニー':
       // ディズニーはかわいい/盛り上がる/和風まで多様だが明るい系が多い
-      return ['かわいい', '盛り上がる'];
+      return ['明るい', 'かわいい', '盛り上がる'];
     case '童謡・唱歌':
       // 童謡は懐かしくて和風
-      return ['懐かしい', '和風'];
+      return ['ノスタルジック', '懐かしい', '和風'];
     case 'ゲーム・キャラソン':
       // ゲーム曲はかっこいい/盛り上がる系が多い
       return ['かっこいい', '盛り上がる'];
@@ -89,7 +89,14 @@ export function inferGenreMoodTags(genre) {
 
 export function inferGenreTags(songOrGenre) {
   const genre = typeof songOrGenre === 'string' ? songOrGenre : songOrGenre?.genre;
-  return inferGenreMoodTags(genre || '');
+  const g = (genre || '').trim();
+  const tags = [];
+  if (g) {
+    tags.push(g);
+    if (g === '童謡・唱歌') tags.push('童謡');
+  }
+  tags.push(...inferGenreMoodTags(g));
+  return Array.from(new Set(tags.filter(Boolean)));
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +137,7 @@ const MOOD_TAG_SET = new Set([
   '盛り上がる', 'しっとり', 'かわいい', 'かっこいい', '懐かしい',
   'chill', '激しい', 'ミステリアス', 'ノスタルジック', 'エモい',
   'ダーク', 'ファンキー', '甘い', 'セクシー', '和風', 'エレクトロ', 'アコースティック',
+  '明るい',
 ]);
 
 export function inferMoodTags(song) {

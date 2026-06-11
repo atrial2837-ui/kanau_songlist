@@ -128,7 +128,14 @@ export function initMusicPlayer() {
 
   const _openInViewer = () => {
     const video = _queue[_qIdx];
-    if (video?.url) window.__openStreamViewer?.({ url: video.url, title: video.title, isMv: true });
+    if (!video?.url) return;
+    // 再生位置をビューワーへ引き継ぐ
+    let t = 0;
+    try { t = _ytPlayer?.getCurrentTime?.() || 0; } catch (_) {}
+    // 歌枠由来のトラックは元の配信オブジェクトでストリームビューワーを開く
+    const target = video._stream || { url: video.url, title: video.title, isMv: true };
+    releaseMusicPlayerVideo({ hideBar: true });
+    window.__openStreamViewer?.(target, t);
   };
   $('#mbar-expand').addEventListener('click', _openInViewer);
   $('#mbar-thumb-overlay').addEventListener('click', _openInViewer);
@@ -196,7 +203,7 @@ export function pauseMusicPlayer() {
  *  もう片方の再生セッションまで壊れる（BUFFERING のまま固まる）ため、
  *  ビューワーの再生が始まる前にバー側のプレイヤーを必ず手放す。
  *  バー・キューは維持し、再生ボタンでプレイヤーを再生成できる。 */
-export function releaseMusicPlayerVideo() {
+export function releaseMusicPlayerVideo(options = {}) {
   _stopProg();
   if (_ytPlayer) { try { _ytPlayer.destroy(); } catch (_) {} _ytPlayer = null; }
   const wrap = $('#mbar-video-wrap');
@@ -209,15 +216,36 @@ export function releaseMusicPlayerVideo() {
     }
   }
   $('#mbar-play')?.setAttribute('data-playing', '0');
+  if (options.hideBar) {
+    const bar = $('#music-bar');
+    if (bar) bar.hidden = true;
+    document.body.classList.remove('has-music-bar');
+  }
 }
 
 export function isMusicBarVisible() {
   return !$('#music-bar')?.hidden;
 }
 
+/** 任意の動画を音楽バーで再生する（ビューワー → バー引き継ぎ用）。
+ *  既存キューに同じ動画があればキュー位置を維持して再生し、
+ *  なければ単独キューとして再生する。 */
+export function playMusicBarVideo(video, startAt = 0) {
+  if (!video?.url) return;
+  const idx = _queue.findIndex(v => v.url === video.url);
+  if (idx >= 0) {
+    _qIdx = idx;
+    _loadTrack(idx, startAt);
+    return;
+  }
+  _queue = [video];
+  _qIdx = 0;
+  _loadTrack(0, startAt);
+}
+
 /* ── 内部: トラック読み込み ─────────────────────────────────────────────── */
 
-function _loadTrack(idx) {
+function _loadTrack(idx, startAt = 0) {
   const video = _queue[idx];
   if (!video) return;
 
@@ -229,12 +257,14 @@ function _loadTrack(idx) {
 
   if (_apiLoader) _apiLoader();
 
+  const startSec = Math.max(0, Math.floor(startAt));
+
   _onYtReady(() => {
     const wrap = $('#mbar-video-wrap');
     if (!wrap) return;
 
     if (_ytPlayer) {
-      try { _ytPlayer.loadVideoById({ videoId: id, startSeconds: 0 }); return; } catch (_) {}
+      try { _ytPlayer.loadVideoById({ videoId: id, startSeconds: startSec }); return; } catch (_) {}
     }
 
     // 新規プレイヤー生成
@@ -246,7 +276,7 @@ function _loadTrack(idx) {
         videoId: id,
         width: '100%',
         height: '100%',
-        playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1 },
+        playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1, ...(startSec > 1 ? { start: startSec } : {}) },
         events: {
           onReady: ev => {
             const v = _storedVol();
@@ -280,13 +310,14 @@ function _updateBarInfo(video) {
 
   if (title) title.textContent = video.title || '—';
   if (sub) {
-    if (video.type === 'cover')         sub.textContent = video.originalArtist || 'カバー曲';
-    else if (video.type === 'office')   sub.textContent = 'Re:AcT';
+    if (video.sub)                       sub.textContent = video.sub;
+    else if (video.type === 'cover')     sub.textContent = video.originalArtist || 'カバー曲';
+    else if (video.type === 'office')    sub.textContent = 'Re:AcT';
     else if (video.type === 'character') sub.textContent = video.character || 'キャラソン';
-    else                                sub.textContent = 'かなうオリジナル';
+    else                                 sub.textContent = 'かなうオリジナル';
   }
   if (badge) {
-    const labels = { original: 'オリジナル', office: 'Re:AcT', character: 'キャラ', cover: 'カバー' };
+    const labels = { original: 'オリジナル', office: 'Re:AcT', character: 'キャラ', cover: 'カバー', stream: '歌枠' };
     badge.textContent = labels[video.type] || 'オリジナル';
     badge.dataset.type = video.type;
   }

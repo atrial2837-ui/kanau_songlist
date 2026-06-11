@@ -541,6 +541,51 @@ function _svUnminify() {
   return true;
 }
 
+/** ビューワー → 音楽プレイヤーバーへ移動（現在位置を引き継ぐ） */
+function _svMoveToMusicBar() {
+  const viewer = $('#stream-viewer');
+  const stream = viewer?._currentStream;
+  if (!viewer || viewer.hidden || !stream?.url) return;
+  const t = _svCurrentTime(readUrlState().t);
+  const musicTrack = {
+    ...stream,
+    title: stream.title || (stream.isMv ? '動画' : '歌枠'),
+    type: stream.isMv ? (stream.type || 'original') : 'stream',
+    sub: stream.isMv
+      ? (stream.originalArtist || stream.character || stream.sub || '')
+      : `${fmtDate(stream.date)} 第${stream.index}枠`,
+    _stream: stream,
+  };
+
+  window.removeEventListener('resize', _syncMiniPos);
+  _miniStopProgress();
+  ++_svGen;
+  try { _svPlayer?.pauseVideo?.(); } catch (_) {}
+  try { _svPlayer?.destroy?.(); } catch (_) {}
+  _svPlayer = null;
+  _miniPlayer = null;
+  _svLastStream = null;
+  _svFullscreen = false;
+  viewer.classList.remove('sv-fullscreen', 'sv-minified');
+  document.body.classList.remove('has-sv-fullscreen', 'has-sv-mini');
+  document.body.style.overflow = '';
+  viewer.hidden = true;
+
+  const wrap = $('#sv-player-wrap');
+  if (wrap) {
+    wrap.style.cssText = '';
+    wrap.innerHTML = '';
+  }
+  const panel = $('#yt-player-panel');
+  if (panel) panel.hidden = true;
+  hidePlayerPanel();
+  _svUpdateUrl();
+
+  import('./music-player.js')
+    .then(m => m.playMusicBarVideo?.(musicTrack, t))
+    .catch(() => {});
+}
+
 /** ミニ化状態を完全破棄（別動画を開く・ミニを閉じる時） */
 function _svDiscardMini() {
   const viewer = $('#stream-viewer');
@@ -1775,6 +1820,7 @@ function initStreamViewer() {
           <button class="vol-btn" id="sv-vol-btn" type="button" aria-label="音量">🔊</button>
           <input class="vol-slider" id="sv-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
         </div>
+        <button class="sv-music-btn" id="sv-music-btn" type="button" title="現在位置から音楽プレイヤーで聴く">🎵 音楽プレイヤーで聴く</button>
         <button class="sv-share-btn" id="sv-share-btn" type="button" title="この動画の共有リンクをコピー">🔗 共有</button>
         <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener">↗ YouTubeで開く</a>
       </div>
@@ -1814,6 +1860,7 @@ function initStreamViewer() {
   $('#sv-close').addEventListener('click', () => closeStreamViewer());
 
   $('#sv-share-btn').addEventListener('click', _svOpenShareModal);
+  $('#sv-music-btn').addEventListener('click', _svMoveToMusicBar);
 
   // 全画面ボタン
   $('#sv-fullscreen-btn').addEventListener('click', enterStreamFullscreen);
