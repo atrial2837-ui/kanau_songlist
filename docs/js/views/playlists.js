@@ -24,6 +24,7 @@ let _streamSort   = 'newest';
 let _musicView    = 'grid';     // 'grid' | 'list' | 'category'
 let _musicVideos  = null;       // キャッシュ済み music.json の videos 配列
 let _musicQuery   = '';
+let _musicSearchComposing = false;
 
 /* ── データ操作（localStorage） ─────────────────────────────────────────── */
 
@@ -178,19 +179,20 @@ export function renderPlaylists() {
     }
   };
 
-  panel.oninput = (e) => {
+  panel.oncompositionstart = (e) => {
+    if (e.target.closest('#pl-music-search')) _musicSearchComposing = true;
+  };
+  panel.oncompositionend = (e) => {
     const input = e.target.closest('#pl-music-search');
     if (!input) return;
-    const caret = input.selectionStart || 0;
-    _musicQuery = input.value || '';
-    const body = $('#pl-subtab-body');
-    if (body && _musicVideos) body.innerHTML = _renderMusicLibrary(_musicVideos);
-    requestAnimationFrame(() => {
-      const next = $('#pl-music-search');
-      if (!next) return;
-      next.focus({ preventScroll: true });
-      try { next.setSelectionRange(caret, caret); } catch (_) {}
-    });
+    _musicSearchComposing = false;
+    _updateMusicSearch(input);
+  };
+
+  panel.oninput = (e) => {
+    const input = e.target.closest('#pl-music-search');
+    if (!input || _musicSearchComposing || e.isComposing) return;
+    _updateMusicSearch(input);
   };
 
   // サムネ 404 フォールバック
@@ -200,6 +202,19 @@ export function renderPlaylists() {
     const fb = img.dataset.fallback;
     if (fb && img.src !== fb) { img.src = fb; delete img.dataset.fallback; }
   }, true);
+}
+
+function _updateMusicSearch(input) {
+  const caret = input.selectionStart || 0;
+  _musicQuery = input.value || '';
+  const body = $('#pl-subtab-body');
+  if (body && _musicVideos) body.innerHTML = _renderMusicLibrary(_musicVideos);
+  requestAnimationFrame(() => {
+    const next = $('#pl-music-search');
+    if (!next) return;
+    next.focus({ preventScroll: true });
+    try { next.setSelectionRange(caret, caret); } catch (_) {}
+  });
 }
 
 /* ── 歌枠一覧グリッド ──────────────────────────────────────────────────── */
