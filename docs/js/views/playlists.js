@@ -27,7 +27,7 @@ let _musicVideos  = null;       // キャッシュ済み music.json の videos �
 let _musicLoadPromise = null;
 let _musicLoading = false;
 let _musicQuery   = '';
-let _musicSearchComposing = false;
+let _musicSearchDebounce = null;
 
 /* ── データ操作（localStorage） ─────────────────────────────────────────── */
 
@@ -87,6 +87,14 @@ export function renderPlaylists() {
 
   const allStreams = state.data?.streams || [];
 
+  // データ更新などによる全再描画で検索欄のフォーカスが失われないよう退避
+  const searchHadFocus = document.activeElement?.id === 'pl-music-search';
+  let searchSel = null;
+  if (searchHadFocus) {
+    try { searchSel = document.activeElement.selectionStart; } catch (_) {}
+    _musicQuery = document.activeElement.value || '';
+  }
+
   panel.innerHTML = `
     <div class="pl-wrap">
       <nav class="pl-subtabs" role="tablist" aria-label="プレイリストサブタブ">
@@ -107,11 +115,23 @@ export function renderPlaylists() {
         ${_activeSubTab === 'all-streams'
           ? _renderAllStreams(allStreams, _streamPage)
           : _activeSubTab === 'music'
-            ? _renderMusicLoading()
+            ? _renderMusicSubtab()
             : _renderMyPlaylists(allStreams)}
       </div>
     </div>
   `;
+
+  // music サブタブ表示中は常にローダーを起動（未取得なら fetch、取得済みなら結果同期）
+  if (_activeSubTab === 'music') _loadAndRenderMusic();
+
+  // 検索欄のフォーカス・カーソル位置を復元
+  if (searchHadFocus) {
+    const inp = $('#pl-music-search');
+    if (inp) {
+      inp.focus();
+      if (searchSel !== null) { try { inp.setSelectionRange(searchSel, searchSel); } catch (_) {} }
+    }
+  }
 
   // サブタブ切り替え（panel.onclick で毎回上書き → リスナー重複なし）
   panel.onclick = (e) => {
@@ -120,8 +140,7 @@ export function renderPlaylists() {
     if (subtabBtn) {
       _activeSubTab = subtabBtn.dataset.plSubtab;
       if (_activeSubTab === 'all-streams') _streamPage = 1;
-      renderPlaylists();
-      if (_activeSubTab === 'music') _loadAndRenderMusic();
+      renderPlaylists(); // music サブタブのローダーは renderPlaylists 内で起動される
       return;
     }
 
@@ -181,22 +200,22 @@ export function renderPlaylists() {
     }
   };
 
-  panel.oncompositionstart = (e) => {
-    if (e.target.closest('#pl-music-search')) _musicSearchComposing = true;
-  };
-  panel.oncompositionend = (e) => {
-    const input = e.target.closest('#pl-music-search');
-    if (!input) return;
-    _musicSearchComposing = false;
-    requestAnimationFrame(() => _updateMusicSearch(input));
-  };
-
+  // 検索: 入力欄は描画し直さず結果(#pl-music-results)だけ差し替えるので、
+  // IME 変換中でもライブフィルタして問題ない（抑制ロジック不要）
   panel.oninput = (e) => {
     const input = e.target.closest('#pl-music-search');
     if (!input) return;
     _musicQuery = input.value || '';
-    if (_musicSearchComposing || e.isComposing) return;
-    _updateMusicSearch(input);
+    clearTimeout(_musicSearchDebounce);
+    _musicSearchDebounce = setTimeout(_refreshMusicResults, 100);
+  };
+  // IME 確定直後にも即時反映（ブラウザ差異対策）
+  panel.oncompositionend = (e) => {
+    const input = e.target.closest('#pl-music-search');
+    if (!input) return;
+    _musicQuery = input.value || '';
+    clearTimeout(_musicSearchDebounce);
+    _refreshMusicResults();
   };
 
   // サムネ 404 フォールバック
@@ -208,10 +227,6 @@ export function renderPlaylists() {
   }, true);
 }
 
-function _updateMusicSearch(input) {
-  _musicQuery = input.value || '';
-  _refreshMusicResults();
-}
 
 /* ── 歌枠一覧グリッド ──────────────────────────────────────────────────── */
 
@@ -308,32 +323,40 @@ function _renderPageInPlace(allStreams) {
 
 /* ── 歌みた・オリ曲ライブラリ ──────────────────────────────────────────── */
 
-function _renderMusicLoading() {
-  const cached = _readMusicVideoCache();
-  if (_musicVideos === null && cached.length) _musicVideos = cached;
-  _musicLoading = true;
+/** music サブタブの初期 HTML（renderPlaylists から同期呼び出し） */
+function _renderMusicSubtab() {
+  if (_musicVideos === null) {
+    const cached = _readMusicVideoCache();
+    if (cached.length) _musicVideos = cached;
+  }
   return _renderMusicLibrary(_musicVideos || []);
 }
 
+/** music.json を取得して結果を反映する。
+ *  検索欄が既に DOM にある場合は結果リストだけ差し替え、
+ *  入力中のフォーカス・IME 変換を絶対に壊さない。 */
 async function _loadAndRenderMusic() {
-  if (_musicVideos === null) {
-    const cached = _readMusicVideoCache();
-    if (cached.length) {
-      _musicVideos = cached;
-      const body = $('#pl-subtab-body');
-      if (body && _activeSubTab === 'music') body.innerHTML = _renderMusicLibrary(_musicVideos);
-    } else {
-      _musicVideos = [];
-      const body = $('#pl-subtab-body');
-      if (body && _activeSubTab === 'music') body.innerHTML = _renderMusicLibrary(_musicVideos);
-    }
-    _musicLoading = true;
-    _musicVideos = await _fetchMusicVideos();
-    _musicLoading = false;
+  if (_musicVideos !== null) {
+    _renderOrRefreshMusic();
+    return;
   }
+  _musicVideos = _readMusicVideoCache(); // キャッシュなしなら []
+  _musicLoading = true;
+  _renderOrRefreshMusic();
+  const fetched = await _fetchMusicVideos();
+  _musicLoading = false;
+  _musicVideos = Array.isArray(fetched) ? fetched : [];
+  _renderOrRefreshMusic();
+}
+
+function _renderOrRefreshMusic() {
+  if (_activeSubTab !== 'music') return;
   const body = $('#pl-subtab-body');
-  if (body && _activeSubTab === 'music') {
-    body.innerHTML = _renderMusicLibrary(_musicVideos);
+  if (!body) return;
+  if ($('#pl-music-search')) {
+    _refreshMusicResults(); // 入力欄を温存して結果・件数のみ更新
+  } else {
+    body.innerHTML = _renderMusicLibrary(_musicVideos || []);
   }
 }
 
