@@ -14,6 +14,7 @@ import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbFallback, youtubeVideoId } from '../utils.js';
 
 const STORAGE_KEY = 'kanau-playlists';
+const MUSIC_CACHE_KEY = 'kanau-music-videos-cache-v1';
 const PER_PAGE    = 24; // 4列 × 6行
 
 /* ── モジュールレベルの状態（サブタブ / ページ） ─────────────────────────── */
@@ -23,6 +24,7 @@ let _streamPage   = 1;
 let _streamSort   = 'newest';
 let _musicView    = 'grid';     // 'grid' | 'list' | 'category'
 let _musicVideos  = null;       // キャッシュ済み music.json の videos 配列
+let _musicLoadPromise = null;
 let _musicQuery   = '';
 let _musicSearchComposing = false;
 
@@ -143,8 +145,7 @@ export function renderPlaylists() {
     const viewBtn = e.target.closest('[data-music-view]');
     if (viewBtn) {
       _musicView = viewBtn.dataset.musicView;
-      const body = $('#pl-subtab-body');
-      if (body && _musicVideos) body.innerHTML = _renderMusicLibrary(_musicVideos);
+      _refreshMusicResults();
       return;
     }
 
@@ -205,16 +206,8 @@ export function renderPlaylists() {
 }
 
 function _updateMusicSearch(input) {
-  const caret = input.selectionStart || 0;
   _musicQuery = input.value || '';
-  const body = $('#pl-subtab-body');
-  if (body && _musicVideos) body.innerHTML = _renderMusicLibrary(_musicVideos);
-  requestAnimationFrame(() => {
-    const next = $('#pl-music-search');
-    if (!next) return;
-    next.focus({ preventScroll: true });
-    try { next.setSelectionRange(caret, caret); } catch (_) {}
-  });
+  _refreshMusicResults();
 }
 
 /* ── 歌枠一覧グリッド ──────────────────────────────────────────────────── */
@@ -318,13 +311,13 @@ function _renderMusicLoading() {
 
 async function _loadAndRenderMusic() {
   if (_musicVideos === null) {
-    try {
-      const res = await fetch('/data/music.json', { cache: 'no-store' });
-      const json = await res.json();
-      _musicVideos = json.videos || [];
-    } catch (_) {
-      _musicVideos = [];
+    const cached = _readMusicVideoCache();
+    if (cached.length) {
+      _musicVideos = cached;
+      const body = $('#pl-subtab-body');
+      if (body && _activeSubTab === 'music') body.innerHTML = _renderMusicLibrary(_musicVideos);
     }
+    _musicVideos = await _fetchMusicVideos();
   }
   const body = $('#pl-subtab-body');
   if (body && _activeSubTab === 'music') {
@@ -333,9 +326,13 @@ async function _loadAndRenderMusic() {
 }
 
 function _renderMusicLibrary(videos) {
+  return _renderMusicViewBar(videos) + `<div id="pl-music-results">${_renderMusicResults(videos)}</div>`;
+}
+
+function _renderMusicViewBar(videos) {
   const items = _filterMusicVideos(videos);
   const shown = items.length;
-  const viewBar = `
+  return `
     <div class="pl-music-viewbar">
       <label class="pl-music-search-wrap">
         <span class="pl-music-search-icon" aria-hidden="true">⌕</span>
@@ -351,18 +348,64 @@ function _renderMusicLibrary(videos) {
         <button class="pl-music-view-btn${_musicView === 'category' ? ' active' : ''}" data-music-view="category" type="button">カテゴリ</button>
       </div>
     </div>`;
+}
+
+function _renderMusicResults(videos) {
+  const items = _filterMusicVideos(videos);
 
   if (!videos.length) {
-    return `${viewBar}<div class="pl-empty-state"><p>動画が登録されていません</p><p class="pl-empty-hint">管理画面から登録できます</p></div>`;
+    return `<div class="pl-empty-state"><p>動画が登録されていません</p><p class="pl-empty-hint">管理画面から登録できます</p></div>`;
   }
   if (!items.length) {
-    return `${viewBar}<div class="pl-empty-state"><p>一致する動画がありません</p><p class="pl-empty-hint">「曲名 / アーティスト」のように区切って検索できます</p></div>`;
+    return `<div class="pl-empty-state"><p>一致する動画がありません</p><p class="pl-empty-hint">「曲名 / アーティスト」のように区切って検索できます</p></div>`;
   }
 
-  if (_musicView === 'grid')     return viewBar + _renderMusicGrid(items);
-  if (_musicView === 'list')     return viewBar + _renderMusicList(items);
-  if (_musicView === 'category') return viewBar + _renderMusicCategory(items);
-  return viewBar + _renderMusicGrid(items);
+  if (_musicView === 'grid')     return _renderMusicGrid(items);
+  if (_musicView === 'list')     return _renderMusicList(items);
+  if (_musicView === 'category') return _renderMusicCategory(items);
+  return _renderMusicGrid(items);
+}
+
+function _refreshMusicResults() {
+  const videos = _musicVideos || [];
+  const count = $('.pl-music-count');
+  if (count) {
+    const shown = _filterMusicVideos(videos).length;
+    count.textContent = `${shown}${shown === videos.length ? '' : ` / ${videos.length}`}件`;
+  }
+  document.querySelectorAll('[data-music-view]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.musicView === _musicView);
+  });
+  const results = $('#pl-music-results');
+  if (results) results.innerHTML = _renderMusicResults(videos);
+}
+
+function _readMusicVideoCache() {
+  try {
+    const json = JSON.parse(localStorage.getItem(MUSIC_CACHE_KEY) || 'null');
+    return Array.isArray(json?.videos) ? json.videos : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function _writeMusicVideoCache(videos) {
+  try {
+    localStorage.setItem(MUSIC_CACHE_KEY, JSON.stringify({ videos, cachedAt: Date.now() }));
+  } catch (_) {}
+}
+
+async function _fetchMusicVideos() {
+  if (_musicLoadPromise) return _musicLoadPromise;
+  _musicLoadPromise = fetch('/data/music.json', { cache: 'no-store' })
+    .then(res => res.ok ? res.json() : Promise.reject(new Error(`music.json ${res.status}`)))
+    .then(json => {
+      const videos = Array.isArray(json?.videos) ? json.videos : [];
+      _writeMusicVideoCache(videos);
+      return videos;
+    })
+    .catch(() => _musicVideos || _readMusicVideoCache());
+  return _musicLoadPromise;
 }
 
 function _normMusicSearch(text) {
