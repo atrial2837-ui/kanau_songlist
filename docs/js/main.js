@@ -1812,6 +1812,10 @@ function openStreamViewer(stream, resumeAt = 0) {
   initStreamViewer();
   _loadYtApi();
 
+  // 音楽プレイヤーのプレイヤーを解放（同一動画の2プレイヤー競合で再生が壊れるのを防ぐ）。
+  // 早期 return するパス（ミニ化からの復帰など）でも必ず実行するため先頭で呼ぶ
+  import('./music-player.js').then(m => (m.releaseMusicPlayerVideo || m.pauseMusicPlayer)()).catch(() => {});
+
   // ミニ化中で同じ動画 → そのまま復帰（リロードなし）
   const curViewer = $('#stream-viewer');
   if (curViewer?.classList.contains('sv-minified')) {
@@ -1833,8 +1837,6 @@ function openStreamViewer(stream, resumeAt = 0) {
     _miniDestroyPlayer();
   }
   _svLastStream = null;
-  // 音楽プレイヤーを一時停止
-  import('./music-player.js').then(m => m.pauseMusicPlayer()).catch(() => {});
 
   // 全画面中なら埋め込みに戻してから開く
   if (_svFullscreen) {

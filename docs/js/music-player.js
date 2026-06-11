@@ -144,9 +144,12 @@ export function initMusicPlayer() {
     } catch (_) {}
   });
 
-  // Esc キーで閉じる
+  // Esc キーで閉じる（ビューワー表示中は Esc をビューワー側に譲る）
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !$('#music-bar')?.hidden) closeMusicPlayer();
+    if (e.key !== 'Escape') return;
+    const sv = document.getElementById('stream-viewer');
+    if (sv && !sv.hidden) return;
+    if (!$('#music-bar')?.hidden) closeMusicPlayer();
   });
 }
 
@@ -186,6 +189,26 @@ export function closeMusicPlayer() {
 /** 外部から一時停止（ストリームビューワー起動時など） */
 export function pauseMusicPlayer() {
   if (_ytPlayer) { try { _ytPlayer.pauseVideo(); } catch (_) {} }
+}
+
+/** 動画ビューワーへ引き継ぐ際にプレイヤーだけ破棄する。
+ *  同じ動画を 2 つの YT プレイヤーが持つと、片方を destroy した時に
+ *  もう片方の再生セッションまで壊れる（BUFFERING のまま固まる）ため、
+ *  ビューワーの再生が始まる前にバー側のプレイヤーを必ず手放す。
+ *  バー・キューは維持し、再生ボタンでプレイヤーを再生成できる。 */
+export function releaseMusicPlayerVideo() {
+  _stopProg();
+  if (_ytPlayer) { try { _ytPlayer.destroy(); } catch (_) {} _ytPlayer = null; }
+  const wrap = $('#mbar-video-wrap');
+  if (wrap) {
+    wrap.innerHTML = '';
+    const video = _queue[_qIdx];
+    const id = video ? youtubeVideoId(video.url) : '';
+    if (id) {
+      wrap.innerHTML = `<img src="${escapeHtml(youtubeThumb(id))}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
+    }
+  }
+  $('#mbar-play')?.setAttribute('data-playing', '0');
 }
 
 export function isMusicBarVisible() {
@@ -280,7 +303,11 @@ function _showBar() {
 }
 
 function _togglePlay() {
-  if (!_ytPlayer) return;
+  if (!_ytPlayer) {
+    // ビューワー引き継ぎでプレイヤー解放済み → 現在の曲から再生成
+    if (_qIdx >= 0 && _queue.length) _loadTrack(_qIdx);
+    return;
+  }
   try {
     const st = _ytPlayer.getPlayerState?.();
     if (st === window.YT?.PlayerState?.PLAYING) _ytPlayer.pauseVideo();
