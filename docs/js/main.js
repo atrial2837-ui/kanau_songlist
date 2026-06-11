@@ -1577,6 +1577,128 @@ function _svRenderBelowPlayer(stream) {
   };
 }
 
+// ─── MV モード: プレイヤー下コンテンツ ──────────────────────────────────────
+
+let _mvVideosCache = null; // music.json の動画リストキャッシュ
+
+async function _mvFetchVideos() {
+  if (_mvVideosCache) return _mvVideosCache;
+  try {
+    const res = await fetch('data/music.json');
+    _mvVideosCache = (await res.json())?.videos || [];
+  } catch (_) {
+    _mvVideosCache = [];
+  }
+  return _mvVideosCache;
+}
+
+/** MV タイトルから曲名部分を推定（「MV⌇曲名/歌い手」「【歌ってみた】曲名 / …」等） */
+function _mvSongTitleGuess(title) {
+  let t = String(title || '');
+  t = t.replace(/【[^】]*】/g, ' ');               // 【歌ってみた】等の角括弧
+  t = t.replace(/^\s*MV[⌇|｜♪♬:：\-\s]*/i, ' ');  // 先頭の MV⌇
+  t = t.split(/[\/／|｜]/)[0];                     // 区切り以降（歌い手名など）を捨てる
+  t = t.replace(/歌ってみた|covered?\s*(by.*)?$/gi, ' ');
+  return t.trim();
+}
+
+/** MV モードのプレイヤー下: 関連歌枠 + ほかの動画 */
+async function _svRenderBelowPlayerMv(stream) {
+  const el = $('#sv-below-player');
+  if (!el) return;
+
+  try { await ensureFullData(); } catch (_) {}
+  const videos = await _mvFetchVideos();
+  // 描画前に別の動画へ切り替わっていたら何もしない
+  if ($('#stream-viewer')?._currentStream !== stream) return;
+
+  // ── 関連歌枠: タイトルから曲名を推定して歌枠を検索 ──
+  const streams = state.channelData?.combined?.streams || state.data?.streams || [];
+  const guess = _normForMatch(_mvSongTitleGuess(stream.title));
+  const related = [];
+  if (guess.length > 1) {
+    for (const s of streams) {
+      const hit = (s.songs || []).find(sg => {
+        const n = _normForMatch(sg.title);
+        return n === guess || (n.length > 1 && (n.includes(guess) || guess.includes(n)));
+      });
+      if (hit) related.push({ stream: s, songTitle: hit.title });
+    }
+  }
+  const relatedShown = related.slice(0, 8);
+
+  // ── ほかの動画: 同タイプ優先で最大12件 ──
+  const typeLabels = { original: 'オリジナル', office: 'Re:AcT', character: 'キャラソン', cover: 'カバー' };
+  const cur = videos.find(v => v.url === stream.url);
+  const others = videos
+    .filter(v => v.url !== stream.url)
+    .sort((a, b) => {
+      const sameA = cur && a.type === cur.type ? 1 : 0;
+      const sameB = cur && b.type === cur.type ? 1 : 0;
+      if (sameA !== sameB) return sameB - sameA;
+      return (b.publishedAt || '').localeCompare(a.publishedAt || '');
+    })
+    .slice(0, 12);
+
+  el.innerHTML = `
+    <div class="sv-bp-wrap">
+      ${relatedShown.length ? `
+      <div class="sv-bp-section">
+        <div class="sv-bp-sh">🎤 この曲が歌われた歌枠 <span class="sv-bp-sh-sub">（全${related.length}回）</span></div>
+        <div class="sv-bp-related-list">
+          ${relatedShown.map(r => {
+            const rthumb = youtubeThumb(r.stream.url);
+            return `<button class="sv-bp-rel-card" type="button" data-mv-action="open-stream" data-mv-channel="${escapeHtml(r.stream.channel)}" data-mv-index="${r.stream.index}">
+              ${rthumb ? `<img class="sv-bp-rel-thumb" src="${escapeHtml(rthumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="sv-bp-rel-thumb sv-bp-rel-thumb--empty"></div>'}
+              <div class="sv-bp-rel-info">
+                <div class="sv-bp-rel-title">${escapeHtml(r.stream.title || '配信')}</div>
+                <div class="sv-bp-rel-meta">${fmtDate(r.stream.date)}　第${r.stream.index}枠</div>
+                <div class="sv-bp-rel-songs">🎵 ${escapeHtml(r.songTitle)}</div>
+              </div>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>
+      ` : ''}
+
+      ${others.length ? `
+      <div class="sv-bp-section">
+        <div class="sv-bp-sh">🎬 ほかの動画 <button class="sv-mv-all-btn" type="button" data-mv-action="all-videos">すべて見る →</button></div>
+        <div class="sv-mv-grid">
+          ${others.map(v => {
+            const thumb = youtubeThumb(v.url);
+            return `<button class="sv-mv-card" type="button" data-mv-action="open-mv" data-mv-url="${escapeHtml(v.url)}" data-mv-title="${escapeHtml(v.title)}">
+              ${thumb ? `<img class="sv-mv-card-thumb" src="${escapeHtml(thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="sv-mv-card-thumb"></div>'}
+              <div class="sv-mv-card-body">
+                <div class="sv-mv-card-title">${escapeHtml(v.title)}</div>
+                <div class="sv-mv-card-type">${typeLabels[v.type] || 'オリジナル'}</div>
+              </div>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>
+      ` : ''}
+    </div>
+  `;
+
+  el.onclick = (e) => {
+    const btn = e.target.closest('[data-mv-action]');
+    if (!btn) return;
+    const action = btn.dataset.mvAction;
+    if (action === 'open-stream') {
+      const ch = btn.dataset.mvChannel;
+      const targetIdx = parseInt(btn.dataset.mvIndex, 10);
+      const all = state.channelData?.combined?.streams || state.data?.streams || [];
+      const target = all.find(s => s.channel === ch && s.index === targetIdx);
+      if (target) openStreamViewer(target);
+    } else if (action === 'open-mv') {
+      openStreamViewer({ url: btn.dataset.mvUrl, title: btn.dataset.mvTitle, isMv: true });
+    } else if (action === 'all-videos') {
+      activateTab('playlists');
+    }
+  };
+}
+
 function _svRefreshSetlist(setlistEl, songs, ts) {
   setlistEl.innerHTML = songs.map((s, i) => _svSongRow(s, i, ts)).join('');
 }
@@ -1881,11 +2003,12 @@ function openStreamViewer(stream, resumeAt = 0) {
 
   _svCommunityTs = {};
   if (stream.isMv) {
-    // MV モード: セットリスト不要、プレイヤー下エリアもクリア
+    // MV モード: セットリスト不要。プレイヤー下は関連歌枠+ほかの動画で埋める
     const setlist = $('#sv-setlist');
     if (setlist) setlist.innerHTML = '';
     const belowPlayer = $('#sv-below-player');
     if (belowPlayer) belowPlayer.innerHTML = '';
+    _svRenderBelowPlayerMv(stream);
   } else {
     const ts = _svLoadTs(stream);
     _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);

@@ -5110,10 +5110,77 @@ body.has-music-bar { padding-bottom: 72px; }
 .yt-mini-vol-wrap { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .yt-mini-vol-wrap .vol-slider { width: 60px; }
 
-/* MV モード: セットリストパネルを非表示 */
+/* MV モード: セットリストパネルを非表示、動画を全幅に */
 #stream-viewer.sv-mv-mode .sv-panel { display: none; }
 #stream-viewer.sv-mv-mode .sv-import-toggle { display: none; }
 #stream-viewer.sv-mv-mode .sv-cts-bulk-btn { display: none; }
+#stream-viewer.sv-mv-mode:not(.sv-fullscreen) .sv-body { grid-template-columns: 1fr; }
+
+/* ── MV モード: プレイヤー下「ほかの動画」グリッド ── */
+.sv-mv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.sv-mv-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.sv-mv-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.sv-mv-card-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+
+.sv-mv-card-body { padding: 7px 9px 9px; }
+
+.sv-mv-card-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sv-mv-card-type {
+  font-size: 9.5px;
+  color: var(--ink-mute);
+  margin-top: 3px;
+}
+
+.sv-mv-all-btn {
+  margin-left: 8px;
+  background: none;
+  border: none;
+  color: var(--primary-strong);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.sv-mv-all-btn:hover { text-decoration: underline; }
 
 /* 動画で見るボタン */
 .mv-watch-btn {
