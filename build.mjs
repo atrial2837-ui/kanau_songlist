@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
@@ -45,6 +45,31 @@ async function buildAdmin() {
 }
 
 /**
+ * main.js / admin.js から（推移的に）参照されていない古いチャンクを削除する。
+ * チャンク名は内容ハッシュ付きなので、ビルドのたびに旧世代が溜まり続けるのを防ぐ。
+ */
+function cleanStaleChunks() {
+  const keep = new Set();
+  const queue = [join(OUT_DIR, 'main.js'), join(OUT_DIR, 'admin.js')];
+  while (queue.length) {
+    const file = queue.pop();
+    if (!existsSync(file)) continue;
+    const src = readFileSync(file, 'utf-8');
+    for (const m of src.matchAll(/chunk-[A-Z0-9]+\.js/g)) {
+      const p = join(OUT_DIR, m[0]);
+      if (!keep.has(p)) { keep.add(p); queue.push(p); }
+    }
+  }
+  let removed = 0;
+  for (const name of readdirSync(OUT_DIR)) {
+    if (!/^chunk-[A-Z0-9]+\.js$/.test(name)) continue;
+    const p = join(OUT_DIR, name);
+    if (!keep.has(p)) { unlinkSync(p); removed++; }
+  }
+  if (removed) console.log(`cleaned ${removed} stale chunk(s)`);
+}
+
+/**
  * アセット内容のハッシュを index.html の ?v= に自動反映する。
  * sw.js が /dist/ /css/ を cache-first で配信するため、バージョン文字列を
  * 上げ忘れるとデプロイ後も全ユーザーに古い JS/CSS が配られ続ける。
@@ -81,6 +106,7 @@ async function main() {
   } else {
     await Promise.all([buildMain(), buildAdmin()]);
   }
+  cleanStaleChunks();
   stampAssetVersions();
 }
 

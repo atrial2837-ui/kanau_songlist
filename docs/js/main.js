@@ -361,6 +361,35 @@ function filterTimelineBySong({ key, title, artist }) {
   $('#panel-timeline').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/** 曲モーダルの「頭出し」: タイムスタンプ（ローカル→コミュニティ）を探して
+ *  その歌唱位置からストリームビューワーで再生する */
+async function _openSongPerformance(song, refKey) {
+  const all = state.channelData?.combined?.streams || state.data?.streams || [];
+  const stream = all.find(s => streamKey(s) === refKey);
+  if (!stream) return;
+  const songIdx = (stream.songs || []).findIndex(sg => _normForMatch(sg.title) === _normForMatch(song.title));
+  let resume = 0;
+  if (songIdx >= 0) {
+    // ローカル保存のタイムスタンプ
+    try {
+      const ts = _svLoadTs(stream);
+      if (ts[songIdx] != null) resume = ts[songIdx];
+    } catch (_) {}
+    // コミュニティタイムスタンプ（承認済み）
+    if (!resume && stream.channel != null && stream.index != null) {
+      try {
+        const res = await fetch(`/api/timestamps/${encodeURIComponent(stream.channel)}/${stream.index}`);
+        if (res.ok) {
+          const data = await res.json();
+          const hit = (data.items || []).find(i => i.songIndex === songIdx);
+          if (hit) resume = hit.timeSeconds;
+        }
+      } catch (_) {}
+    }
+  }
+  openStreamViewer(stream, resume > 3 ? Math.max(0, Math.floor(resume) - 2) : 0);
+}
+
 function jumpToStreamFromDetail(song, ref) {
   state.timelineFilter = { key: song.key, title: song.title, artist: song.artist };
   state.timelineFocus = streamKey(ref);
@@ -430,6 +459,7 @@ function _miniStartProgress() {
     try {
       const dur = _miniPlayer.getDuration?.() || 0;
       const cur = _miniPlayer.getCurrentTime?.() || 0;
+      if (_svLastStream) _saveWatchEntryThrottled(_svLastStream, cur); // 視聴履歴
       const pct = dur > 0 ? Math.min((cur / dur) * 100, 100) : 0;
       const fill = $('#yt-mini-progress-fill');
       if (fill) fill.style.width = `${pct}%`;
@@ -668,6 +698,40 @@ function _svDiscardMini() {
   return true;
 }
 
+// ─── 視聴履歴（続きから見る） ────────────────────────────────────────────────
+
+const WATCH_HISTORY_KEY = 'kanau-watch-history-v1';
+let _lastWatchSave = 0;
+
+export function getWatchHistory() {
+  try { return JSON.parse(localStorage.getItem(WATCH_HISTORY_KEY) || '[]'); } catch (_) { return []; }
+}
+
+function _saveWatchEntry(stream, t) {
+  if (!stream?.url || t < 10) return; // 10秒未満は記録しない
+  try {
+    const list = getWatchHistory().filter(e => e.url !== stream.url);
+    list.unshift({
+      url: stream.url,
+      title: stream.title || '',
+      t: Math.max(0, Math.floor(t)),
+      isMv: !!stream.isMv,
+      channel: stream.channel ?? null,
+      index: stream.index ?? null,
+      date: stream.date ?? null,
+      updatedAt: Date.now(),
+    });
+    localStorage.setItem(WATCH_HISTORY_KEY, JSON.stringify(list.slice(0, 10)));
+  } catch (_) {}
+}
+
+function _saveWatchEntryThrottled(stream, t) {
+  const now = Date.now();
+  if (now - _lastWatchSave < 5000) return;
+  _lastWatchSave = now;
+  _saveWatchEntry(stream, t);
+}
+
 // ─── ビューワーの URL 同期・共有 ─────────────────────────────────────────────
 
 let _svUrlTimer = null; // 視聴中に再生位置を URL へ定期反映するタイマー
@@ -702,6 +766,7 @@ function _svUpdateUrl() {
   const id = open && viewer._currentStream?.url ? youtubeVideoId(viewer._currentStream.url) : '';
   const t = id ? _svCurrentTime(readUrlState().t) : 0;
   writeUrlState({ v: id || '', t: t > 5 ? t : 0 }, { replace: true });
+  if (id) _saveWatchEntry(viewer._currentStream, t); // 視聴履歴（続きから見る）
   if (id && !_svUrlTimer) _svUrlTimer = setInterval(_svUpdateUrl, 5000);
   if (!id && _svUrlTimer) { clearInterval(_svUrlTimer); _svUrlTimer = null; }
 }
@@ -843,6 +908,35 @@ function _svOpenShareModal() {
 
   modal._rebuild?.();
   modal.hidden = false;
+}
+
+// モジュール読み込み時に共有プレイリストパラメータを退避（URL 正規化で消える前に）
+const _sharedPlParam = new URLSearchParams(location.search).get('pl');
+
+/** URL の ?pl= から共有プレイリストを取り込む */
+async function _maybeImportSharedPlaylist() {
+  if (!_sharedPlParam) return;
+  let payload = null;
+  try {
+    const b64 = _sharedPlParam.replace(/-/g, '+').replace(/_/g, '/');
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    payload = JSON.parse(new TextDecoder().decode(bytes));
+  } catch (_) { return; }
+  if (!payload || typeof payload.n !== 'string' || !Array.isArray(payload.s)) return;
+  const name = payload.n.slice(0, 60) || '共有プレイリスト';
+  const items = payload.s.filter(k => typeof k === 'string' && k.length < 100).slice(0, 300);
+  if (!items.length) return;
+  if (!confirm(`共有されたプレイリスト「${name}」（${items.length}件）を取り込みますか？`)) {
+    writeUrlState({}, { replace: true }); // pl パラメータを除去
+    return;
+  }
+  try {
+    const m = await import('./views/playlists.js');
+    const pl = m.createPlaylist(name);
+    for (const k of items) m.addStreamToPlaylist(pl.id, k);
+    writeUrlState({ tab: 'playlists' }, { replace: true });
+    activateTab('playlists', { updateUrl: false });
+  } catch (_) {}
 }
 
 /** URL の ?v= から配信/MV を探して開く（初回ロード時のディープリンク） */
@@ -2399,6 +2493,7 @@ function openSongDetail(key) {
             <span>${fmtDate(ref.date)}</span>
             <strong>${escapeHtml(ref.title || '配信')}</strong>
           </button>
+          <button class="song-detail-watch" type="button" data-detail-action="watch" data-songkey="${escapeHtml(song.key)}" data-streamkey="${escapeHtml(ref.detailKey)}" title="この歌唱の頭出し再生（タイムスタンプがあればその位置から）">⏱ 頭出し</button>
         </div>
       `).join('') : '<p class="song-detail-empty">履歴未確認</p>'}
     </div>
@@ -2444,6 +2539,12 @@ function initSongModal() {
       const ref = song?.streamRefs?.find(item => streamKey(item) === action.dataset.streamkey);
       close();
       if (song && ref) jumpToStreamFromDetail(song, ref);
+    }
+    if (action.dataset.detailAction === 'watch') {
+      const song = findSong(action.dataset.songkey);
+      const refKey = action.dataset.streamkey;
+      close();
+      if (song && refKey) _openSongPerformance(song, refKey);
     }
     if (action.dataset.detailAction === 'artist') {
       const song = findSong(action.dataset.songkey);
@@ -2776,6 +2877,8 @@ async function init() {
       if (!opened) activateTab(url.tab, { updateUrl: false, initial: true });
     }
     hideLoading();
+    // ?pl= 付き URL → 共有プレイリストの取り込み確認
+    _maybeImportSharedPlaylist();
   } catch (e) {
     console.error('[init] failed:', e);
     showError(e);
@@ -2907,6 +3010,36 @@ initSearchPalette((result) => {
 document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName;
   const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+  // ── ビューワー再生操作: Space 再生/停止、←→ 10秒シーク ──
+  if (!inInput && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    const viewer = $('#stream-viewer');
+    const viewerActive = viewer && !viewer.hidden
+      && !viewer.classList.contains('sv-minified')
+      && !viewer.classList.contains('sv-music-minified')
+      && $('#sv-share-modal')?.hidden !== false
+      && _svPlayer;
+    if (viewerActive) {
+      if (e.key === ' ') {
+        e.preventDefault();
+        try {
+          const st = _svPlayer.getPlayerState?.();
+          if (st === window.YT?.PlayerState?.PLAYING) _svPlayer.pauseVideo();
+          else _svPlayer.playVideo();
+        } catch (_) {}
+        return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        try {
+          const cur = _svPlayer.getCurrentTime?.() ?? 0;
+          const next = Math.max(0, cur + (e.key === 'ArrowRight' ? 10 : -10));
+          _svPlayer.seekTo(next, true);
+        } catch (_) {}
+        return;
+      }
+    }
+  }
 
   // グローバル検索を開く: / (非入力中) または Ctrl+K / Cmd+K
   const openSearch =

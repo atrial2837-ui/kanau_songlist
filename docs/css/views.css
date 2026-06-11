@@ -1978,3 +1978,79 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     justify-content: center;
   }
 }
+
+/* ── ダッシュボード: 続きから見る ── */
+.dashboard-resume-card { grid-column: 1 / -1; }
+
+.dashboard-resume-card .card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-resume-clear {
+  background: none;
+  border: none;
+  color: var(--ink-mute);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.dashboard-resume-clear:hover { color: var(--red); background: var(--surface-3); }
+
+.dashboard-resume-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(190px, 230px);
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-resume-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0 0 9px;
+  text-align: left;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.dashboard-resume-item:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-resume-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  background: var(--surface-3);
+}
+
+.dashboard-resume-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.4;
+  padding: 0 9px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dashboard-resume-meta {
+  font-size: 10px;
+  color: var(--ink-mute);
+  padding: 0 9px;
+}

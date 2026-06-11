@@ -1,5 +1,5 @@
 import { state } from '../store.js';
-import { $, escapeHtml, fmtDate, fmtMonth, daysSince } from '../utils.js';
+import { $, escapeHtml, fmtDate, fmtMonth, daysSince, youtubeThumb } from '../utils.js';
 import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsThisMonth, buildMonthly, buildHeatmap, heatLevel, isoDate } from '../domain-compat.js';
 import { getToday } from '../store.js';
 
@@ -55,6 +55,7 @@ export function renderDashboard() {
 
   panel.innerHTML = `
     <div class="dashboard-grid" id="dashboard-grid">
+      ${renderResumeSection()}
       <div class="dashboard-main-stack">
         <div class="dashboard-lead">
           ${activityHtml}
@@ -78,6 +79,71 @@ export function renderDashboard() {
       ${deferredDashboardHtml(streams, songs, recent)}
     </div>
   `;
+  bindResumeSection();
+}
+
+/* ── 続きから見る（視聴履歴） ──────────────────────────────────────────── */
+
+const WATCH_HISTORY_KEY = 'kanau-watch-history-v1';
+
+function _watchHistory() {
+  try { return JSON.parse(localStorage.getItem(WATCH_HISTORY_KEY) || '[]'); } catch (_) { return []; }
+}
+
+function _fmtPos(sec) {
+  const s = Math.max(0, Math.floor(sec));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${m}:${String(ss).padStart(2, '0')}`;
+}
+
+function renderResumeSection() {
+  const entries = _watchHistory().slice(0, 6);
+  if (!entries.length) return '';
+  return `
+    <div class="card dashboard-card dashboard-resume-card">
+      <div class="card-title">⏯ 続きから見る
+        <button class="dashboard-resume-clear" id="dashboard-resume-clear" type="button" title="履歴を消去">消去</button>
+      </div>
+      <div class="dashboard-resume-list" id="dashboard-resume-list">
+        ${entries.map((e, i) => {
+          const thumb = youtubeThumb(e.url);
+          const days = Math.floor((Date.now() - (e.updatedAt || 0)) / 86400000);
+          const ago = days <= 0 ? '今日' : `${days}日前`;
+          return `
+          <button class="dashboard-resume-item" type="button" data-resume-idx="${i}" title="${escapeHtml(e.title || '')}">
+            ${thumb ? `<img class="dashboard-resume-thumb" src="${escapeHtml(thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="dashboard-resume-thumb"></div>'}
+            <span class="dashboard-resume-title">${escapeHtml(e.title || '動画')}</span>
+            <span class="dashboard-resume-meta">⏱ ${_fmtPos(e.t)} から ・ ${ago}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+/** renderDashboard 後に呼ぶ: 続きから見るのクリック処理 */
+function bindResumeSection() {
+  const list = $('#dashboard-resume-list');
+  if (list) {
+    list.onclick = (e) => {
+      const btn = e.target.closest('[data-resume-idx]');
+      if (!btn) return;
+      const entry = _watchHistory()[Number(btn.dataset.resumeIdx)];
+      if (!entry?.url) return;
+      let target = null;
+      if (entry.channel != null && entry.index != null) {
+        const all = state.channelData?.combined?.streams || state.data?.streams || [];
+        target = all.find(s => s.channel === entry.channel && s.index === entry.index) || null;
+      }
+      window.__openStreamViewer?.(target || { url: entry.url, title: entry.title, isMv: !!entry.isMv }, entry.t);
+    };
+  }
+  const clear = $('#dashboard-resume-clear');
+  if (clear) {
+    clear.onclick = () => {
+      try { localStorage.removeItem(WATCH_HISTORY_KEY); } catch (_) {}
+      $('#panel-dashboard .dashboard-resume-card')?.remove();
+    };
+  }
 }
 
 function deferredDashboardHtml(streams, songs, recent) {

@@ -20,6 +20,7 @@ let _progIv   = null;
 let _continuous = true;
 let _repeatOne = false;
 let _seenEnded = false;
+let _shuffle  = localStorage.getItem('kanaShuffle') === '1';
 
 let _ytReady = false;
 const _ytQ   = [];
@@ -83,6 +84,11 @@ export function initMusicPlayer() {
           </svg>
         </button>
         <button class="mbar-mode-btn" id="mbar-repeat" type="button" aria-pressed="false" title="1曲リピート">↻</button>
+        <button class="mbar-mode-btn${_shuffle ? ' is-on' : ''}" id="mbar-shuffle" type="button" aria-pressed="${_shuffle ? 'true' : 'false'}" title="シャッフル再生">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+          </svg>
+        </button>
       </div>
       <div class="mbar-end">
         <div class="mbar-volume">
@@ -103,6 +109,12 @@ export function initMusicPlayer() {
   $('#mbar-next').addEventListener('click', playNext);
   $('#mbar-continuous').addEventListener('click', _toggleContinuous);
   $('#mbar-repeat').addEventListener('click', _toggleRepeat);
+  $('#mbar-shuffle').addEventListener('click', (e) => {
+    _shuffle = !_shuffle;
+    try { localStorage.setItem('kanaShuffle', _shuffle ? '1' : '0'); } catch (_) {}
+    e.currentTarget.setAttribute('aria-pressed', _shuffle ? 'true' : 'false');
+    e.currentTarget.classList.toggle('is-on', _shuffle);
+  });
   $('#mbar-close').addEventListener('click', closeMusicPlayer);
 
   const volSlider = $('#mbar-vol-slider');
@@ -186,7 +198,14 @@ export function playMusicQueue(videos, startIdx = 0) {
 
 export function playNext() {
   if (!_queue.length) return;
-  _qIdx = (_qIdx + 1) % _queue.length;
+  if (_shuffle && _queue.length > 1) {
+    // シャッフル: 現在曲以外からランダムに選ぶ
+    let next = _qIdx;
+    while (next === _qIdx) next = Math.floor(Math.random() * _queue.length);
+    _qIdx = next;
+  } else {
+    _qIdx = (_qIdx + 1) % _queue.length;
+  }
   _loadTrack(_qIdx);
 }
 

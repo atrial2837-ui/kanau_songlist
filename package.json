@@ -7,7 +7,8 @@
     "test": "node --test --test-reporter=spec",
     "build": "node build.mjs",
     "build:main": "node build.mjs main",
-    "build:admin": "node build.mjs admin"
+    "build:admin": "node build.mjs admin",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

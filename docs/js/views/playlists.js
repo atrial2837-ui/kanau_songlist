@@ -716,13 +716,17 @@ function _renderPlaylistCard(pl, allStreams) {
       <div class="pl-stream-list">
         ${items || '<div class="pl-stream-empty">配信が追加されていません</div>'}
       </div>
-      ${videoIds.length ? `
+      ${(videoIds.length || pl.streams.length) ? `
       <div class="pl-card-footer">
+        ${videoIds.length ? `
         <button class="pl-yt-share-btn" data-pl-yt-share="${escapeHtml(pl.id)}"
           type="button" title="YouTubeで連続再生（一時的なプレイリストとして開きます）">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z"/></svg>
           YouTubeで連続再生 (${videoIds.length}本)
-        </button>
+        </button>` : ''}
+        ${pl.streams.length ? `
+        <button class="pl-yt-share-btn" data-pl-share="${escapeHtml(pl.id)}"
+          type="button" title="このプレイリストの共有リンクをコピー">🔗 リンクを共有</button>` : ''}
       </div>` : ''}
     </div>`;
 }
@@ -731,6 +735,33 @@ function _handleMyPlaylistsClick(e, allStreams) {
   // 新規作成
   if (e.target.closest('#pl-new-btn')) {
     _promptCreate();
+    return;
+  }
+  // プレイリスト共有リンクをコピー
+  const shareBtn = e.target.closest('[data-pl-share]');
+  if (shareBtn) {
+    const pl = getPlaylists().find(p => p.id === shareBtn.dataset.plShare);
+    if (!pl) return;
+    const payload = JSON.stringify({ n: pl.name, s: pl.streams });
+    const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(payload)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const url = `${location.origin}${location.pathname}?pl=${b64}`;
+    const done = (ok) => {
+      shareBtn.textContent = ok ? '✓ コピーしました' : 'コピーできません';
+      setTimeout(() => { shareBtn.textContent = '🔗 リンクを共有'; }, 1600);
+    };
+    navigator.clipboard?.writeText(url).then(() => done(true)).catch(() => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        done(ok);
+      } catch (_) { done(false); }
+    });
     return;
   }
   // プレイリスト削除

@@ -5367,3 +5367,24 @@ body.has-sv-music #panel-player:not(.active) {
 
 /* ホバー時の進捗バー高さ変化はパネル高が変わり動画位置がずれるため無効化 */
 body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
+
+/* ── 曲詳細モーダル: 頭出しボタン ── */
+.song-detail-watch {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 5px 10px;
+  background: var(--primary-soft);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--primary-strong);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.song-detail-watch:hover {
+  background: var(--primary);
+  border-color: var(--primary-strong);
+  color: #fff;
+}
