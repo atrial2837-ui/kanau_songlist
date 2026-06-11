@@ -4873,10 +4873,45 @@ body.has-music-bar { padding-bottom: 72px; }
   justify-content: space-between;
   margin-bottom: 16px;
   gap: 12px;
+  flex-wrap: wrap;
+}
+.pl-music-search-wrap {
+  flex: 1 1 260px;
+  min-width: 220px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.pl-music-search-icon {
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+.pl-music-search {
+  min-width: 0;
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.pl-music-search::placeholder {
+  color: var(--ink-mute);
 }
 .pl-music-count {
   font-size: 13px;
   color: var(--ink-mute);
+  white-space: nowrap;
 }
 .pl-music-views {
   display: flex;

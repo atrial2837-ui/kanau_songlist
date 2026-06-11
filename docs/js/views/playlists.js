@@ -23,6 +23,7 @@ let _streamPage   = 1;
 let _streamSort   = 'newest';
 let _musicView    = 'grid';     // 'grid' | 'list' | 'category'
 let _musicVideos  = null;       // キャッシュ済み music.json の videos 配列
+let _musicQuery   = '';
 
 /* ── データ操作（localStorage） ─────────────────────────────────────────── */
 
@@ -177,6 +178,21 @@ export function renderPlaylists() {
     }
   };
 
+  panel.oninput = (e) => {
+    const input = e.target.closest('#pl-music-search');
+    if (!input) return;
+    const caret = input.selectionStart || 0;
+    _musicQuery = input.value || '';
+    const body = $('#pl-subtab-body');
+    if (body && _musicVideos) body.innerHTML = _renderMusicLibrary(_musicVideos);
+    requestAnimationFrame(() => {
+      const next = $('#pl-music-search');
+      if (!next) return;
+      next.focus({ preventScroll: true });
+      try { next.setSelectionRange(caret, caret); } catch (_) {}
+    });
+  };
+
   // サムネ 404 フォールバック
   panel.addEventListener('error', (e) => {
     const img = e.target;
@@ -302,9 +318,18 @@ async function _loadAndRenderMusic() {
 }
 
 function _renderMusicLibrary(videos) {
+  const items = _filterMusicVideos(videos);
+  const shown = items.length;
   const viewBar = `
     <div class="pl-music-viewbar">
-      <span class="pl-music-count">${videos.length}件</span>
+      <label class="pl-music-search-wrap">
+        <span class="pl-music-search-icon" aria-hidden="true">⌕</span>
+        <input id="pl-music-search" class="pl-music-search" type="search"
+          value="${escapeHtml(_musicQuery)}"
+          placeholder="曲名 / アーティストで検索"
+          aria-label="歌みた・オリ曲を検索">
+      </label>
+      <span class="pl-music-count">${shown}${shown === videos.length ? '' : ` / ${videos.length}`}件</span>
       <div class="pl-music-views">
         <button class="pl-music-view-btn${_musicView === 'grid'     ? ' active' : ''}" data-music-view="grid"     type="button">グリッド</button>
         <button class="pl-music-view-btn${_musicView === 'list'     ? ' active' : ''}" data-music-view="list"     type="button">リスト</button>
@@ -315,11 +340,55 @@ function _renderMusicLibrary(videos) {
   if (!videos.length) {
     return `${viewBar}<div class="pl-empty-state"><p>動画が登録されていません</p><p class="pl-empty-hint">管理画面から登録できます</p></div>`;
   }
+  if (!items.length) {
+    return `${viewBar}<div class="pl-empty-state"><p>一致する動画がありません</p><p class="pl-empty-hint">「曲名 / アーティスト」のように区切って検索できます</p></div>`;
+  }
 
-  if (_musicView === 'grid')     return viewBar + _renderMusicGrid(videos);
-  if (_musicView === 'list')     return viewBar + _renderMusicList(videos);
-  if (_musicView === 'category') return viewBar + _renderMusicCategory(videos);
-  return viewBar + _renderMusicGrid(videos);
+  if (_musicView === 'grid')     return viewBar + _renderMusicGrid(items);
+  if (_musicView === 'list')     return viewBar + _renderMusicList(items);
+  if (_musicView === 'category') return viewBar + _renderMusicCategory(items);
+  return viewBar + _renderMusicGrid(items);
+}
+
+function _normMusicSearch(text) {
+  return String(text || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[！-～]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/[‐-‒–—―ー]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function _musicSearchTokens(query) {
+  return _normMusicSearch(query)
+    .split(/[\/／|｜\s]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function _musicSearchText(video) {
+  const title = video.title || '';
+  const slashParts = title.split(/[\/／|｜]/).map(s => s.trim()).filter(Boolean);
+  const typeLabel = _mvBadge(video).label;
+  return _normMusicSearch([
+    title,
+    ...slashParts,
+    video.originalArtist,
+    video.character,
+    video.type,
+    typeLabel,
+  ].filter(Boolean).join(' '));
+}
+
+function _filterMusicVideos(videos) {
+  const tokens = _musicSearchTokens(_musicQuery);
+  const indexed = videos.map((v, i) => ({ v, i }));
+  if (!tokens.length) return indexed;
+  return indexed.filter(({ v }) => {
+    const haystack = _musicSearchText(v);
+    return tokens.every(token => haystack.includes(token));
+  });
 }
 
 function _mvBadge(video) {
@@ -381,17 +450,16 @@ function _musicListRow(video, globalIdx) {
     </div>`;
 }
 
-function _renderMusicGrid(videos) {
-  return `<div class="mv-grid">${videos.map((v, i) => _musicCard(v, i)).join('')}</div>`;
+function _renderMusicGrid(items) {
+  return `<div class="mv-grid">${items.map(({ v, i }) => _musicCard(v, i)).join('')}</div>`;
 }
 
-function _renderMusicList(videos) {
-  return `<div class="mv-list">${videos.map((v, i) => _musicListRow(v, i)).join('')}</div>`;
+function _renderMusicList(items) {
+  return `<div class="mv-list">${items.map(({ v, i }) => _musicListRow(v, i)).join('')}</div>`;
 }
 
-function _renderMusicCategory(videos) {
+function _renderMusicCategory(items) {
   // カテゴリビューでは全動画リストのインデックスをそのまま使う
-  const indexed = videos.map((v, i) => ({ v, i }));
   const sections = [
     { key: 'original',  label: 'オリジナル曲（個人）' },
     { key: 'office',    label: 'Re:AcT オリ曲' },
@@ -399,7 +467,7 @@ function _renderMusicCategory(videos) {
     { key: 'cover',     label: 'カバー曲（歌みた）' },
   ].map(({ key, label }) => ({
     label,
-    items: indexed.filter(({ v }) => v.type === key),
+    items: items.filter(({ v }) => v.type === key),
   })).filter(({ items }) => items.length > 0);
 
   return `
