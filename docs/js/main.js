@@ -170,7 +170,7 @@ function activateTab(tab, options = {}) {
   // ブラウザ操作などで埋め込みモードのままタブ切替が来た場合、ミニプレイヤーへ引き継ぐ
   const streamViewer = $('#stream-viewer');
   if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen
-      && !streamViewer.classList.contains('sv-minified')) {
+      && !_svIsDocked(streamViewer)) {
     _epPrevTab = tab;
     _pendingTabOptions = options;
     closeStreamViewer();
@@ -457,6 +457,13 @@ function _miniResumeAt() {
   return Math.max(0, _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000);
 }
 
+function _svIsDocked(viewer = $('#stream-viewer')) {
+  return !!viewer && (
+    viewer.classList.contains('sv-minified') ||
+    viewer.classList.contains('sv-music-minified')
+  );
+}
+
 // ─── ストリームビューワーのミニ化 ────────────────────────────────────────────
 // iframe を作り直すと読み込み+バッファで数秒のラグが出るため、プレイヤーは
 // 破棄せず CSS でミニパネルの動画エリア位置に固定表示する（全画面と同じ
@@ -465,9 +472,11 @@ function _miniResumeAt() {
 /** ミニ化中の動画ラップをミニパネルの動画エリアに重ねる（座標同期） */
 function _syncMiniPos() {
   const viewer = $('#stream-viewer');
-  if (!viewer?.classList.contains('sv-minified')) return;
+  if (!_svIsDocked(viewer)) return;
   const wrap = $('#sv-player-wrap');
-  const target = document.querySelector('#yt-player-panel .yt-mini-video-wrap');
+  const target = viewer.classList.contains('sv-music-minified')
+    ? document.querySelector('#music-bar .mbar-video-wrap')
+    : document.querySelector('#yt-player-panel .yt-mini-video-wrap');
   if (!wrap || !target) return;
   const r = target.getBoundingClientRect();
   wrap.style.left = `${r.left}px`;
@@ -541,6 +550,42 @@ function _svUnminify() {
   return true;
 }
 
+function _svRestoreFromMusicBar() {
+  const viewer = $('#stream-viewer');
+  if (!viewer?.classList.contains('sv-music-minified')) return false;
+  window.removeEventListener('resize', _syncMiniPos);
+  _miniStopProgress();
+  viewer.classList.remove('sv-music-minified');
+  document.body.classList.remove('has-sv-music');
+  const wrap = $('#sv-player-wrap');
+  if (wrap) wrap.style.cssText = '';
+  _svPlayer = _miniPlayer;
+  _miniPlayer = null;
+  showPlayerPanel();
+  _svUpdateUrl();
+  setTimeout(() => { $('#sv-close')?.focus({ preventScroll: true }); }, 50);
+  return true;
+}
+
+function _svDiscardMusicBar() {
+  const viewer = $('#stream-viewer');
+  if (!viewer?.classList.contains('sv-music-minified')) return false;
+  window.removeEventListener('resize', _syncMiniPos);
+  _miniStopProgress();
+  _svStopEndedWatch();
+  ++_svGen;
+  viewer.classList.remove('sv-music-minified');
+  document.body.classList.remove('has-sv-music');
+  viewer.hidden = true;
+  viewer._currentStream = null;
+  const wrap = $('#sv-player-wrap');
+  if (wrap) { wrap.style.cssText = ''; wrap.innerHTML = ''; }
+  _miniDestroyPlayer();
+  _svLastStream = null;
+  _svUpdateUrl();
+  return true;
+}
+
 /** ビューワー → 音楽プレイヤーバーへ移動（現在位置を引き継ぐ） */
 function _svMoveToMusicBar() {
   const viewer = $('#stream-viewer');
@@ -557,40 +602,51 @@ function _svMoveToMusicBar() {
     _stream: stream,
   };
 
-  window.removeEventListener('resize', _syncMiniPos);
-  _miniStopProgress();
-  ++_svGen;
-  try { _svPlayer?.pauseVideo?.(); } catch (_) {}
-  try { _svPlayer?.destroy?.(); } catch (_) {}
+  if (!_svPlayer) {
+    import('./music-player.js')
+      .then(m => m.playMusicBarVideo?.(musicTrack, t))
+      .catch(() => {});
+    return;
+  }
+
+  try { _svMiniStartAt = Math.floor(_svPlayer.getCurrentTime?.() ?? t); } catch (_) { _svMiniStartAt = t; }
+  _svMiniStartWallTime = Date.now();
+  _miniPlayer = _svPlayer;
   _svPlayer = null;
-  _miniPlayer = null;
   _svLastStream = null;
   _svFullscreen = false;
   viewer.classList.remove('sv-fullscreen', 'sv-minified');
+  viewer.classList.add('sv-music-minified');
   document.body.classList.remove('has-sv-fullscreen', 'has-sv-mini');
+  document.body.classList.add('has-sv-music');
   document.body.style.overflow = '';
-  viewer.hidden = true;
-
-  const wrap = $('#sv-player-wrap');
-  if (wrap) {
-    wrap.style.cssText = '';
-    wrap.innerHTML = '';
-  }
+  viewer.hidden = false;
   const panel = $('#yt-player-panel');
   if (panel) panel.hidden = true;
   hidePlayerPanel();
   _svUpdateUrl();
+  _syncMiniPos();
+  requestAnimationFrame(_syncMiniPos);
+  setTimeout(_syncMiniPos, 120);
+  setTimeout(_syncMiniPos, 400);
+  window.addEventListener('resize', _syncMiniPos);
+  _miniStartProgress();
 
   import('./music-player.js')
-    .then(m => m.playMusicBarVideo?.(musicTrack, t))
+    .then(m => m.adoptExternalPlayer?.(musicTrack, _miniPlayer, {
+      restore: _svRestoreFromMusicBar,
+      close: _svDiscardMusicBar,
+    }))
     .catch(() => {});
 }
 
 /** ミニ化状態を完全破棄（別動画を開く・ミニを閉じる時） */
 function _svDiscardMini() {
   const viewer = $('#stream-viewer');
+  if (viewer?.classList.contains('sv-music-minified')) return _svDiscardMusicBar();
   if (!viewer?.classList.contains('sv-minified')) return false;
   window.removeEventListener('resize', _syncMiniPos);
+  _svStopEndedWatch();
   ++_svGen;
   viewer.classList.remove('sv-minified');
   document.body.classList.remove('has-sv-mini');
@@ -636,7 +692,7 @@ function _svBuildShareUrl(id, t = 0, options = {}) {
  *  視聴中は 5 秒ごとに再生位置も更新するため、リロードしても続きから再生できる */
 function _svUpdateUrl() {
   const viewer = $('#stream-viewer');
-  const open = viewer && !viewer.hidden && !viewer.classList.contains('sv-minified');
+  const open = viewer && !viewer.hidden && !_svIsDocked(viewer);
   const id = open && viewer._currentStream?.url ? youtubeVideoId(viewer._currentStream.url) : '';
   const t = id ? _svCurrentTime(readUrlState().t) : 0;
   writeUrlState({ v: id || '', t: t > 5 ? t : 0 }, { replace: true });
@@ -827,7 +883,7 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
   {
     const svViewer = $('#stream-viewer');
     if (svViewer && !svViewer.hidden && !_svFullscreen) {
-      if (svViewer.classList.contains('sv-minified')) {
+      if (_svIsDocked(svViewer)) {
         _svDiscardMini();
       } else {
         ++_svGen;
@@ -1045,8 +1101,10 @@ let _pendingTabOptions = {};  // activateTab → closeStreamViewer → hidePlaye
 /** @type {Object<number, Array<{timeSeconds: number, note: string|null}>>} */
 let _svCommunityTs = {};      // songIndex → 承認済みコミュニティタイムスタンプ
 let _svAutoPlay = false;      // 連続再生フラグ
+let _svRepeat = false;        // ビューワーのリピート再生フラグ
 let _miniPlayer = null;           // ミニプレイヤーの YT.Player インスタンス
 let _miniProgressInterval = null; // 進捗バー更新タイマー
+let _svEndedWatchInterval = null;
 
 /** 埋め込みプレイヤーパネルを表示（タブバーの active はリセット） */
 function showPlayerPanel() {
@@ -1456,6 +1514,56 @@ function _svPlayNext() {
   openStreamViewer(streams[idx + 1]);
 }
 
+async function _svPlayNextMv(stream) {
+  const videos = await _mvFetchVideos();
+  const curId = youtubeVideoId(stream?.url);
+  if (!curId || !videos.length) return;
+  const idx = videos.findIndex(v => youtubeVideoId(v.url) === curId);
+  if (idx < 0 || idx >= videos.length - 1) return;
+  const next = videos[idx + 1];
+  openStreamViewer({ ...next, isMv: true });
+}
+
+function _svHandleEnded(viewer) {
+  if (!viewer || _svIsDocked(viewer)) return;
+  const player = _svPlayer || _miniPlayer;
+  if (_svRepeat && player) {
+    try { player.seekTo(0, true); player.playVideo(); } catch (_) {}
+    return;
+  }
+  if (!_svAutoPlay) return;
+  const stream = viewer._currentStream;
+  if (stream?.isMv) _svPlayNextMv(stream);
+  else _svPlayNext();
+}
+
+function _svStopEndedWatch() {
+  if (_svEndedWatchInterval) {
+    clearInterval(_svEndedWatchInterval);
+    _svEndedWatchInterval = null;
+  }
+}
+
+function _svStartEndedWatch(gen, viewer) {
+  _svStopEndedWatch();
+  let seenEnded = false;
+  _svEndedWatchInterval = setInterval(() => {
+    if (gen !== _svGen || viewer.hidden || !_svPlayer) {
+      _svStopEndedWatch();
+      return;
+    }
+    try {
+      const st = _svPlayer.getPlayerState?.();
+      if (st === window.YT?.PlayerState?.ENDED) {
+        if (!seenEnded) _svHandleEnded(viewer);
+        seenEnded = true;
+      } else if (st === window.YT?.PlayerState?.PLAYING) {
+        seenEnded = false;
+      }
+    } catch (_) {}
+  }, 700);
+}
+
 /** プレイヤー下のナビカードHTMLを返す */
 function _svNavCard(s, dir) {
   if (!s) {
@@ -1520,6 +1628,13 @@ function _svRenderBelowPlayer(stream) {
               <span class="sv-bp-ap-knob"></span>
             </span>
             連続再生
+          </label>
+          <label class="sv-bp-ap-label" for="sv-repeat-check">
+            <span class="sv-bp-ap-switch${_svRepeat ? ' sv-bp-ap-switch--on' : ''}">
+              <input type="checkbox" id="sv-repeat-check" class="sv-bp-ap-check"${_svRepeat ? ' checked' : ''}>
+              <span class="sv-bp-ap-knob"></span>
+            </span>
+            リピート
           </label>
           ${olderStream
             ? `<span class="sv-bp-ap-hint">次：${escapeHtml(olderStream.title || '次の配信')}</span>`
@@ -1593,11 +1708,18 @@ function _svRenderBelowPlayer(stream) {
 
   // イベント委譲（el.onXxx で上書きして重複防止）
   el.onchange = (e) => {
-    const check = e.target.closest('#sv-ap-check');
-    if (!check) return;
-    _svAutoPlay = check.checked;
-    const sw = el.querySelector('.sv-bp-ap-switch');
-    if (sw) sw.classList.toggle('sv-bp-ap-switch--on', _svAutoPlay);
+    const apCheck = e.target.closest('#sv-ap-check');
+    const repeatCheck = e.target.closest('#sv-repeat-check');
+    if (apCheck) {
+      _svAutoPlay = apCheck.checked;
+      const sw = apCheck.closest('.sv-bp-ap-switch');
+      if (sw) sw.classList.toggle('sv-bp-ap-switch--on', _svAutoPlay);
+    }
+    if (repeatCheck) {
+      _svRepeat = repeatCheck.checked;
+      const sw = repeatCheck.closest('.sv-bp-ap-switch');
+      if (sw) sw.classList.toggle('sv-bp-ap-switch--on', _svRepeat);
+    }
   };
 
   el.onclick = (e) => {
@@ -1684,9 +1806,32 @@ async function _svRenderBelowPlayerMv(stream) {
       return (b.publishedAt || '').localeCompare(a.publishedAt || '');
     })
     .slice(0, 12);
+  const curIdx = videos.findIndex(v => youtubeVideoId(v.url) === youtubeVideoId(stream.url));
+  const nextVideo = curIdx >= 0 && curIdx < videos.length - 1 ? videos[curIdx + 1] : null;
 
   el.innerHTML = `
     <div class="sv-bp-wrap">
+      <div class="sv-bp-section sv-bp-section--nav">
+        <div class="sv-bp-autoplay-bar">
+          <label class="sv-bp-ap-label" for="sv-ap-check">
+            <span class="sv-bp-ap-switch${_svAutoPlay ? ' sv-bp-ap-switch--on' : ''}">
+              <input type="checkbox" id="sv-ap-check" class="sv-bp-ap-check"${_svAutoPlay ? ' checked' : ''}>
+              <span class="sv-bp-ap-knob"></span>
+            </span>
+            連続再生
+          </label>
+          <label class="sv-bp-ap-label" for="sv-repeat-check">
+            <span class="sv-bp-ap-switch${_svRepeat ? ' sv-bp-ap-switch--on' : ''}">
+              <input type="checkbox" id="sv-repeat-check" class="sv-bp-ap-check"${_svRepeat ? ' checked' : ''}>
+              <span class="sv-bp-ap-knob"></span>
+            </span>
+            リピート
+          </label>
+          ${nextVideo
+            ? `<span class="sv-bp-ap-hint">次：${escapeHtml(nextVideo.title || '次の動画')}</span>`
+            : `<span class="sv-bp-ap-hint sv-bp-ap-hint--end">（最後の動画）</span>`}
+        </div>
+      </div>
       ${relatedShown.length ? `
       <div class="sv-bp-section">
         <div class="sv-bp-sh">🎤 この曲が歌われた歌枠 <span class="sv-bp-sh-sub">（全${related.length}回）</span></div>
@@ -1725,6 +1870,21 @@ async function _svRenderBelowPlayerMv(stream) {
       ` : ''}
     </div>
   `;
+
+  el.onchange = (e) => {
+    const apCheck = e.target.closest('#sv-ap-check');
+    const repeatCheck = e.target.closest('#sv-repeat-check');
+    if (apCheck) {
+      _svAutoPlay = apCheck.checked;
+      const sw = apCheck.closest('.sv-bp-ap-switch');
+      if (sw) sw.classList.toggle('sv-bp-ap-switch--on', _svAutoPlay);
+    }
+    if (repeatCheck) {
+      _svRepeat = repeatCheck.checked;
+      const sw = repeatCheck.closest('.sv-bp-ap-switch');
+      if (sw) sw.classList.toggle('sv-bp-ap-switch--on', _svRepeat);
+    }
+  };
 
   el.onclick = (e) => {
     const btn = e.target.closest('[data-mv-action]');
@@ -1980,22 +2140,25 @@ function openStreamViewer(stream, resumeAt = 0) {
 
   initStreamViewer();
   _loadYtApi();
+  _svStopEndedWatch();
 
-  // 音楽プレイヤーのプレイヤーを解放（同一動画の2プレイヤー競合で再生が壊れるのを防ぐ）。
-  // 早期 return するパス（ミニ化からの復帰など）でも必ず実行するため先頭で呼ぶ
-  import('./music-player.js').then(m => (m.releaseMusicPlayerVideo || m.pauseMusicPlayer)()).catch(() => {});
-
-  // ミニ化中で同じ動画 → そのまま復帰（リロードなし）
+  // 退避中で同じ動画 → そのまま復帰（リロードなし）
   const curViewer = $('#stream-viewer');
-  if (curViewer?.classList.contains('sv-minified')) {
+  if (_svIsDocked(curViewer)) {
     if (curViewer._currentStream?.url === stream.url) {
-      _svUnminify();
+      if (!_svUnminify() && !window.__restoreMusicExternalPlayer?.()) _svRestoreFromMusicBar();
       if (resumeAt > 0) {
         try { _svPlayer?.seekTo(Math.floor(resumeAt), true); _svPlayer?.playVideo(); } catch (_) {}
       }
       return;
     }
-    _svDiscardMini(); // 別の動画 → ミニ化中のプレイヤーを破棄して通常オープン
+    _svDiscardMini(); // 別の動画 → 退避中のプレイヤーを破棄して通常オープン
+  }
+
+  const musicHandoff = window.__takeOverMusicPlayerVideo?.(stream.url) || null;
+  if (!musicHandoff) {
+    // 同一動画の2プレイヤー競合で再生が壊れるのを防ぐ。
+    import('./music-player.js').then(m => (m.releaseMusicPlayerVideo || m.pauseMusicPlayer)()).catch(() => {});
   }
 
   // ミニプレイヤーが表示中なら即時破棄（同一ページで2プレイヤー競合を防ぐ）
@@ -2073,7 +2236,27 @@ function openStreamViewer(stream, resumeAt = 0) {
   const wrap = $('#sv-player-wrap');
   wrap.innerHTML = '<div class="sv-player-loading">読み込み中…</div>';
 
-  const startSec = Math.floor(resumeAt);
+  const startSec = Math.floor(resumeAt || musicHandoff?.currentTime || 0);
+
+  if (musicHandoff?.player) {
+    wrap.innerHTML = '';
+    if (musicHandoff.iframe) {
+      musicHandoff.iframe.style.width = '100%';
+      musicHandoff.iframe.style.height = '100%';
+      wrap.appendChild(musicHandoff.iframe);
+    } else {
+      wrap.innerHTML = `<div class="sv-player-loading">再生を引き継ぎました</div>`;
+    }
+    _svPlayer = musicHandoff.player;
+    try {
+      _svPlayer.setVolume?.(_storedVol());
+      if (startSec > 1) _svPlayer.seekTo?.(startSec, true);
+      _svPlayer.playVideo?.();
+    } catch (_) {}
+    _applyVol($('#sv-vol-slider'), $('#sv-vol-btn'), null, _storedVol());
+    _svStartEndedWatch(gen, viewer);
+    return;
+  }
 
   _onYtReady(() => {
     if (gen !== _svGen || viewer.hidden) return;
@@ -2108,10 +2291,7 @@ function openStreamViewer(stream, resumeAt = 0) {
             if (event.data === window.YT.PlayerState.PLAYING) {
               try { event.target.setPlaybackQuality('hd1080'); } catch (_) {}
             }
-            if (event.data === window.YT.PlayerState.ENDED && _svAutoPlay
-                && !viewer.classList.contains('sv-minified')) {
-              _svPlayNext();
-            }
+            if (event.data === window.YT.PlayerState.ENDED) _svHandleEnded(viewer);
           },
           onError: () => {
             if (gen !== _svGen) return;
@@ -2127,7 +2307,7 @@ function openStreamViewer(stream, resumeAt = 0) {
 
 function closeStreamViewer() {
   const viewer = $('#stream-viewer');
-  if (!viewer || viewer.hidden || viewer.classList.contains('sv-minified')) return;
+  if (!viewer || viewer.hidden || _svIsDocked(viewer)) return;
 
   // ── 全画面モードの場合 → 埋め込みに戻るだけ（ミニプレイヤーは起動しない）──
   if (_svFullscreen) {
@@ -2149,6 +2329,7 @@ function closeStreamViewer() {
   ++_svGen;
   viewer.hidden = true;
   viewer._currentStream = null;
+  _svStopEndedWatch();
   _svPlayer = null;
   const wrap = $('#sv-player-wrap');
   if (wrap) wrap.innerHTML = '';
@@ -2614,7 +2795,7 @@ $$('.tab-btn').forEach(btn => {
     const streamViewer = $('#stream-viewer');
     // 埋め込みモード（非全画面）でストリームが再生中 → ミニプレイヤーへ引き継ぐ
     if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen
-        && !streamViewer.classList.contains('sv-minified')) {
+        && !_svIsDocked(streamViewer)) {
       _epPrevTab = tab; // closeStreamViewer 内の hidePlayerPanel がこのタブへ遷移する
       closeStreamViewer();
       return;

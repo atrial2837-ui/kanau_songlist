@@ -4795,6 +4795,33 @@ body.has-music-bar { padding-bottom: 72px; }
 .mbar-ctrl-btn:hover:not(:disabled) { color: var(--ink); background: var(--surface-3); }
 .mbar-ctrl-btn:disabled { opacity: 0.35; cursor: default; }
 
+.mbar-mode-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-mute);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.mbar-mode-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.mbar-mode-btn.is-on {
+  color: #fff;
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
 .mbar-play-btn {
   width: 44px; height: 44px;
   border-radius: 50%;
@@ -5231,13 +5258,15 @@ body.has-music-bar { padding-bottom: 72px; }
    ============================================================ */
 
 /* position:fixed をビューポート基準にする（全画面時と同じ手法） */
-body.has-sv-mini .container { z-index: auto; }
+body.has-sv-mini .container,
+body.has-sv-music .container { z-index: auto; }
 
 /* タブが非アクティブでも #panel-player を描画させ iframe を生かす。
    min-height / background はレイアウトに空白を作るため打ち消す（上詰め）。
    transform（fadeIn アニメ由来）が残ると position:fixed の基準が
    ビューポートでなくなり座標がずれるため必ず無効化する */
-body.has-sv-mini #panel-player:not(.active) {
+body.has-sv-mini #panel-player:not(.active),
+body.has-sv-music #panel-player:not(.active) {
   display: block;
   min-height: 0;
   height: 0;
@@ -5248,7 +5277,8 @@ body.has-sv-mini #panel-player:not(.active) {
 }
 
 /* ビューワー本体はレイアウトから消す（display:none は不可 — iframe が落ちる） */
-#stream-viewer.sv-minified {
+#stream-viewer.sv-minified,
+#stream-viewer.sv-music-minified {
   position: static;
   height: 0;
   min-height: 0;
@@ -5261,11 +5291,17 @@ body.has-sv-mini #panel-player:not(.active) {
 
 #stream-viewer.sv-minified .sv-header,
 #stream-viewer.sv-minified .sv-below-player,
-#stream-viewer.sv-minified .sv-panel { display: none; }
+#stream-viewer.sv-minified .sv-panel,
+#stream-viewer.sv-music-minified .sv-header,
+#stream-viewer.sv-music-minified .sv-below-player,
+#stream-viewer.sv-music-minified .sv-panel { display: none; }
 
 #stream-viewer.sv-minified .sv-container,
 #stream-viewer.sv-minified .sv-body,
-#stream-viewer.sv-minified .sv-player-section {
+#stream-viewer.sv-minified .sv-player-section,
+#stream-viewer.sv-music-minified .sv-container,
+#stream-viewer.sv-music-minified .sv-body,
+#stream-viewer.sv-music-minified .sv-player-section {
   display: block;
   height: 0;
   min-height: 0;
@@ -5277,7 +5313,8 @@ body.has-sv-mini #panel-player:not(.active) {
 }
 
 /* 動画ラップをミニパネルの動画エリアへ固定配置（座標は JS が同期） */
-#stream-viewer.sv-minified .sv-player-wrap {
+#stream-viewer.sv-minified .sv-player-wrap,
+#stream-viewer.sv-music-minified .sv-player-wrap {
   position: fixed;
   z-index: 1001; /* #yt-player-panel (1000) の直上 */
   aspect-ratio: auto;
@@ -5286,6 +5323,11 @@ body.has-sv-mini #panel-player:not(.active) {
   min-height: 0;
   border-radius: 11px 11px 0 0;
   overflow: hidden;
+}
+
+#stream-viewer.sv-music-minified .sv-player-wrap {
+  border-radius: 6px;
+  pointer-events: none;
 }
 
 /* ホバー時の進捗バー高さ変化はパネル高が変わり動画位置がずれるため無効化 */

@@ -15,7 +15,11 @@ import { $, escapeHtml, youtubeVideoId, youtubeThumb } from './utils.js';
 let _queue    = [];
 let _qIdx     = -1;
 let _ytPlayer = null;
+let _external = null;
 let _progIv   = null;
+let _continuous = true;
+let _repeatOne = false;
+let _seenEnded = false;
 
 let _ytReady = false;
 const _ytQ   = [];
@@ -66,6 +70,7 @@ export function initMusicPlayer() {
         <span class="mbar-type-badge" id="mbar-type-badge"></span>
       </div>
       <div class="mbar-controls">
+        <button class="mbar-mode-btn is-on" id="mbar-continuous" type="button" aria-pressed="true" title="連続再生">∞</button>
         <button class="mbar-ctrl-btn" id="mbar-prev" type="button" aria-label="前の曲">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
@@ -77,6 +82,7 @@ export function initMusicPlayer() {
             <path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>
           </svg>
         </button>
+        <button class="mbar-mode-btn" id="mbar-repeat" type="button" aria-pressed="false" title="1曲リピート">↻</button>
       </div>
       <div class="mbar-end">
         <div class="mbar-volume">
@@ -95,6 +101,8 @@ export function initMusicPlayer() {
   $('#mbar-play').addEventListener('click', _togglePlay);
   $('#mbar-prev').addEventListener('click', playPrev);
   $('#mbar-next').addEventListener('click', playNext);
+  $('#mbar-continuous').addEventListener('click', _toggleContinuous);
+  $('#mbar-repeat').addEventListener('click', _toggleRepeat);
   $('#mbar-close').addEventListener('click', closeMusicPlayer);
 
   const volSlider = $('#mbar-vol-slider');
@@ -109,7 +117,8 @@ export function initMusicPlayer() {
       e.target.style.setProperty('--pct', `${v}%`);
       _saveVol(v);
       if (volBtn) volBtn.textContent = _volIcon(v);
-      if (_ytPlayer) try { _ytPlayer.setVolume(v); } catch (_) {}
+      const player = _player();
+      if (player) try { player.setVolume(v); } catch (_) {}
     });
   }
   if (volBtn) {
@@ -122,7 +131,8 @@ export function initMusicPlayer() {
       volSlider.value = newV;
       volSlider.style.setProperty('--pct', `${newV}%`);
       volBtn.textContent = _volIcon(newV);
-      if (_ytPlayer) try { _ytPlayer.setVolume(newV); } catch (_) {}
+      const player = _player();
+      if (player) try { player.setVolume(newV); } catch (_) {}
     });
   }
 
@@ -131,7 +141,11 @@ export function initMusicPlayer() {
     if (!video?.url) return;
     // 再生位置をビューワーへ引き継ぐ
     let t = 0;
-    try { t = _ytPlayer?.getCurrentTime?.() || 0; } catch (_) {}
+    try { t = _player()?.getCurrentTime?.() || 0; } catch (_) {}
+    if (_external?.restore) {
+      restoreExternalPlayer();
+      return;
+    }
     // 歌枠由来のトラックは元の配信オブジェクトでストリームビューワーを開く
     const target = video._stream || { url: video.url, title: video.title, isMv: true };
     releaseMusicPlayerVideo({ hideBar: true });
@@ -142,12 +156,13 @@ export function initMusicPlayer() {
   $('#mbar-track-info-btn').addEventListener('click', _openInViewer);
 
   $('#mbar-progress-track').addEventListener('click', (e) => {
-    if (!_ytPlayer) return;
+    const player = _player();
+    if (!player) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     try {
-      const dur = _ytPlayer.getDuration?.() || 0;
-      if (dur > 0) _ytPlayer.seekTo(pct * dur, true);
+      const dur = player.getDuration?.() || 0;
+      if (dur > 0) player.seekTo(pct * dur, true);
     } catch (_) {}
   });
 
@@ -187,6 +202,11 @@ export function closeMusicPlayer() {
   bar.hidden = true;
   document.body.classList.remove('has-music-bar');
   _stopProg();
+  if (_external?.close) {
+    const close = _external.close;
+    _detachExternal();
+    try { close(); } catch (_) {}
+  }
   if (_ytPlayer) { try { _ytPlayer.destroy(); } catch (_) {} _ytPlayer = null; }
   _queue = []; _qIdx = -1;
   const wrap = $('#mbar-video-wrap');
@@ -195,7 +215,8 @@ export function closeMusicPlayer() {
 
 /** 外部から一時停止（ストリームビューワー起動時など） */
 export function pauseMusicPlayer() {
-  if (_ytPlayer) { try { _ytPlayer.pauseVideo(); } catch (_) {} }
+  const player = _player();
+  if (player) { try { player.pauseVideo(); } catch (_) {} }
 }
 
 /** 動画ビューワーへ引き継ぐ際にプレイヤーだけ破棄する。
@@ -205,6 +226,13 @@ export function pauseMusicPlayer() {
  *  バー・キューは維持し、再生ボタンでプレイヤーを再生成できる。 */
 export function releaseMusicPlayerVideo(options = {}) {
   _stopProg();
+  if (_external) {
+    const close = _external.close;
+    _detachExternal();
+    if (options.closeExternal !== false && close) {
+      try { close(); } catch (_) {}
+    }
+  }
   if (_ytPlayer) { try { _ytPlayer.destroy(); } catch (_) {} _ytPlayer = null; }
   const wrap = $('#mbar-video-wrap');
   if (wrap) {
@@ -243,11 +271,72 @@ export function playMusicBarVideo(video, startAt = 0) {
   _loadTrack(0, startAt);
 }
 
+export function adoptExternalPlayer(video, player, callbacks = {}) {
+  if (!video?.url || !player) return;
+  _stopProg();
+  if (_ytPlayer) { try { _ytPlayer.destroy(); } catch (_) {} _ytPlayer = null; }
+  _external = {
+    player,
+    restore: callbacks.restore,
+    close: callbacks.close,
+  };
+  const idx = _queue.findIndex(v => v.url === video.url);
+  if (idx >= 0) {
+    _qIdx = idx;
+    _queue[_qIdx] = { ..._queue[_qIdx], ...video };
+  } else {
+    _queue = [video];
+    _qIdx = 0;
+  }
+  _updateBarInfo(_queue[_qIdx]);
+  _showBar();
+  _startProg();
+  _syncPlayButton();
+}
+
+export function takeOverMusicPlayerVideo(url) {
+  if (!_ytPlayer || _external) return null;
+  const video = _queue[_qIdx];
+  if (!video?.url || youtubeVideoId(video.url) !== youtubeVideoId(url)) return null;
+  let currentTime = 0;
+  try { currentTime = _ytPlayer.getCurrentTime?.() || 0; } catch (_) {}
+  let iframe = null;
+  try { iframe = _ytPlayer.getIframe?.() || null; } catch (_) {}
+  const player = _ytPlayer;
+  _ytPlayer = null;
+  _stopProg();
+  const bar = $('#music-bar');
+  if (bar) bar.hidden = true;
+  document.body.classList.remove('has-music-bar');
+  $('#mbar-play')?.setAttribute('data-playing', '0');
+  return { player, iframe, video, currentTime };
+}
+
+export function restoreExternalPlayer() {
+  if (!_external?.restore) return false;
+  const restore = _external.restore;
+  _detachExternal();
+  _stopProg();
+  const bar = $('#music-bar');
+  if (bar) bar.hidden = true;
+  document.body.classList.remove('has-music-bar');
+  $('#mbar-play')?.setAttribute('data-playing', '0');
+  try { restore(); } catch (_) {}
+  return true;
+}
+
 /* ── 内部: トラック読み込み ─────────────────────────────────────────────── */
 
 function _loadTrack(idx, startAt = 0) {
   const video = _queue[idx];
   if (!video) return;
+  if (_external?.close) {
+    const close = _external.close;
+    _detachExternal();
+    try { close(); } catch (_) {}
+  } else {
+    _detachExternal();
+  }
 
   _updateBarInfo(video);
   _showBar();
@@ -292,7 +381,10 @@ function _loadTrack(idx, startAt = 0) {
             const btn = $('#mbar-play');
             if (btn) btn.setAttribute('data-playing', pl ? '1' : '0');
             if (pl) _startProg();
-            if (ev.data === window.YT?.PlayerState?.ENDED) playNext();
+            if (ev.data === window.YT?.PlayerState?.ENDED && !_seenEnded) {
+              _seenEnded = true;
+              _handleEnded();
+            }
           },
         },
       });
@@ -324,6 +416,7 @@ function _updateBarInfo(video) {
   if (qi)   qi.textContent = _queue.length > 1 ? `${_qIdx + 1} / ${_queue.length}` : '';
   if (prev) prev.disabled = _queue.length <= 1;
   if (next) next.disabled = _queue.length <= 1;
+  _syncModeButtons();
 }
 
 function _showBar() {
@@ -334,15 +427,16 @@ function _showBar() {
 }
 
 function _togglePlay() {
-  if (!_ytPlayer) {
+  const player = _player();
+  if (!player) {
     // ビューワー引き継ぎでプレイヤー解放済み → 現在の曲から再生成
     if (_qIdx >= 0 && _queue.length) _loadTrack(_qIdx);
     return;
   }
   try {
-    const st = _ytPlayer.getPlayerState?.();
-    if (st === window.YT?.PlayerState?.PLAYING) _ytPlayer.pauseVideo();
-    else _ytPlayer.playVideo();
+    const st = player.getPlayerState?.();
+    if (st === window.YT?.PlayerState?.PLAYING) player.pauseVideo();
+    else player.playVideo();
   } catch (_) {}
 }
 
@@ -350,14 +444,24 @@ function _togglePlay() {
 
 function _startProg() {
   _stopProg();
+  _seenEnded = false;
   _progIv = setInterval(() => {
-    if (!_ytPlayer) return;
+    const player = _player();
+    if (!player) return;
     try {
-      const dur = _ytPlayer.getDuration?.() || 0;
-      const cur = _ytPlayer.getCurrentTime?.() || 0;
+      const dur = player.getDuration?.() || 0;
+      const cur = player.getCurrentTime?.() || 0;
       const pct = dur > 0 ? Math.min((cur / dur) * 100, 100) : 0;
       const fill = $('#mbar-progress-fill');
       if (fill) fill.style.width = `${pct}%`;
+      _syncPlayButton();
+      const st = player.getPlayerState?.();
+      if (st === window.YT?.PlayerState?.ENDED) {
+        if (!_seenEnded) _handleEnded();
+        _seenEnded = true;
+      } else if (st === window.YT?.PlayerState?.PLAYING) {
+        _seenEnded = false;
+      }
     } catch (_) {}
   }, 500);
 }
@@ -365,3 +469,60 @@ function _startProg() {
 function _stopProg() {
   if (_progIv) { clearInterval(_progIv); _progIv = null; }
 }
+
+function _player() {
+  return _external?.player || _ytPlayer;
+}
+
+function _detachExternal() {
+  _external = null;
+}
+
+function _handleEnded() {
+  const player = _player();
+  if (_repeatOne && player) {
+    try { player.seekTo(0, true); player.playVideo(); } catch (_) {}
+    return;
+  }
+  if (_continuous && _queue.length > 1) {
+    playNext();
+  } else {
+    $('#mbar-play')?.setAttribute('data-playing', '0');
+  }
+}
+
+function _toggleContinuous() {
+  _continuous = !_continuous;
+  _syncModeButtons();
+}
+
+function _toggleRepeat() {
+  _repeatOne = !_repeatOne;
+  _syncModeButtons();
+}
+
+function _syncModeButtons() {
+  const cont = $('#mbar-continuous');
+  if (cont) {
+    cont.classList.toggle('is-on', _continuous);
+    cont.setAttribute('aria-pressed', _continuous ? 'true' : 'false');
+  }
+  const rep = $('#mbar-repeat');
+  if (rep) {
+    rep.classList.toggle('is-on', _repeatOne);
+    rep.setAttribute('aria-pressed', _repeatOne ? 'true' : 'false');
+  }
+}
+
+function _syncPlayButton() {
+  const player = _player();
+  const btn = $('#mbar-play');
+  if (!player || !btn) return;
+  try {
+    const st = player.getPlayerState?.();
+    btn.setAttribute('data-playing', st === window.YT?.PlayerState?.PLAYING ? '1' : '0');
+  } catch (_) {}
+}
+
+window.__takeOverMusicPlayerVideo = takeOverMusicPlayerVideo;
+window.__restoreMusicExternalPlayer = restoreExternalPlayer;
