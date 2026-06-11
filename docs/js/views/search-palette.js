@@ -1,7 +1,7 @@
 /**
  * @module search-palette
  * @description グローバル検索パレット (コマンドパレット)
- *   / または Ctrl+K で開く。曲・アーティスト・配信枠を横断検索する。
+ *   / または Ctrl+K で開く。曲・アーティスト・配信枠・動画を横断検索する。
  */
 
 import { state } from '../store.js';
@@ -10,6 +10,8 @@ import { escapeHtml, fmtDate } from '../utils.js';
 let _active = -1;   // 現在ハイライトされている行インデックス
 let _flat   = [];   // キーボード選択用フラット配列
 let _onAction = null; // 選択時コールバック
+let _musicVideos = null;
+let _musicPromise = null;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 公開 API
@@ -32,7 +34,7 @@ export function initSearchPalette(handlers) {
           id="omni-input"
           class="omni-input"
           type="search"
-          placeholder="曲名・アーティスト・配信を検索…"
+          placeholder="曲名・アーティスト・配信・動画を検索…"
           autocomplete="off"
           spellcheck="false"
           aria-label="サイト内検索"
@@ -76,6 +78,11 @@ export function openSearchPalette() {
     input.select();
   }
   _render('');
+  _ensureMusicVideos().then(() => {
+    if (!isSearchPaletteOpen()) return;
+    const current = document.getElementById('omni-input')?.value || '';
+    if (current.trim()) _render(current);
+  });
 }
 
 export function closeSearchPalette() {
@@ -135,7 +142,8 @@ function _render(rawQuery) {
 
   const songs   = state.data?.songs || [];
   const streams = state.data?.streams || [];
-  const q = rawQuery.trim().toLowerCase();
+  const videos  = _musicVideos || [];
+  const q = _norm(rawQuery);
   let html = '';
   let idx = 0;
 
@@ -168,6 +176,18 @@ function _render(rawQuery) {
     for (const song of matchedSongs) {
       _flat.push({ type: 'song', song });
       html += _songItem(song, idx++, q);
+    }
+  }
+
+  // ── 歌みた・オリ曲動画 ────────────────────────────────────────────────────
+  if (videos.length) {
+    const matchedVideos = videos.filter(v => _musicMatches(v, rawQuery)).slice(0, 6);
+    if (matchedVideos.length) {
+      html += _sectionLabel('🎬 歌みた・オリ曲');
+      for (const video of matchedVideos) {
+        _flat.push({ type: 'music-video', video });
+        html += _musicVideoItem(video, idx++, rawQuery);
+      }
     }
   }
 
@@ -240,16 +260,88 @@ function _songItem(song, idx, q) {
   </div>`;
 }
 
-function _norm(s) { return String(s || '').toLowerCase(); }
+function _musicVideoItem(video, idx, q) {
+  const badge = _musicTypeLabel(video);
+  const sub = video.originalArtist || video.character || badge;
+  return `<div class="omni-item" role="option" aria-selected="false" data-omni-idx="${idx}">
+    <span class="omni-item-icon">🎬</span>
+    <div class="omni-item-body">
+      <span class="omni-item-title">${_hl(escapeHtml(video.title || '動画'), q)}</span>
+      <span class="omni-item-meta">${escapeHtml(badge)}${sub ? ' · ' + escapeHtml(sub) : ''} · 動画で見る</span>
+    </div>
+  </div>`;
+}
+
+function _ensureMusicVideos() {
+  if (_musicVideos !== null) return Promise.resolve(_musicVideos);
+  if (_musicPromise) return _musicPromise;
+  _musicPromise = fetch('/data/music.json', { cache: 'no-store' })
+    .then(res => res.ok ? res.json() : Promise.reject(new Error(`music.json ${res.status}`)))
+    .then(json => {
+      _musicVideos = Array.isArray(json?.videos) ? json.videos : [];
+      return _musicVideos;
+    })
+    .catch(() => {
+      _musicVideos = [];
+      return _musicVideos;
+    });
+  return _musicPromise;
+}
+
+function _musicMatches(video, rawQuery) {
+  const tokens = _queryTokens(rawQuery);
+  if (!tokens.length) return false;
+  const haystack = _musicSearchText(video);
+  return tokens.every(token => haystack.includes(token));
+}
+
+function _musicSearchText(video) {
+  const title = video.title || '';
+  const slashParts = title.split(/[\/／|｜]/).map(s => s.trim()).filter(Boolean);
+  return _norm([
+    title,
+    ...slashParts,
+    video.originalArtist,
+    video.character,
+    video.type,
+    _musicTypeLabel(video),
+  ].filter(Boolean).join(' '));
+}
+
+function _musicTypeLabel(video) {
+  switch (video?.type) {
+    case 'cover': return '歌みた';
+    case 'office': return 'Re:AcTオリ曲';
+    case 'character': return 'キャラソン';
+    default: return 'オリ曲';
+  }
+}
+
+function _queryTokens(query) {
+  return _norm(query)
+    .split(/[\/／|｜\s]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function _norm(s) {
+  return String(s || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 function _hl(escaped, q) {
-  if (!q) return escaped;
+  const tokens = _queryTokens(q);
+  const needle = tokens.find(token => token && escaped.toLowerCase().includes(token)) || _norm(q);
+  if (!needle) return escaped;
   const lower = escaped.toLowerCase();
-  const qi = lower.indexOf(q);
+  const qi = lower.indexOf(needle);
   if (qi < 0) return escaped;
   return (
     escaped.slice(0, qi) +
-    '<mark class="hl">' + escaped.slice(qi, qi + q.length) + '</mark>' +
-    escaped.slice(qi + q.length)
+    '<mark class="hl">' + escaped.slice(qi, qi + needle.length) + '</mark>' +
+    escaped.slice(qi + needle.length)
   );
 }

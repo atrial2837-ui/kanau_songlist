@@ -304,7 +304,7 @@ function _renderMusicLoading() {
 async function _loadAndRenderMusic() {
   if (_musicVideos === null) {
     try {
-      const res = await fetch('/data/music.json');
+      const res = await fetch('/data/music.json', { cache: 'no-store' });
       const json = await res.json();
       _musicVideos = json.videos || [];
     } catch (_) {

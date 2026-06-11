@@ -2886,6 +2886,8 @@ initSearchPalette((result) => {
     searchArtistName(result.artist);
   } else if (result.type === 'stream') {
     openStreamViewer(result.stream);
+  } else if (result.type === 'music-video') {
+    openStreamViewer({ ...result.video, isMv: true });
   }
 });
 
