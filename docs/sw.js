@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const ASSET_CACHE = `kanau-assets-${CACHE_VERSION}`;
 const DATA_CACHE  = `kanau-data-${CACHE_VERSION}`;
 
