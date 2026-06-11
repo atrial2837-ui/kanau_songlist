@@ -188,12 +188,14 @@ export function renderPlaylists() {
     const input = e.target.closest('#pl-music-search');
     if (!input) return;
     _musicSearchComposing = false;
-    _updateMusicSearch(input);
+    requestAnimationFrame(() => _updateMusicSearch(input));
   };
 
   panel.oninput = (e) => {
     const input = e.target.closest('#pl-music-search');
-    if (!input || _musicSearchComposing || e.isComposing) return;
+    if (!input) return;
+    _musicQuery = input.value || '';
+    if (_musicSearchComposing || e.isComposing) return;
     _updateMusicSearch(input);
   };
 
@@ -340,6 +342,7 @@ function _renderMusicLibrary(videos) {
 }
 
 function _renderMusicViewBar(videos) {
+  const query = _currentMusicQuery();
   const items = _filterMusicVideos(videos);
   const shown = items.length;
   return `
@@ -347,7 +350,7 @@ function _renderMusicViewBar(videos) {
       <label class="pl-music-search-wrap">
         <span class="pl-music-search-icon" aria-hidden="true">⌕</span>
         <input id="pl-music-search" class="pl-music-search" type="search"
-          value="${escapeHtml(_musicQuery)}"
+          value="${escapeHtml(query)}"
           placeholder="曲名 / アーティストで検索"
           aria-label="歌みた・オリ曲を検索">
       </label>
@@ -371,7 +374,7 @@ function _renderMusicResults(videos) {
   }
   if (!items.length) {
     if (_musicLoading) {
-      return `<div class="pl-empty-state"><p>最新データを確認中…</p><p class="pl-empty-hint">「${escapeHtml(_musicQuery)}」の候補を読み込んでいます</p></div>`;
+      return `<div class="pl-empty-state"><p>最新データを確認中…</p><p class="pl-empty-hint">「${escapeHtml(_currentMusicQuery())}」の候補を読み込んでいます</p></div>`;
     }
     return `<div class="pl-empty-state"><p>一致する動画がありません</p><p class="pl-empty-hint">「曲名 / アーティスト」のように区切って検索できます</p></div>`;
   }
@@ -380,6 +383,12 @@ function _renderMusicResults(videos) {
   if (_musicView === 'list')     return _renderMusicList(items);
   if (_musicView === 'category') return _renderMusicCategory(items);
   return _renderMusicGrid(items);
+}
+
+function _currentMusicQuery() {
+  const input = $('#pl-music-search');
+  if (input) _musicQuery = input.value || '';
+  return _musicQuery;
 }
 
 function _refreshMusicResults() {
@@ -456,7 +465,7 @@ function _musicSearchText(video) {
 }
 
 function _filterMusicVideos(videos) {
-  const tokens = _musicSearchTokens(_musicQuery);
+  const tokens = _musicSearchTokens(_currentMusicQuery());
   const indexed = videos.map((v, i) => ({ v, i }));
   if (!tokens.length) return indexed;
   return indexed.filter(({ v }) => {
