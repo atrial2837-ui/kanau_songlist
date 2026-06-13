@@ -74,6 +74,15 @@ export function renderRanking() {
     });
   }
 
+  // 比較先セレクト（期間 vs 任意の月で自由に比較）
+  const compareSelect = document.getElementById('ranking-compare-select');
+  if (compareSelect) {
+    compareSelect.addEventListener('change', (e) => {
+      state.rankingCompareMonth = e.target.value;
+      renderRanking();
+    });
+  }
+
   const more = document.getElementById('rank-more');
   if (more) {
     more.addEventListener('click', () => {
@@ -114,6 +123,16 @@ function renderPeriodSelector(streams, currentPeriod, streamsLoaded) {
             const [y, mo] = m.split('-');
             const label = `${y}年${Number(mo)}月`;
             return `<option value="${m}"${currentPeriod === 'month-select' && currentMonth === m ? ' selected' : ''}>${label}</option>`;
+          }).join('')}
+        </select>
+      ` : ''}
+      ${currentPeriod !== 'all' && months.length && streamsLoaded ? `
+        <select id="ranking-compare-select" class="select-input period-month-select" title="増減（↑↓）の比較先を選ぶ">
+          <option value="">比較: 直前の期間（自動）</option>
+          ${months.map(m => {
+            const [y, mo] = m.split('-');
+            const label = `比較: ${y}年${Number(mo)}月`;
+            return `<option value="${m}"${(state.rankingCompareMonth || '') === m ? ' selected' : ''}>${label}</option>`;
           }).join('')}
         </select>
       ` : ''}
@@ -187,6 +206,17 @@ function computePeriodData(streams, period) {
 
   } else {
     return null;
+  }
+
+  // 比較先を自由に指定（未指定なら直前の期間と自動比較）
+  const cmp = state.rankingCompareMonth || '';
+  if (cmp) {
+    const [cy, cm] = cmp.split('-').map(Number);
+    if (cy && cm) {
+      prevStart = new Date(cy, cm - 1, 1);
+      prevEnd   = new Date(cy, cm, 0, 23, 59, 59);
+      prevLabel = `${cy}年${cm}月`;
+    }
   }
 
   const counts     = _countInRange(streams, start, end);

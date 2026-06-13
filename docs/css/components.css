@@ -3459,11 +3459,17 @@ body.has-sv-fullscreen .container { z-index: auto; }
 }
 .pl-stream-row:last-child { border-bottom: none; }
 .pl-stream-row:hover { background: var(--surface-2); }
+
+/* ドラッグ並び替え: 非ドラッグ行は transform 変化をアニメーションでシフト */
+.pl-stream-list.is-drag-active { user-select: none; }
+.pl-stream-list.is-drag-active .pl-stream-row { transition: transform 0.15s ease; }
 .pl-stream-row.is-dragging {
-  opacity: 0.7;
-  background: var(--primary-soft);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  transition: none !important; /* ドラッグ中の行はポインタへ即時追従 */
+  opacity: 0.92;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--primary);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
   z-index: 10;
   position: relative;
 }
@@ -5484,3 +5490,91 @@ body.has-sv-music #panel-player:not(.active) {
 /* ホバー時の進捗バー高さ変化はパネル高が変わり動画位置がずれるため無効化 */
 body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
 
+
+/* ============================================================
+   ビューワー内 マイリスト再生キュー
+   ============================================================ */
+.sv-queue-section { border: 1px solid var(--border-strong); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); }
+
+.sv-queue-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sv-queue-repeat {
+  margin-left: auto;
+  padding: 4px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--ink-mute);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.sv-queue-repeat:hover { border-color: var(--primary); color: var(--primary-strong); }
+.sv-queue-repeat.is-on {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
+.sv-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sv-queue-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+.sv-queue-row:hover { background: var(--surface-3); }
+.sv-queue-row.is-current {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.sv-queue-num {
+  flex: 0 0 22px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-mute);
+  text-align: right;
+  font-feature-settings: var(--tnum);
+}
+.sv-queue-row.is-current .sv-queue-num { color: var(--primary-strong); }
+
+.sv-queue-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sv-queue-meta {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--ink-mute);
+  white-space: nowrap;
+}

@@ -1574,6 +1574,96 @@ function _addStreamToPlaylist(playlistId, skey) {
   return true;
 }
 
+// ─── マイリスト再生キュー（ビューワー内） ────────────────────────────────────
+// プレイリストの ▶ から起動し、配信・動画を混在キューとして順に再生する。
+// item: { kind: 'stream'|'mv', key, stream?, video? }
+
+let _svListQueue = null;        // { name, items, idx, repeat }
+let _svQueueNavigating = false; // キュー内ナビゲーション中はキューを解除しない
+
+function _svListQueueOpen(idx) {
+  const q = _svListQueue;
+  const item = q?.items?.[idx];
+  if (!item) return;
+  q.idx = idx;
+  _svQueueNavigating = true;
+  try {
+    if (item.kind === 'mv') {
+      openStreamViewer({ url: item.video.url, title: item.video.title, isMv: true });
+    } else {
+      openStreamViewer(item.stream);
+    }
+  } finally {
+    _svQueueNavigating = false;
+  }
+}
+
+window.__playMyListInViewer = (queue) => {
+  if (!queue?.items?.length) return;
+  _svListQueue = {
+    name: queue.name || 'マイリスト',
+    items: queue.items,
+    idx: 0,
+    repeat: localStorage.getItem('kanauListRepeat') === '1',
+  };
+  _svListQueueOpen(Math.max(0, Math.min(queue.idx || 0, queue.items.length - 1)));
+};
+
+/** プレイヤー下に挿入するキューセクションの HTML（キュー非アクティブ時は空文字） */
+function _svQueueSectionHtml() {
+  const q = _svListQueue;
+  if (!q?.items?.length) return '';
+  return `
+    <div class="sv-bp-section sv-queue-section">
+      <div class="sv-bp-sh sv-queue-head">📋 ${escapeHtml(q.name)}
+        <span class="sv-bp-sh-sub">（${q.idx + 1} / ${q.items.length}）</span>
+        <button class="sv-queue-repeat${q.repeat ? ' is-on' : ''}" type="button"
+          data-svq-action="repeat" aria-pressed="${q.repeat}"
+          title="リストリピート（ON: 最後まで再生したら先頭へ戻る）">🔁 リピート</button>
+      </div>
+      <div class="sv-queue-list">
+        ${q.items.map((it, i) => {
+          const title = it.kind === 'mv' ? (it.video?.title || '動画') : (it.stream?.title || '配信');
+          const meta = it.kind === 'mv'
+            ? '🎬 動画'
+            : `📅 ${fmtDate(it.stream?.date)}　第${it.stream?.index}枠`;
+          return `<button class="sv-queue-row${i === q.idx ? ' is-current' : ''}" type="button"
+            data-svq-action="jump" data-svq-idx="${i}">
+            <span class="sv-queue-num">${i + 1}</span>
+            <span class="sv-queue-title">${escapeHtml(title)}</span>
+            <span class="sv-queue-meta">${escapeHtml(meta)}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+/** キューセクション内クリックを処理。処理した場合 true を返す */
+function _svHandleQueueClick(e) {
+  const btn = e.target.closest('[data-svq-action]');
+  if (!btn || !_svListQueue) return false;
+  if (btn.dataset.svqAction === 'jump') {
+    const i = parseInt(btn.dataset.svqIdx, 10);
+    if (!Number.isNaN(i) && i !== _svListQueue.idx) _svListQueueOpen(i);
+    return true;
+  }
+  if (btn.dataset.svqAction === 'repeat') {
+    _svListQueue.repeat = !_svListQueue.repeat;
+    try { localStorage.setItem('kanauListRepeat', _svListQueue.repeat ? '1' : '0'); } catch (_) {}
+    btn.classList.toggle('is-on', _svListQueue.repeat);
+    btn.setAttribute('aria-pressed', String(_svListQueue.repeat));
+    return true;
+  }
+  return false;
+}
+
+/** キュー描画後の後処理: 現在の行をリスト内スクロールで中央へ（ページはスクロールさせない） */
+function _svQueueAfterRender(el) {
+  const listEl = el?.querySelector?.('.sv-queue-list');
+  const cur = listEl?.querySelector('.sv-queue-row.is-current');
+  if (listEl && cur) listEl.scrollTop = Math.max(0, cur.offsetTop - listEl.clientHeight / 2);
+}
+
 /** 連続再生: 現在より1つ古い配信（配列の次のインデックス）を開く */
 function _svPlayNext() {
   const streams = state.data?.streams || [];
@@ -1600,6 +1690,13 @@ function _svHandleEnded(viewer) {
   const player = _svPlayer || _miniPlayer;
   if (_svRepeat && player) {
     try { player.seekTo(0, true); player.playVideo(); } catch (_) {}
+    return;
+  }
+  // マイリストキュー再生中 → 次のアイテムへ（リピート ON なら末尾から先頭へ）
+  if (_svListQueue?.items?.length) {
+    const q = _svListQueue;
+    if (q.idx < q.items.length - 1) _svListQueueOpen(q.idx + 1);
+    else if (q.repeat) _svListQueueOpen(0);
     return;
   }
   if (!_svAutoPlay) return;
@@ -1689,6 +1786,7 @@ function _svRenderBelowPlayer(stream) {
 
   el.innerHTML = `
     <div class="sv-bp-wrap">
+      ${_svQueueSectionHtml()}
 
       <!-- 連続再生 + 前後ナビ -->
       <div class="sv-bp-section sv-bp-section--nav">
@@ -1794,6 +1892,7 @@ function _svRenderBelowPlayer(stream) {
   };
 
   el.onclick = (e) => {
+    if (_svHandleQueueClick(e)) return;
     const btn = e.target.closest('[data-bp-action]');
     if (!btn) return;
     const action = btn.dataset.bpAction;
@@ -1813,6 +1912,8 @@ function _svRenderBelowPlayer(stream) {
       }
     }
   };
+
+  _svQueueAfterRender(el);
 }
 
 // ─── MV モード: プレイヤー下コンテンツ ──────────────────────────────────────
@@ -1882,6 +1983,7 @@ async function _svRenderBelowPlayerMv(stream) {
 
   el.innerHTML = `
     <div class="sv-bp-wrap">
+      ${_svQueueSectionHtml()}
       <div class="sv-bp-section sv-bp-section--nav">
         <div class="sv-bp-autoplay-bar">
           <label class="sv-bp-ap-label" for="sv-ap-check">
@@ -1958,6 +2060,7 @@ async function _svRenderBelowPlayerMv(stream) {
   };
 
   el.onclick = (e) => {
+    if (_svHandleQueueClick(e)) return;
     const btn = e.target.closest('[data-mv-action]');
     if (!btn) return;
     const action = btn.dataset.mvAction;
@@ -1973,6 +2076,8 @@ async function _svRenderBelowPlayerMv(stream) {
       activateTab('playlists');
     }
   };
+
+  _svQueueAfterRender(el);
 }
 
 function _svRefreshSetlist(setlistEl, songs, ts) {
@@ -2212,6 +2317,9 @@ function openStreamViewer(stream, resumeAt = 0) {
   initStreamViewer();
   _loadYtApi();
   _svStopEndedWatch();
+
+  // キュー外から動画を開いた場合はマイリストキューを解除
+  if (!_svQueueNavigating) _svListQueue = null;
 
   // 退避中で同じ動画 → そのまま復帰（リロードなし）
   const curViewer = $('#stream-viewer');

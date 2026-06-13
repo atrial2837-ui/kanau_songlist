@@ -123,6 +123,7 @@ const DEFAULT_IN_MEMORY = {
   rankingLimit: 50,
   rankingPeriod: 'all',
   rankingMonth: '',
+  rankingCompareMonth: '', // 期間ランキングの比較先（'' = 直前の期間と自動比較）
   favorites: loadFavorites(),
   favoritesFilter: false,
   fullLoaded: false,

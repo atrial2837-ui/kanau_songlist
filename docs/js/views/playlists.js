@@ -87,6 +87,20 @@ export function renderPlaylists() {
 
   const allStreams = state.data?.streams || [];
 
+  // マイリストに mv: 項目があるとき music.json 未ロードだと「動画データなし」に
+  // なるため、マイリスト表示時はキャッシュ即時反映 + 未取得なら fetch して再描画
+  if (_activeSubTab === 'my-playlists' && _musicVideos === null) {
+    const cached = _readMusicVideoCache();
+    if (cached.length) {
+      _musicVideos = cached;
+    } else {
+      _fetchMusicVideos().then(v => {
+        if (_musicVideos === null) _musicVideos = Array.isArray(v) ? v : [];
+        if (_activeSubTab === 'my-playlists') renderPlaylists();
+      });
+    }
+  }
+
   // データ更新などによる全再描画で検索欄のフォーカスが失われないよう退避
   const searchHadFocus = document.activeElement?.id === 'pl-music-search';
   let searchSel = null;
@@ -780,19 +794,25 @@ function _handleMyPlaylistsClick(e, allStreams) {
     renderPlaylists();
     return;
   }
-  // 再生（プレイリスト内の配信）
+  // 再生（プレイリスト内の配信）→ マイリストをキューとしてビューワーで再生
   const playBtn = e.target.closest('[data-pl-play-stream]');
   if (playBtn) {
+    const row = playBtn.closest('.pl-stream-row');
+    if (row && _playMyListFromRow(row, allStreams)) return;
     const skey = playBtn.dataset.plPlayStream;
     const found = allStreams.find(s => streamKey(s) === skey);
     if (found?.url) window.__openStreamViewer?.(found);
     return;
   }
-  // 再生（プレイリスト内の音楽動画）
+  // 再生（プレイリスト内の音楽動画）→ 同上
   const playMvBtn = e.target.closest('[data-play-music-pl]');
-  if (playMvBtn && _musicVideos?.length) {
-    const idx = Number(playMvBtn.dataset.playMusicPl);
-    import('../music-player.js').then(m => m.playMusicQueue(_musicVideos, idx));
+  if (playMvBtn) {
+    const row = playMvBtn.closest('.pl-stream-row');
+    if (row && _playMyListFromRow(row, allStreams)) return;
+    if (_musicVideos?.length) {
+      const idx = Number(playMvBtn.dataset.playMusicPl);
+      import('../music-player.js').then(m => m.playMusicQueue(_musicVideos, idx));
+    }
     return;
   }
   // プレイリスト名変更
@@ -935,12 +955,36 @@ function _showToast(msg) {
 
 /* ── ドラッグ並び替え（Pointer Events ベース） ─────────────────────────── */
 
+/** マイリストの行 ▶ から、リスト全体をビューワーのキューとして再生する。
+ *  解決できた項目（配信 + 動画）だけをキューに積み、クリック行から開始する。 */
+function _playMyListFromRow(row, allStreams) {
+  const pl = getPlaylists().find(p => p.id === row.dataset.plId);
+  if (!pl || !window.__playMyListInViewer) return false;
+  const items = [];
+  for (const k of pl.streams) {
+    if (k.startsWith('mv:')) {
+      const mv = resolveMusicVideoId(k);
+      if (mv?.url) items.push({ kind: 'mv', key: k, video: mv });
+    } else {
+      const s = allStreams.find(st => streamKey(st) === k);
+      if (s?.url) items.push({ kind: 'stream', key: k, stream: s });
+    }
+  }
+  if (!items.length) return false;
+  let idx = items.findIndex(it => it.key === row.dataset.plSkey);
+  if (idx < 0) idx = 0;
+  window.__playMyListInViewer({ name: pl.name || 'マイリスト', items, idx });
+  return true;
+}
+
+/* ── ドラッグ並び替え ──────────────────────────────────────────────────────
+ * ドラッグ中の行は transform でポインタに追従し、他の行は CSS トランジションで
+ * 滑らかにシフト表示する。DOM の並び替えと保存はドロップ確定時に一度だけ行う。 */
+
 function _initDragSort() {
   if (_activeSubTab !== 'my-playlists') return;
   const panel = $('#panel-playlists');
   if (!panel) return;
-
-  // 各 .pl-stream-list に対してドラッグハンドラを設置
   panel.querySelectorAll('.pl-stream-list').forEach(list => {
     list.addEventListener('pointerdown', _onDragStart, { passive: false });
   });
@@ -949,6 +993,7 @@ function _initDragSort() {
 let _dragState = null;
 
 function _onDragStart(e) {
+  if (_dragState) return; // 多重ドラッグ防止
   const handle = e.target.closest('.pl-drag-handle');
   if (!handle) return;
   const row = handle.closest('.pl-stream-row');
@@ -961,89 +1006,93 @@ function _onDragStart(e) {
   const startIdx = rows.indexOf(row);
   if (startIdx < 0) return;
 
-  const rect = row.getBoundingClientRect();
-  const offsetY = e.clientY - rect.top;
-
-  row.classList.add('is-dragging');
-  try { row.setPointerCapture(e.pointerId); } catch (_) { /* 合成イベント等でポインタが無効な場合 */ }
+  // ドラッグ開始時点の各行の中心 Y（固定値として使う — レイアウトは動かさないので不変）
+  const mids = rows.map(r => {
+    const rc = r.getBoundingClientRect();
+    return rc.top + rc.height / 2;
+  });
+  const rowRect = row.getBoundingClientRect();
 
   _dragState = {
-    list,
-    row,
-    rows,
-    startIdx,
-    currentIdx: startIdx,
-    offsetY,
-    pointerId: e.pointerId,
+    list, row, rows, mids, startIdx,
+    targetIdx: startIdx,
+    startY: e.clientY,
+    rowH: rowRect.height + (parseFloat(getComputedStyle(list).rowGap || getComputedStyle(list).gap) || 0),
     plId: row.dataset.plId,
+    moved: false,
   };
+
+  row.classList.add('is-dragging');
+  list.classList.add('is-drag-active');
+  try { row.setPointerCapture(e.pointerId); } catch (_) { /* 合成イベント等 */ }
 
   row.addEventListener('pointermove', _onDragMove, { passive: false });
   row.addEventListener('pointerup', _onDragEnd);
-  row.addEventListener('pointercancel', _onDragEnd);
+  row.addEventListener('pointercancel', _onDragCancel);
 }
 
 function _onDragMove(e) {
-  if (!_dragState) return;
+  const st = _dragState;
+  if (!st) return;
   e.preventDefault();
 
-  const { list, row, rows, offsetY } = _dragState;
-  const listRect = list.getBoundingClientRect();
-  const relY = e.clientY - listRect.top;
+  const dy = e.clientY - st.startY;
+  if (!st.moved && Math.abs(dy) < 3) return; // 微小移動はクリック扱い
+  st.moved = true;
+  st.row.style.transform = `translateY(${dy}px)`;
 
-  // どの行の位置に来たか判定
-  let targetIdx = _dragState.currentIdx;
-  rows.forEach((r, i) => {
-    if (r === row) return;
-    const rr = r.getBoundingClientRect();
-    const mid = rr.top + rr.height / 2 - listRect.top;
-    if (relY < mid && i < targetIdx) targetIdx = i;
-    else if (relY > mid && i > targetIdx) targetIdx = i;
-  });
+  // ドラッグ中の行の中心位置から挿入先インデックスを決定
+  const centerY = st.mids[st.startIdx] + dy;
+  let target = 0;
+  for (let i = 0; i < st.mids.length; i++) {
+    if (i === st.startIdx) continue;
+    if (centerY > st.mids[i]) target++;
+  }
 
-  if (targetIdx !== _dragState.currentIdx) {
-    _dragState.currentIdx = targetIdx;
-    // DOM上で行を並び替えプレビュー
-    if (targetIdx < rows.indexOf(row)) {
-      list.insertBefore(row, rows[targetIdx]);
-    } else {
-      const afterEl = rows[targetIdx];
-      if (afterEl.nextSibling) {
-        list.insertBefore(row, afterEl.nextSibling);
-      } else {
-        list.appendChild(row);
-      }
-    }
-    // rows配列を更新
-    const newRows = Array.from(list.querySelectorAll('.pl-stream-row'));
-    _dragState.rows = newRows;
+  if (target !== st.targetIdx) {
+    st.targetIdx = target;
+    // 間にある行をシフト表示（CSS transition で滑らかに動く）
+    st.rows.forEach((r, i) => {
+      if (i === st.startIdx) return;
+      let shift = 0;
+      if (st.startIdx < target && i > st.startIdx && i <= target) shift = -st.rowH;
+      else if (st.startIdx > target && i >= target && i < st.startIdx) shift = st.rowH;
+      r.style.transform = shift ? `translateY(${shift}px)` : '';
+    });
   }
 }
 
-function _onDragEnd(e) {
-  if (!_dragState) return;
-  const { row, list, plId } = _dragState;
-
-  row.removeEventListener('pointermove', _onDragMove);
-  row.removeEventListener('pointerup', _onDragEnd);
-  row.removeEventListener('pointercancel', _onDragEnd);
-  row.classList.remove('is-dragging');
-
-  // 確定: DOM上の順序をlocalStorageに保存
-  const finalRows = Array.from(list.querySelectorAll('.pl-stream-row'));
-  const newOrder = finalRows.map(r => r.dataset.plSkey).filter(Boolean);
+function _onDragEnd() {
+  const st = _dragState;
+  if (!st) return;
+  const { plId, startIdx, targetIdx, moved } = st;
+  _cleanupDrag();
+  if (!moved || targetIdx === startIdx) return;
 
   const lists = getPlaylists();
   const pl = lists.find(p => p.id === plId);
-  if (pl && newOrder.length) {
-    // newOrder に含まれないものを末尾に追加（念のため）
-    const missing = pl.streams.filter(s => !newOrder.includes(s));
-    pl.streams = [...newOrder, ...missing];
+  if (pl && startIdx < pl.streams.length) {
+    const arr = pl.streams.slice();
+    const [item] = arr.splice(startIdx, 1);
+    arr.splice(targetIdx, 0, item);
+    pl.streams = arr;
     savePlaylists(lists);
   }
-
-  _dragState = null;
-
-  // 再描画して整合性を確認
   renderPlaylists();
+}
+
+function _onDragCancel() {
+  _cleanupDrag();
+}
+
+function _cleanupDrag() {
+  const st = _dragState;
+  if (!st) return;
+  st.rows.forEach(r => { r.style.transform = ''; });
+  st.row.classList.remove('is-dragging');
+  st.list.classList.remove('is-drag-active');
+  st.row.removeEventListener('pointermove', _onDragMove);
+  st.row.removeEventListener('pointerup', _onDragEnd);
+  st.row.removeEventListener('pointercancel', _onDragCancel);
+  _dragState = null;
 }
