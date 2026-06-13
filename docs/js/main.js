@@ -1578,7 +1578,8 @@ function _addStreamToPlaylist(playlistId, skey) {
 // プレイリストの ▶ から起動し、配信・動画を混在キューとして順に再生する。
 // item: { kind: 'stream'|'mv', key, stream?, video? }
 
-let _svListQueue = null;        // { name, items, idx, repeat }
+const SV_QUEUE_COLLAPSED_KEY = 'kanauViewerQueueCollapsed';
+let _svListQueue = null;        // { name, items, idx, repeat, collapsed }
 let _svQueueNavigating = false; // キュー内ナビゲーション中はキューを解除しない
 
 function _svListQueueOpen(idx) {
@@ -1605,6 +1606,7 @@ window.__playMyListInViewer = (queue) => {
     items: queue.items,
     idx: 0,
     repeat: localStorage.getItem('kanauListRepeat') === '1',
+    collapsed: localStorage.getItem(SV_QUEUE_COLLAPSED_KEY) === '1',
   };
   _svListQueueOpen(Math.max(0, Math.min(queue.idx || 0, queue.items.length - 1)));
 };
@@ -1623,6 +1625,7 @@ window.__openMusicQueueInViewer = (videos, idx = 0, resumeAt = 0) => {
     items,
     idx: Math.max(0, Math.min(idx, items.length - 1)),
     repeat: localStorage.getItem('kanauListRepeat') === '1',
+    collapsed: localStorage.getItem(SV_QUEUE_COLLAPSED_KEY) === '1',
   };
   const item = _svListQueue.items[_svListQueue.idx];
   _svQueueNavigating = true;
@@ -1639,10 +1642,18 @@ window.__openMusicQueueInViewer = (videos, idx = 0, resumeAt = 0) => {
 function _svQueueSectionHtml() {
   const q = _svListQueue;
   if (!q?.items?.length) return '';
+  const current = q.items[q.idx];
+  const currentTitle = current?.kind === 'mv'
+    ? (current.video?.title || '動画')
+    : (current?.stream?.title || '配信');
   return `
-    <div class="sv-bp-section sv-queue-section">
+    <div class="sv-bp-section sv-queue-section${q.collapsed ? ' is-collapsed' : ''}">
       <div class="sv-bp-sh sv-queue-head">📋 ${escapeHtml(q.name)}
         <span class="sv-bp-sh-sub">（${q.idx + 1} / ${q.items.length}）</span>
+        <span class="sv-queue-current">${escapeHtml(currentTitle)}</span>
+        <button class="sv-queue-toggle" type="button"
+          data-svq-action="toggle" aria-expanded="${!q.collapsed}"
+          title="${q.collapsed ? 'キューを開く' : 'キューを閉じる'}">${q.collapsed ? '開く' : '閉じる'}</button>
         <button class="sv-queue-repeat${q.repeat ? ' is-on' : ''}" type="button"
           data-svq-action="repeat" aria-pressed="${q.repeat}"
           title="リストリピート（ON: 最後まで再生したら先頭へ戻る）">🔁 リピート</button>
@@ -1680,11 +1691,20 @@ function _svHandleQueueClick(e) {
     btn.setAttribute('aria-pressed', String(_svListQueue.repeat));
     return true;
   }
+  if (btn.dataset.svqAction === 'toggle') {
+    _svListQueue.collapsed = !_svListQueue.collapsed;
+    try { localStorage.setItem(SV_QUEUE_COLLAPSED_KEY, _svListQueue.collapsed ? '1' : '0'); } catch (_) {}
+    const section = btn.closest('.sv-queue-section');
+    if (section) section.outerHTML = _svQueueSectionHtml();
+    _svQueueAfterRender($('#sv-below-player'));
+    return true;
+  }
   return false;
 }
 
 /** キュー描画後の後処理: 現在の行をリスト内スクロールで中央へ（ページはスクロールさせない） */
 function _svQueueAfterRender(el) {
+  if (_svListQueue?.collapsed) return;
   const listEl = el?.querySelector?.('.sv-queue-list');
   const cur = listEl?.querySelector('.sv-queue-row.is-current');
   if (listEl && cur) listEl.scrollTop = Math.max(0, cur.offsetTop - listEl.clientHeight / 2);

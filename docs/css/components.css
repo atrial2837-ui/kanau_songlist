@@ -5535,6 +5535,18 @@ body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
   flex-wrap: wrap;
 }
 
+.sv-queue-current {
+  flex: 1 1 180px;
+  min-width: 0;
+  color: var(--ink-mute);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sv-queue-toggle,
 .sv-queue-repeat {
   margin-left: auto;
   padding: 4px 12px;
@@ -5549,6 +5561,8 @@ body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
   letter-spacing: normal;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
+.sv-queue-toggle { margin-left: 0; }
+.sv-queue-toggle:hover,
 .sv-queue-repeat:hover { border-color: var(--primary); color: var(--primary-strong); }
 .sv-queue-repeat.is-on {
   background: var(--primary-soft);
@@ -5563,6 +5577,10 @@ body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
   max-height: 280px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.sv-queue-section.is-collapsed .sv-queue-list {
+  display: none;
 }
 
 .sv-queue-row {
