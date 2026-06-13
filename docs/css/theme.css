@@ -451,14 +451,14 @@ kbd {
 .song-detail-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
   width: min(100%, 360px);
 }
 .song-detail-stats div {
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
-  padding: 10px;
+  padding: 12px 10px;
   text-align: center;
 }
 .song-detail-stats strong {
@@ -474,8 +474,8 @@ kbd {
 .song-detail-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 18px 0;
+  gap: 10px;
+  margin: 22px 0 18px;
 }
 .song-detail-history h3 {
   color: var(--ink);
@@ -485,15 +485,15 @@ kbd {
 .song-detail-stream {
   display: grid;
   grid-template-columns: 72px 1fr;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  padding: 9px 0;
+  padding: 11px 0;
   border-top: 1px dashed var(--border);
   color: var(--ink);
 }
 .song-detail-thumb-wrap {
   display: grid;
-  gap: 4px;
+  gap: 5px;
 }
 .song-detail-thumb-link {
   position: relative;

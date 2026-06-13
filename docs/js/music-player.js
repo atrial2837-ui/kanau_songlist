@@ -19,8 +19,10 @@ let _external = null;
 let _progIv   = null;
 let _continuous = true;
 let _repeatOne = false;
+let _repeatAll = localStorage.getItem('kanaRepeatAll') === '1';
 let _seenEnded = false;
 let _shuffle  = localStorage.getItem('kanaShuffle') === '1';
+let _queuePopupOpen = false;
 
 let _ytReady = false;
 const _ytQ   = [];
@@ -89,6 +91,11 @@ export function initMusicPlayer() {
             <path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
           </svg>
         </button>
+        <button class="mbar-mode-btn${_repeatAll ? ' is-on' : ''}" id="mbar-repeat-all" type="button" aria-pressed="${_repeatAll ? 'true' : 'false'}" title="全体リピート（ON: 最後の曲が終わったら先頭へ戻る）">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+          </svg>
+        </button>
       </div>
       <div class="mbar-end">
         <div class="mbar-volume">
@@ -99,9 +106,11 @@ export function initMusicPlayer() {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
         </button>
         <span class="mbar-queue-info" id="mbar-queue-info"></span>
+        <button class="mbar-queue-btn" id="mbar-queue-btn" type="button" title="再生キュー" aria-label="再生キュー">📋</button>
         <button class="mbar-close-btn" id="mbar-close" type="button" aria-label="閉じる">✕</button>
       </div>
-    </div>`;
+    </div>
+    <div class="mbar-queue-popup" id="mbar-queue-popup" hidden></div>`;
   document.body.appendChild(bar);
 
   $('#mbar-play').addEventListener('click', _togglePlay);
@@ -114,6 +123,11 @@ export function initMusicPlayer() {
     try { localStorage.setItem('kanaShuffle', _shuffle ? '1' : '0'); } catch (_) {}
     e.currentTarget.setAttribute('aria-pressed', _shuffle ? 'true' : 'false');
     e.currentTarget.classList.toggle('is-on', _shuffle);
+  });
+  $('#mbar-repeat-all').addEventListener('click', _toggleRepeatAll);
+  $('#mbar-queue-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    _toggleQueuePopup();
   });
   $('#mbar-close').addEventListener('click', closeMusicPlayer);
 
@@ -181,9 +195,26 @@ export function initMusicPlayer() {
   // Esc キーで閉じる（ビューワー表示中は Esc をビューワー側に譲る）
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (_queuePopupOpen) {
+      e.stopPropagation();
+      _closeQueuePopup();
+      return;
+    }
     const sv = document.getElementById('stream-viewer');
     if (sv && !sv.hidden) return;
     if (!$('#music-bar')?.hidden) closeMusicPlayer();
+  });
+
+  // バー外クリックでキューポップアップを閉じる。
+  // 行クリック直後は再描画で元ノードが切り離され contains 判定が外れるため、
+  // closest でポップアップ内クリック（切り離し済み含む）を先に除外する
+  document.addEventListener('click', (e) => {
+    if (!_queuePopupOpen) return;
+    if (e.target.closest?.('#mbar-queue-popup, #mbar-queue-btn, .mbar-qp-row')) return;
+    const popup = $('#mbar-queue-popup');
+    if (popup && !popup.contains(e.target)) {
+      _closeQueuePopup();
+    }
   });
 }
 
@@ -436,6 +467,7 @@ function _updateBarInfo(video) {
   if (prev) prev.disabled = _queue.length <= 1;
   if (next) next.disabled = _queue.length <= 1;
   _syncModeButtons();
+  if (_queuePopupOpen) _renderQueuePopup();
 }
 
 function _showBar() {
@@ -503,8 +535,26 @@ function _handleEnded() {
     try { player.seekTo(0, true); player.playVideo(); } catch (_) {}
     return;
   }
-  if (_continuous && _queue.length > 1) {
+  // シャッフル ON 時は終端の概念がないので repeatAll の影響なし
+  if (_shuffle && _queue.length > 1) {
     playNext();
+    return;
+  }
+  const isLast = _qIdx >= _queue.length - 1;
+  if (_continuous && _queue.length > 1) {
+    if (isLast) {
+      // キューの末尾
+      if (_repeatAll) {
+        // 先頭に戻って再生
+        _qIdx = 0;
+        _loadTrack(_qIdx);
+      } else {
+        // 停止
+        $('#mbar-play')?.setAttribute('data-playing', '0');
+      }
+    } else {
+      playNext();
+    }
   } else {
     $('#mbar-play')?.setAttribute('data-playing', '0');
   }
@@ -520,6 +570,12 @@ function _toggleRepeat() {
   _syncModeButtons();
 }
 
+function _toggleRepeatAll() {
+  _repeatAll = !_repeatAll;
+  try { localStorage.setItem('kanaRepeatAll', _repeatAll ? '1' : '0'); } catch (_) {}
+  _syncModeButtons();
+}
+
 function _syncModeButtons() {
   const cont = $('#mbar-continuous');
   if (cont) {
@@ -530,6 +586,80 @@ function _syncModeButtons() {
   if (rep) {
     rep.classList.toggle('is-on', _repeatOne);
     rep.setAttribute('aria-pressed', _repeatOne ? 'true' : 'false');
+  }
+  const repAll = $('#mbar-repeat-all');
+  if (repAll) {
+    repAll.classList.toggle('is-on', _repeatAll);
+    repAll.setAttribute('aria-pressed', _repeatAll ? 'true' : 'false');
+  }
+}
+
+/* ── キューポップアップ ─────────────────────────────────────────────────── */
+
+function _mvBadgeLabel(type) {
+  const labels = { original: 'オリジナル', office: 'Re:AcT', character: 'キャラ', cover: 'カバー', stream: '歌枠' };
+  return labels[type] || 'オリジナル';
+}
+
+function _renderQueuePopup() {
+  const popup = $('#mbar-queue-popup');
+  if (!popup) return;
+  if (!_queue.length) {
+    popup.innerHTML = '<div class="mbar-qp-empty">キューは空です</div>';
+    return;
+  }
+  popup.innerHTML = _queue.map((v, i) => {
+    const isCurrent = i === _qIdx;
+    const label = _mvBadgeLabel(v.type);
+    return `<button class="mbar-qp-row${isCurrent ? ' is-current' : ''}" type="button" data-qp-idx="${i}">
+      <span class="mbar-qp-num">${i + 1}</span>
+      <span class="mbar-qp-title">${escapeHtml(v.title || '—')}</span>
+      <span class="mbar-qp-badge" data-type="${escapeHtml(v.type || '')}">${escapeHtml(label)}</span>
+    </button>`;
+  }).join('');
+
+  // 現在再生中の行へスクロール
+  const currentRow = popup.querySelector('.is-current');
+  if (currentRow) {
+    requestAnimationFrame(() => {
+      currentRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }
+}
+
+function _openQueuePopup() {
+  const popup = $('#mbar-queue-popup');
+  if (!popup) return;
+  _queuePopupOpen = true;
+  popup.hidden = false;
+  // イベントリスナーを都度付け直さないよう、onclick で上書き
+  popup.onclick = (e) => {
+    const row = e.target.closest('[data-qp-idx]');
+    if (!row) return;
+    const idx = parseInt(row.dataset.qpIdx, 10);
+    if (!isNaN(idx)) {
+      _qIdx = idx;
+      _loadTrack(idx);
+    }
+  };
+  _renderQueuePopup();
+  const btn = $('#mbar-queue-btn');
+  if (btn) btn.classList.add('is-on');
+}
+
+function _closeQueuePopup() {
+  const popup = $('#mbar-queue-popup');
+  if (popup) popup.hidden = true;
+  _queuePopupOpen = false;
+  const btn = $('#mbar-queue-btn');
+  if (btn) btn.classList.remove('is-on');
+}
+
+function _toggleQueuePopup() {
+  if (_queuePopupOpen) {
+    _closeQueuePopup();
+  } else {
+    _openQueuePopup();
   }
 }
 

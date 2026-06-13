@@ -361,35 +361,6 @@ function filterTimelineBySong({ key, title, artist }) {
   $('#panel-timeline').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-/** 曲モーダルの「頭出し」: タイムスタンプ（ローカル→コミュニティ）を探して
- *  その歌唱位置からストリームビューワーで再生する */
-async function _openSongPerformance(song, refKey) {
-  const all = state.channelData?.combined?.streams || state.data?.streams || [];
-  const stream = all.find(s => streamKey(s) === refKey);
-  if (!stream) return;
-  const songIdx = (stream.songs || []).findIndex(sg => _normForMatch(sg.title) === _normForMatch(song.title));
-  let resume = 0;
-  if (songIdx >= 0) {
-    // ローカル保存のタイムスタンプ
-    try {
-      const ts = _svLoadTs(stream);
-      if (ts[songIdx] != null) resume = ts[songIdx];
-    } catch (_) {}
-    // コミュニティタイムスタンプ（承認済み）
-    if (!resume && stream.channel != null && stream.index != null) {
-      try {
-        const res = await fetch(`/api/timestamps/${encodeURIComponent(stream.channel)}/${stream.index}`);
-        if (res.ok) {
-          const data = await res.json();
-          const hit = (data.items || []).find(i => i.songIndex === songIdx);
-          if (hit) resume = hit.timeSeconds;
-        }
-      } catch (_) {}
-    }
-  }
-  openStreamViewer(stream, resume > 3 ? Math.max(0, Math.floor(resume) - 2) : 0);
-}
-
 function jumpToStreamFromDetail(song, ref) {
   state.timelineFilter = { key: song.key, title: song.title, artist: song.artist };
   state.timelineFocus = streamKey(ref);
@@ -2493,7 +2464,6 @@ function openSongDetail(key) {
             <span>${fmtDate(ref.date)}</span>
             <strong>${escapeHtml(ref.title || '配信')}</strong>
           </button>
-          <button class="song-detail-watch" type="button" data-detail-action="watch" data-songkey="${escapeHtml(song.key)}" data-streamkey="${escapeHtml(ref.detailKey)}" title="この歌唱の頭出し再生（タイムスタンプがあればその位置から）">⏱ 頭出し</button>
         </div>
       `).join('') : '<p class="song-detail-empty">履歴未確認</p>'}
     </div>
@@ -2539,12 +2509,6 @@ function initSongModal() {
       const ref = song?.streamRefs?.find(item => streamKey(item) === action.dataset.streamkey);
       close();
       if (song && ref) jumpToStreamFromDetail(song, ref);
-    }
-    if (action.dataset.detailAction === 'watch') {
-      const song = findSong(action.dataset.songkey);
-      const refKey = action.dataset.streamkey;
-      close();
-      if (song && refKey) _openSongPerformance(song, refKey);
     }
     if (action.dataset.detailAction === 'artist') {
       const song = findSong(action.dataset.songkey);

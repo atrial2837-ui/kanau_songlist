@@ -225,6 +225,9 @@ export function renderPlaylists() {
     const fb = img.dataset.fallback;
     if (fb && img.src !== fb) { img.src = fb; delete img.dataset.fallback; }
   }, true);
+
+  // マイリストのドラッグ並び替えを初期化
+  _initDragSort();
 }
 
 
@@ -635,28 +638,22 @@ function _renderPlaylistCard(pl, allStreams) {
     : '';
 
   const totalItems = entries.length;
-  const items = entries.map(({ skey, isMv, mv, stream }, rowIdx) => {
+  const items = entries.map(({ skey, isMv, mv, stream }) => {
     const moveKey = escapeHtml(pl.id + '|:|' + skey);
-    const sortBtns = `
-      <div class="pl-sort-btns">
-        <button class="pl-sort-btn" data-pl-move="${moveKey}|:|up"
-          type="button" title="上へ" ${rowIdx === 0 ? 'disabled' : ''}>↑</button>
-        <button class="pl-sort-btn" data-pl-move="${moveKey}|:|down"
-          type="button" title="下へ" ${rowIdx === totalItems - 1 ? 'disabled' : ''}>↓</button>
-      </div>`;
+    const dragHandle = `<span class="pl-drag-handle" aria-hidden="true" title="ドラッグして並び替え">⠿</span>`;
     const rmBtn = `<button class="pl-rm-btn" data-pl-rm-stream="${moveKey}" type="button" title="削除">✕</button>`;
 
     if (isMv) {
       if (!mv) return `
-        <div class="pl-stream-row pl-stream-missing">${sortBtns}
+        <div class="pl-stream-row pl-stream-missing" data-pl-skey="${escapeHtml(skey)}" data-pl-id="${escapeHtml(pl.id)}">${dragHandle}
           <span class="pl-stream-title">（動画データなし）</span>${rmBtn}
         </div>`;
       const { label: badge, sub } = _mvBadge(mv);
       const mvTypeKey = mv.type || 'original';
       const mvIdx = (_musicVideos || []).indexOf(mv);
       return `
-        <div class="pl-stream-row">
-          ${sortBtns}
+        <div class="pl-stream-row" data-pl-skey="${escapeHtml(skey)}" data-pl-id="${escapeHtml(pl.id)}">
+          ${dragHandle}
           <div class="pl-stream-info">
             <span class="pl-stream-date"><span class="mv-badge-inline mv-type-${mvTypeKey}">${badge}</span></span>
             <span class="pl-stream-title">${escapeHtml(mv.title || '—')}</span>
@@ -672,12 +669,12 @@ function _renderPlaylistCard(pl, allStreams) {
     }
 
     if (!stream) return `
-      <div class="pl-stream-row pl-stream-missing">${sortBtns}
+      <div class="pl-stream-row pl-stream-missing" data-pl-skey="${escapeHtml(skey)}" data-pl-id="${escapeHtml(pl.id)}">${dragHandle}
         <span class="pl-stream-title">（配信データなし）</span>${rmBtn}
       </div>`;
     return `
-      <div class="pl-stream-row">
-        ${sortBtns}
+      <div class="pl-stream-row" data-pl-skey="${escapeHtml(skey)}" data-pl-id="${escapeHtml(pl.id)}">
+        ${dragHandle}
         <div class="pl-stream-info">
           <span class="pl-stream-date">${fmtDate(stream.date)}</span>
           <span class="pl-stream-title">${escapeHtml(stream.title || '配信')}</span>
@@ -813,28 +810,6 @@ function _handleMyPlaylistsClick(e, allStreams) {
     return;
   }
 
-  // 並び替え（↑↓）
-  const moveBtn = e.target.closest('[data-pl-move]');
-  if (moveBtn) {
-    const parts = moveBtn.dataset.plMove.split('|:|');
-    const [plId, skey, dir] = parts; // plId|:|skey|:|up or down
-    const lists = getPlaylists();
-    const pl = lists.find(p => p.id === plId);
-    if (!pl) return;
-    const idx = pl.streams.indexOf(skey);
-    if (idx < 0) return;
-    if (dir === 'up' && idx > 0) {
-      [pl.streams[idx - 1], pl.streams[idx]] = [pl.streams[idx], pl.streams[idx - 1]];
-      savePlaylists(lists);
-      renderPlaylists();
-    } else if (dir === 'down' && idx < pl.streams.length - 1) {
-      [pl.streams[idx], pl.streams[idx + 1]] = [pl.streams[idx + 1], pl.streams[idx]];
-      savePlaylists(lists);
-      renderPlaylists();
-    }
-    return;
-  }
-
   // YouTubeで連続再生
   const ytShareBtn = e.target.closest('[data-pl-yt-share]');
   if (ytShareBtn) {
@@ -956,4 +931,119 @@ function _showToast(msg) {
   toast.classList.add('pl-toast--show');
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => toast.classList.remove('pl-toast--show'), 2500);
+}
+
+/* ── ドラッグ並び替え（Pointer Events ベース） ─────────────────────────── */
+
+function _initDragSort() {
+  if (_activeSubTab !== 'my-playlists') return;
+  const panel = $('#panel-playlists');
+  if (!panel) return;
+
+  // 各 .pl-stream-list に対してドラッグハンドラを設置
+  panel.querySelectorAll('.pl-stream-list').forEach(list => {
+    list.addEventListener('pointerdown', _onDragStart, { passive: false });
+  });
+}
+
+let _dragState = null;
+
+function _onDragStart(e) {
+  const handle = e.target.closest('.pl-drag-handle');
+  if (!handle) return;
+  const row = handle.closest('.pl-stream-row');
+  const list = handle.closest('.pl-stream-list');
+  if (!row || !list) return;
+
+  e.preventDefault();
+
+  const rows = Array.from(list.querySelectorAll('.pl-stream-row'));
+  const startIdx = rows.indexOf(row);
+  if (startIdx < 0) return;
+
+  const rect = row.getBoundingClientRect();
+  const offsetY = e.clientY - rect.top;
+
+  row.classList.add('is-dragging');
+  try { row.setPointerCapture(e.pointerId); } catch (_) { /* 合成イベント等でポインタが無効な場合 */ }
+
+  _dragState = {
+    list,
+    row,
+    rows,
+    startIdx,
+    currentIdx: startIdx,
+    offsetY,
+    pointerId: e.pointerId,
+    plId: row.dataset.plId,
+  };
+
+  row.addEventListener('pointermove', _onDragMove, { passive: false });
+  row.addEventListener('pointerup', _onDragEnd);
+  row.addEventListener('pointercancel', _onDragEnd);
+}
+
+function _onDragMove(e) {
+  if (!_dragState) return;
+  e.preventDefault();
+
+  const { list, row, rows, offsetY } = _dragState;
+  const listRect = list.getBoundingClientRect();
+  const relY = e.clientY - listRect.top;
+
+  // どの行の位置に来たか判定
+  let targetIdx = _dragState.currentIdx;
+  rows.forEach((r, i) => {
+    if (r === row) return;
+    const rr = r.getBoundingClientRect();
+    const mid = rr.top + rr.height / 2 - listRect.top;
+    if (relY < mid && i < targetIdx) targetIdx = i;
+    else if (relY > mid && i > targetIdx) targetIdx = i;
+  });
+
+  if (targetIdx !== _dragState.currentIdx) {
+    _dragState.currentIdx = targetIdx;
+    // DOM上で行を並び替えプレビュー
+    if (targetIdx < rows.indexOf(row)) {
+      list.insertBefore(row, rows[targetIdx]);
+    } else {
+      const afterEl = rows[targetIdx];
+      if (afterEl.nextSibling) {
+        list.insertBefore(row, afterEl.nextSibling);
+      } else {
+        list.appendChild(row);
+      }
+    }
+    // rows配列を更新
+    const newRows = Array.from(list.querySelectorAll('.pl-stream-row'));
+    _dragState.rows = newRows;
+  }
+}
+
+function _onDragEnd(e) {
+  if (!_dragState) return;
+  const { row, list, plId } = _dragState;
+
+  row.removeEventListener('pointermove', _onDragMove);
+  row.removeEventListener('pointerup', _onDragEnd);
+  row.removeEventListener('pointercancel', _onDragEnd);
+  row.classList.remove('is-dragging');
+
+  // 確定: DOM上の順序をlocalStorageに保存
+  const finalRows = Array.from(list.querySelectorAll('.pl-stream-row'));
+  const newOrder = finalRows.map(r => r.dataset.plSkey).filter(Boolean);
+
+  const lists = getPlaylists();
+  const pl = lists.find(p => p.id === plId);
+  if (pl && newOrder.length) {
+    // newOrder に含まれないものを末尾に追加（念のため）
+    const missing = pl.streams.filter(s => !newOrder.includes(s));
+    pl.streams = [...newOrder, ...missing];
+    savePlaylists(lists);
+  }
+
+  _dragState = null;
+
+  // 再描画して整合性を確認
+  renderPlaylists();
 }
