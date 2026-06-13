@@ -303,6 +303,9 @@ export const state = {
   get rankingMonth() { return get('rankingMonth'); },
   set rankingMonth(v) { set('rankingMonth', v); },
 
+  get rankingCompareMonth() { return get('rankingCompareMonth'); },
+  set rankingCompareMonth(v) { set('rankingCompareMonth', v); },
+
   get fullLoaded() { return get('fullLoaded'); },
   set fullLoaded(v) { set('fullLoaded', v); },
 

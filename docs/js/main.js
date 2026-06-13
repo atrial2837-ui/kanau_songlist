@@ -1609,6 +1609,32 @@ window.__playMyListInViewer = (queue) => {
   _svListQueueOpen(Math.max(0, Math.min(queue.idx || 0, queue.items.length - 1)));
 };
 
+window.__openMusicQueueInViewer = (videos, idx = 0, resumeAt = 0) => {
+  if (!videos?.length) return false;
+  const items = videos
+    .filter(v => v?.url)
+    .map((v, i) => {
+      if (v._stream) return { kind: 'stream', key: v._stream.url || `stream:${i}`, stream: v._stream };
+      return { kind: 'mv', key: `mv:${youtubeVideoId(v.url) || i}`, video: { ...v, isMv: true } };
+    });
+  if (!items.length) return false;
+  _svListQueue = {
+    name: '音楽プレイヤーのキュー',
+    items,
+    idx: Math.max(0, Math.min(idx, items.length - 1)),
+    repeat: localStorage.getItem('kanauListRepeat') === '1',
+  };
+  const item = _svListQueue.items[_svListQueue.idx];
+  _svQueueNavigating = true;
+  try {
+    if (item.kind === 'mv') openStreamViewer({ ...item.video, isMv: true }, resumeAt);
+    else openStreamViewer(item.stream, resumeAt);
+  } finally {
+    _svQueueNavigating = false;
+  }
+  return true;
+};
+
 /** プレイヤー下に挿入するキューセクションの HTML（キュー非アクティブ時は空文字） */
 function _svQueueSectionHtml() {
   const q = _svListQueue;

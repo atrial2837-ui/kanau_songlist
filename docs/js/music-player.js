@@ -102,8 +102,9 @@ export function initMusicPlayer() {
           <button class="vol-btn" id="mbar-vol-btn" type="button" aria-label="音量">🔊</button>
           <input class="vol-slider" id="mbar-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
         </div>
-        <button class="mbar-expand-btn" id="mbar-expand" type="button" title="動画で見る" aria-label="動画で見る">
+        <button class="mbar-expand-btn" id="mbar-expand" type="button" title="現在位置から動画ビューワーで見る" aria-label="現在位置から動画ビューワーで見る">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
+          <span>動画で見る</span>
         </button>
         <span class="mbar-queue-info" id="mbar-queue-info"></span>
         <button class="mbar-queue-btn" id="mbar-queue-btn" type="button" title="再生キュー" aria-label="再生キュー">📋</button>
@@ -172,9 +173,12 @@ export function initMusicPlayer() {
       restoreExternalPlayer();
       return;
     }
+    const queue = _queue.slice();
+    const idx = _qIdx;
+    if (window.__openMusicQueueInViewer?.(queue, idx, t)) return;
+    releaseMusicPlayerVideo({ hideBar: true });
     // 歌枠由来のトラックは元の配信オブジェクトでストリームビューワーを開く
     const target = video._stream || { url: video.url, title: video.title, isMv: true };
-    releaseMusicPlayerVideo({ hideBar: true });
     window.__openStreamViewer?.(target, t);
   };
   $('#mbar-expand').addEventListener('click', _openInViewer);
@@ -220,10 +224,14 @@ export function initMusicPlayer() {
 
 /* ── 公開 API ─────────────────────────────────────────────────────────────── */
 
-export function playMusicQueue(videos, startIdx = 0) {
+export function playMusicQueue(videos, startIdx = 0, options = {}) {
   if (!videos?.length) return;
   _queue = videos.slice();
   _qIdx  = Math.max(0, Math.min(startIdx, _queue.length - 1));
+  if (options.shuffle != null) {
+    _shuffle = !!options.shuffle;
+    try { localStorage.setItem('kanaShuffle', _shuffle ? '1' : '0'); } catch (_) {}
+  }
   _loadTrack(_qIdx);
 }
 
@@ -591,6 +599,11 @@ function _syncModeButtons() {
   if (repAll) {
     repAll.classList.toggle('is-on', _repeatAll);
     repAll.setAttribute('aria-pressed', _repeatAll ? 'true' : 'false');
+  }
+  const shuffle = $('#mbar-shuffle');
+  if (shuffle) {
+    shuffle.classList.toggle('is-on', _shuffle);
+    shuffle.setAttribute('aria-pressed', _shuffle ? 'true' : 'false');
   }
 }
 

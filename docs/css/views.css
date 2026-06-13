@@ -1986,6 +1986,14 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+}
+
+.dashboard-resume-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
 }
 
 .dashboard-resume-clear {
@@ -1998,6 +2006,7 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   border-radius: 6px;
 }
 .dashboard-resume-clear:hover { color: var(--red); background: var(--surface-3); }
+.dashboard-resume-queue:hover { color: var(--primary); background: var(--primary-soft); }
 
 .dashboard-resume-list {
   display: grid;

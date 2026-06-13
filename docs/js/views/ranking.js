@@ -83,6 +83,20 @@ export function renderRanking() {
     });
   }
 
+  const swapCompare = document.getElementById('ranking-swap-compare');
+  if (swapCompare) {
+    swapCompare.addEventListener('click', () => {
+      const current = state.rankingMonth || '';
+      const compare = state.rankingCompareMonth || '';
+      if (!current || !compare) return;
+      state.rankingMonth = compare;
+      state.rankingCompareMonth = current;
+      state.rankingPeriod = 'month-select';
+      state.rankingLimit = RANKING_LIST_LIMIT;
+      renderRanking();
+    });
+  }
+
   const more = document.getElementById('rank-more');
   if (more) {
     more.addEventListener('click', () => {
@@ -135,6 +149,9 @@ function renderPeriodSelector(streams, currentPeriod, streamsLoaded) {
             return `<option value="${m}"${(state.rankingCompareMonth || '') === m ? ' selected' : ''}>${label}</option>`;
           }).join('')}
         </select>
+        ${currentPeriod === 'month-select' && currentMonth && state.rankingCompareMonth ? `
+          <button id="ranking-swap-compare" class="period-btn ranking-swap-btn" type="button" title="表示月と比較月を入れ替える">↔ 入れ替え</button>
+        ` : ''}
       ` : ''}
     </div>
   `;

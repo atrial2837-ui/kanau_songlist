@@ -1,4 +1,4 @@
-import{a as tt,e as et,f as R,g as st,h as nt,j as it,l as k}from"./chunk-TKHIMASD.js";import{a as W,b as B,e}from"./chunk-MWWFVXIN.js";import{A as _,C as X,E as K,K as Z,N as j,a as c,d as a,h as z,k as D,l as Q,m as q}from"./chunk-PRFEE4R6.js";var $,E,w,G,O,H,dt,C,pt=null,ct="kanau-setlist-v1",x=[],T=null,M=null;function Gt(){Lt(),kt(),tt(e.data?.songs||[]);let t=c("#panel-songs");t.innerHTML=`
+import{a as tt,e as et,f as R,g as st,h as nt,j as it,l as k}from"./chunk-TKHIMASD.js";import{a as W,b as B,e}from"./chunk-JT7WCFD3.js";import{A as _,C as X,E as K,K as Z,N as j,a as c,d as a,h as z,k as D,l as Q,m as q}from"./chunk-PRFEE4R6.js";var $,E,w,G,O,H,dt,C,pt=null,ct="kanau-setlist-v1",x=[],T=null,M=null;function Gt(){Lt(),kt(),tt(e.data?.songs||[]);let t=c("#panel-songs");t.innerHTML=`
     <div class="section-header">
       <h2>${e.singerMode?"\u{1F399} \u9078\u66F2\u30DC\u30FC\u30C9":"\u{1F3B5} \u5168\u66F2\u30EA\u30B9\u30C8"}</h2>
       <span class="count-pill" id="songs-count">\u2014</span>

@@ -186,8 +186,21 @@ export function renderPlaylists() {
     // ── 音楽再生 ──
     const playMusicBtn = e.target.closest('[data-play-music]');
     if (playMusicBtn && _musicVideos?.length) {
-      const idx = Number(playMusicBtn.dataset.playMusic);
-      import('../music-player.js').then(m => m.playMusicQueue(_musicVideos, idx));
+      const globalIdx = Number(playMusicBtn.dataset.playMusic);
+      const items = _filterMusicVideos(_musicVideos);
+      const localIdx = Math.max(0, items.findIndex(({ i }) => i === globalIdx));
+      const queue = items.length ? items.map(({ v }) => v) : _musicVideos;
+      import('../music-player.js').then(m => m.playMusicQueue(queue, localIdx));
+      return;
+    }
+
+    const playFilteredMusicBtn = e.target.closest('[data-play-filtered-music]');
+    if (playFilteredMusicBtn && _musicVideos?.length) {
+      const items = _filterMusicVideos(_musicVideos).map(({ v }) => v);
+      if (!items.length) return;
+      const shuffle = playFilteredMusicBtn.dataset.playFilteredMusic === 'shuffle';
+      const start = shuffle ? Math.floor(Math.random() * items.length) : 0;
+      import('../music-player.js').then(m => m.playMusicQueue(items, start, { shuffle }));
       return;
     }
 
@@ -395,6 +408,10 @@ function _renderMusicViewBar(videos) {
           aria-label="歌みた・オリ曲を検索">
       </label>
       <span class="pl-music-count">${shown}${shown === videos.length ? '' : ` / ${videos.length}`}件</span>
+      <div class="pl-music-play-actions">
+        <button class="pl-music-play-all" data-play-filtered-music="all" type="button" ${shown ? '' : 'disabled'}>▶ 全曲再生</button>
+        <button class="pl-music-play-all" data-play-filtered-music="shuffle" type="button" ${shown ? '' : 'disabled'}>🔀 シャッフル</button>
+      </div>
       <div class="pl-music-views">
         <button class="pl-music-view-btn${_musicView === 'grid'     ? ' active' : ''}" data-music-view="grid"     type="button">グリッド</button>
         <button class="pl-music-view-btn${_musicView === 'list'     ? ' active' : ''}" data-music-view="list"     type="button">リスト</button>

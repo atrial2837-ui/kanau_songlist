@@ -102,7 +102,10 @@ function renderResumeSection() {
   return `
     <div class="card dashboard-card dashboard-resume-card">
       <div class="card-title">⏯ 続きから見る
-        <button class="dashboard-resume-clear" id="dashboard-resume-clear" type="button" title="履歴を消去">消去</button>
+        <span class="dashboard-resume-actions">
+          <button class="dashboard-resume-clear dashboard-resume-queue" id="dashboard-resume-queue" type="button" title="履歴をキューとして再生">キュー再生</button>
+          <button class="dashboard-resume-clear" id="dashboard-resume-clear" type="button" title="履歴を消去">消去</button>
+        </span>
       </div>
       <div class="dashboard-resume-list" id="dashboard-resume-list">
         ${entries.map((e, i) => {
@@ -142,6 +145,23 @@ function bindResumeSection() {
     clear.onclick = () => {
       try { localStorage.removeItem(WATCH_HISTORY_KEY); } catch (_) {}
       $('#panel-dashboard .dashboard-resume-card')?.remove();
+    };
+  }
+  const queueBtn = $('#dashboard-resume-queue');
+  if (queueBtn) {
+    queueBtn.onclick = () => {
+      const entries = _watchHistory();
+      const streams = state.channelData?.combined?.streams || state.data?.streams || [];
+      const items = entries.map((entry, i) => {
+        const stream = entry.channel != null && entry.index != null
+          ? streams.find(s => s.channel === entry.channel && s.index === entry.index)
+          : null;
+        if (stream?.url) return { kind: 'stream', key: `${stream.channel}:${stream.index}`, stream };
+        if (entry.url) return { kind: 'mv', key: `history:${i}`, video: { url: entry.url, title: entry.title || '動画', isMv: !!entry.isMv } };
+        return null;
+      }).filter(Boolean);
+      if (!items.length) return;
+      window.__playMyListInViewer?.({ name: '視聴履歴', items, idx: 0 });
     };
   }
 }
