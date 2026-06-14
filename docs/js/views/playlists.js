@@ -688,7 +688,7 @@ function _renderMusicGrid(items) {
 }
 
 function _renderMusicList(items) {
-  return _renderMusicGrid(items);
+  return `<div class="mv-list">${items.map(({ v, i }) => _musicListRow(v, i)).join('')}</div>`;
 }
 
 function _renderMusicCategory(items) {

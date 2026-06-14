@@ -148,7 +148,7 @@ function renderItem(s, idx, filter) {
   const saved = isStreamInAnyPlaylist(skey);
   const saveHtml = `<button class="timeline-save-btn${saved ? ' is-saved' : ''}" type="button" data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}" title="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${saved ? '★' : '☆'}</button>`;
   const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}" aria-label="セトリをコピー" title="セトリをコピー">${TIMELINE_COPY_ICON}</button>`;
-  const open = idx === 0 || !!filter ? ' open' : '';
+  const open = filter ? ' open' : '';
   return `
     <details class="timeline-item ${recentClass}"${open}>
       <span class="stream-anchor" data-streamkey="${escapeHtml(streamKey(s))}"></span>

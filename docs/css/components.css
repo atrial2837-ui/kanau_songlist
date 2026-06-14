@@ -5451,6 +5451,14 @@ body.has-music-bar { padding-bottom: 72px; }
   object-fit: cover;
 }
 .mv-list-info { min-width: 0; }
+.mv-list-row .mv-add-btn {
+  justify-self: end;
+  min-width: 34px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .mv-list-title {
   display: block;
   font-size: 13px;

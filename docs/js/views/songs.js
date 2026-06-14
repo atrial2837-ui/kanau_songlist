@@ -44,11 +44,6 @@ export function renderSongs() {
   loadSetlist();
   restoreSetlistFromUrl();
   ensureSongsTags(state.data?.songs || []);
-  const filtersOpen = state.singerMode
-    || state.songsSort !== 'count-desc'
-    || state.songsGenre !== 'all'
-    || state.songsFilter !== 'all'
-    || state.favoritesFilter;
   const panel = $('#panel-songs');
   panel.innerHTML = `
     <div class="section-header">
@@ -78,7 +73,7 @@ export function renderSongs() {
           ['かわいい', 'かわいい'],
         ].map(([label, q]) => `<button type="button" class="suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
       </div>
-      <details class="songs-advanced" ${filtersOpen ? 'open' : ''}>
+      <details class="songs-advanced">
         <summary>
           <span>絞り込み</span>
           <small>並び順・ジャンル・状態</small>
