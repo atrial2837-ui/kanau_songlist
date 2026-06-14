@@ -297,8 +297,16 @@ button.official-link {
 }
 
 .ch-card-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
   line-height: 1;
+}
+.ch-card-link-icon svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 /* YouTubeボタン */
@@ -987,42 +995,61 @@ button.official-link {
   text-transform: uppercase;
 }
 .topbar-official-links .official-link {
-  min-height: 26px;
-  padding: 2px 9px;
+  min-height: 30px;
+  width: 30px;
+  padding: 0;
   font-size: 10.5px;
 }
-.official-link.youtube {
-  border-color: #ff9aa2;
-  background: #fff2f3;
-  color: #c43030; /* 5.06:1 on #fff2f3 — was #d94444 (3.97:1) */
+.official-link-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
-.official-link.youtube.old {
+.topbar-official-links .official-link-icon {
+  width: 16px;
+  height: 16px;
+}
+.ch-avatar {
+  position: relative;
+  overflow: visible;
+  border: 2px solid transparent;
+  background: var(--surface-2);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ch-avatar:hover {
+  transform: scale(1.1);
+}
+.ch-avatar-img {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.ch-avatar--new {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(255,158,181,.25);
+}
+.ch-avatar--new:hover {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 2px rgba(255,158,181,.4);
+}
+.ch-avatar--old {
   border-color: var(--gold);
-  background: #fff8dc;
-  color: #8a6210; /* 5.13:1 on #fff8dc — was #a97a12 (3.59:1) */
+  box-shadow: 0 0 0 1px rgba(244,196,74,.25);
+}
+.ch-avatar--old:hover {
+  border-color: #c8a02a;
+  box-shadow: 0 0 0 2px rgba(244,196,74,.4);
+}
+:root[data-theme="dark"] .ch-avatar {
+  background: var(--surface-3);
 }
 .official-link.x-link {
   border-color: var(--border-strong);
   background: var(--primary-soft);
   color: var(--primary-strong);
-}
-:root[data-theme="dark"] .official-link.youtube {
-  background: #3a2026;
-  color: #ffb8c0;
-}
-:root[data-theme="dark"] .official-link.youtube.old {
-  background: #332913;
-  color: var(--gold);
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="auto"] .official-link.youtube {
-    background: #3a2026;
-    color: #ffb8c0;
-  }
-  :root[data-theme="auto"] .official-link.youtube.old {
-    background: #332913;
-    color: var(--gold);
-  }
 }
 .hero-updated {
   text-align: center;
