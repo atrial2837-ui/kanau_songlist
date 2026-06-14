@@ -3765,7 +3765,7 @@ body.has-sv-fullscreen .container { z-index: auto; }
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border-soft);
@@ -3774,29 +3774,30 @@ body.has-sv-fullscreen .container { z-index: auto; }
   font-family: inherit;
   font-size: 13px;
   gap: 12px;
-  transition: background 0.12s, border-left-color 0.12s;
-  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background 0.12s;
 }
 .pl-modal-item:last-child { border-bottom: none; }
+.pl-modal-item:hover { background: var(--surface-2); }
+.pl-modal-item:active { background: color-mix(in srgb, var(--primary) 12%, var(--surface)); }
+.pl-modal-item.is-saved { background: var(--primary-soft); }
 
-/* 未登録行: クリック可能 */
-.pl-modal-item--free {
-  cursor: pointer;
+/* 先頭動画のサムネ（カバー） */
+.pl-modal-item-cover {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 38px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.pl-modal-item--free:hover {
-  background: var(--primary-soft);
-  border-left-color: var(--primary);
-}
-.pl-modal-item--free:active { background: color-mix(in srgb, var(--primary) 18%, var(--surface)); }
+.pl-modal-item-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pl-modal-item-cover--empty { font-size: 16px; color: var(--ink-mute); }
 
-/* 登録済み行: クリック不可 */
-.pl-modal-item--added {
-  cursor: default;
-  background: var(--surface-2);
-  opacity: 0.75;
-}
-
-/* プレイリスト名 + 枠数をまとめるブロック */
+/* プレイリスト名 + 曲数 */
 .pl-modal-item-info {
   flex: 1;
   min-width: 0;
@@ -3804,7 +3805,6 @@ body.has-sv-fullscreen .container { z-index: auto; }
   flex-direction: column;
   gap: 2px;
 }
-
 .pl-modal-item-name {
   font-weight: 700;
   font-size: 13.5px;
@@ -3813,50 +3813,28 @@ body.has-sv-fullscreen .container { z-index: auto; }
   white-space: nowrap;
   color: var(--ink);
 }
-
 .pl-modal-item-count {
   font-size: 11px;
   color: var(--ink-mute);
   font-weight: 500;
 }
 
-/* ステータスバッジ（右端） */
-.pl-modal-item-status {
+/* 栞（ブックマーク）アイコン — 登録済みで色付き */
+.pl-modal-bookmark {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  transition: background 0.12s, color 0.12s;
-}
-
-/* 未登録バッジ */
-.status--free {
-  background: var(--surface-3);
-  border: 1px solid var(--border);
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   color: var(--ink-mute);
+  transition: color 0.12s, background 0.12s;
 }
-.pl-modal-item--free:hover .status--free {
-  background: var(--primary);
-  border-color: var(--primary-strong);
-  color: #fff;
-}
-
-/* 登録済みバッジ */
-.status--added {
-  background: color-mix(in srgb, #22c55e 14%, var(--surface));
-  border: 1px solid color-mix(in srgb, #22c55e 30%, transparent);
-  color: #16a34a;
-}
-
-.pl-modal-status-check {
-  font-size: 13px;
-  line-height: 1;
-}
+.pl-modal-bookmark svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.pl-modal-item:hover .pl-modal-bookmark { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary-strong); }
+.pl-modal-bookmark.is-saved { color: var(--primary-strong); }
+.pl-modal-bookmark.is-saved svg { fill: currentColor; stroke: currentColor; }
 
 /* 新規作成ボタン */
 .pl-modal-new {
@@ -5194,6 +5172,11 @@ body.has-music-bar { padding-bottom: 72px; }
   transition: background 0.12s, color 0.12s;
 }
 .mv-add-btn:hover { background: var(--primary-soft); color: var(--primary-strong); border-color: var(--primary); }
+.mv-add-btn.is-saved {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border-color: var(--primary);
+}
 
 /* ── リストビュー ── */
 .mv-list {

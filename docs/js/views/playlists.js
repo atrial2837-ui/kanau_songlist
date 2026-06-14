@@ -640,6 +640,7 @@ function _musicCard(video, globalIdx) {
   const thumb = youtubeThumb(video.url);
   const thumbFb = youtubeThumbFallback(video.url);
   const { label: badge, cls: badgeClass, sub } = _mvBadge(video);
+  const saved = isStreamInAnyPlaylist('mv:' + video.id);
   // 選択モード: カードクリックで選択トグル（再生はしない）
   if (_musicSelectMode) {
     const sel = _musicSelection.has(video.id);
@@ -675,16 +676,17 @@ function _musicCard(video, globalIdx) {
         <button class="mv-watch-btn" type="button" data-watch-music="${globalIdx}" title="動画で見る">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
         </button>
-        <button class="mv-add-btn" type="button"
+        <button class="mv-add-btn${saved ? ' is-saved' : ''}" type="button"
           data-playlist-add-mv="${escapeHtml(video.id)}"
           data-stream-title="${escapeHtml(video.title || '')}"
-          title="プレイリストに追加">＋</button>
+          title="${saved ? 'プレイリストに保存済み' : 'プレイリストに追加'}">${saved ? '◆' : '＋'}</button>
       </div>
     </div>`;
 }
 
 function _musicListRow(video, globalIdx) {
   const { label: badge, cls: badgeClass, sub } = _mvBadge(video);
+  const saved = isStreamInAnyPlaylist('mv:' + video.id);
   if (_musicSelectMode) {
     const sel = _musicSelection.has(video.id);
     return `
@@ -709,10 +711,10 @@ function _musicListRow(video, globalIdx) {
       <button class="mv-watch-btn" type="button" data-watch-music="${globalIdx}" title="動画で見る">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
       </button>
-      <button class="mv-add-btn" type="button"
+      <button class="mv-add-btn${saved ? ' is-saved' : ''}" type="button"
         data-playlist-add-mv="${escapeHtml(video.id)}"
         data-stream-title="${escapeHtml(video.title || '')}"
-        title="プレイリストに追加">＋</button>
+        title="${saved ? 'プレイリストに保存済み' : 'プレイリストに追加'}">${saved ? '◆' : '＋'}</button>
     </div>`;
 }
 
@@ -1028,9 +1030,23 @@ function _promptCreate() {
   renderPlaylists();
 }
 
-/* ── プレイリスト追加モーダル（タイムラインから呼ばれる） ──────────────── */
+/* ── プレイリスト追加モーダル（YouTube の保存先選択風） ──────────────────── */
 
-/** プレイリスト追加モーダル。skeyOrArray は単一キーまたはキー配列（まとめて追加）。 */
+const PL_BOOKMARK_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/></svg>';
+
+/** プレイリストの先頭動画のサムネ URL（カバー用）。なければ空文字 */
+function _playlistCoverUrl(pl) {
+  const allStreams = state.data?.streams || [];
+  for (const k of (pl.streams || [])) {
+    if (k.startsWith('mv:')) { const mv = resolveMusicVideoId(k); if (mv?.url) return mv.url; }
+    else { const s = allStreams.find(st => streamKey(st) === k); if (s?.url) return s.url; }
+  }
+  return '';
+}
+
+/** プレイリスト追加モーダル。skeyOrArray は単一キーまたはキー配列（まとめて追加）。
+ *  YouTube の保存先選択のように、サムネ + 曲数 + 栞アイコンで表示し、
+ *  栞をタップで追加/削除トグル（登録済みは色付き）。再描画で再ポップしない。 */
 export function showAddToPlaylistModal(skeyOrArray, streamTitle) {
   const keys = Array.isArray(skeyOrArray) ? skeyOrArray.filter(Boolean) : [skeyOrArray].filter(Boolean);
   if (!keys.length) return;
@@ -1045,48 +1061,50 @@ export function showAddToPlaylistModal(skeyOrArray, streamTitle) {
     document.body.appendChild(modal);
   }
 
-  /** プレイリストに未登録のキーだけ追加し、追加件数を返す */
-  const addKeysTo = (plId) => {
-    let added = 0;
-    for (const k of keys) { if (addStreamToPlaylist(plId, k)) added++; }
-    return added;
+  // このリストに（すべての）キーが入っているか
+  const isSaved = (pl) => keys.every(k => (pl.streams || []).includes(k));
+
+  /** 1プレイリストぶんの行 HTML */
+  const itemHtml = (pl) => {
+    const saved = isSaved(pl);
+    const coverUrl = _playlistCoverUrl(pl);
+    const thumb = coverUrl ? youtubeThumb(coverUrl) : '';
+    return `
+      <button class="pl-modal-item${saved ? ' is-saved' : ''}" data-pl-add="${escapeHtml(pl.id)}"
+        type="button" role="checkbox" aria-checked="${saved}">
+        <span class="pl-modal-item-cover">
+          ${thumb
+            ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+            : '<span class="pl-modal-item-cover--empty">♪</span>'}
+        </span>
+        <span class="pl-modal-item-info">
+          <span class="pl-modal-item-name">${escapeHtml(pl.name)}</span>
+          <span class="pl-modal-item-count">${pl.streams.length}曲</span>
+        </span>
+        <span class="pl-modal-bookmark${saved ? ' is-saved' : ''}" aria-hidden="true">${PL_BOOKMARK_SVG}</span>
+      </button>`;
   };
 
-  const _rebuildModal = () => {
+  const listHtmlAll = () => {
     const currentLists = getPlaylists();
-    const listHtml = !currentLists.length
-      ? '<p class="pl-modal-empty">プレイリストがありません<br><span style="font-size:11px">先に「新しいプレイリストを作成」してください</span></p>'
-      : currentLists.map(pl => {
-          const allAdded = keys.every(k => pl.streams.includes(k));
-          const someAdded = !allAdded && keys.some(k => pl.streams.includes(k));
-          const status = allAdded
-            ? '<span class="pl-modal-status-check">✓</span> 登録済み'
-            : (someAdded ? '＋ 残りを追加' : '＋ 追加');
-          return `
-            <button class="pl-modal-item${allAdded ? ' pl-modal-item--added' : ' pl-modal-item--free'}"
-              data-pl-add="${escapeHtml(pl.id)}"
-              ${allAdded ? 'disabled aria-disabled="true"' : ''} type="button">
-              <div class="pl-modal-item-info">
-                <span class="pl-modal-item-name">${escapeHtml(pl.name)}</span>
-                <span class="pl-modal-item-count">${pl.streams.length}枠</span>
-              </div>
-              <span class="pl-modal-item-status${allAdded ? ' status--added' : ' status--free'}">
-                ${status}
-              </span>
-            </button>`;
-        }).join('');
+    if (!currentLists.length) {
+      return '<p class="pl-modal-empty">プレイリストがありません<br><span style="font-size:11px">下の「新しいプレイリストを作成」から追加できます</span></p>';
+    }
+    return currentLists.map(itemHtml).join('');
+  };
 
-    const subText = isBulk ? `${keys.length}曲をまとめて追加` : (streamTitle || '配信');
+  const subText = isBulk ? `${keys.length}曲をまとめて保存` : (streamTitle || '配信');
 
+  const _build = () => {
     modal.innerHTML = `
       <div class="pl-modal-backdrop" id="pl-modal-backdrop"></div>
-      <div class="pl-modal-box" role="dialog" aria-modal="true" aria-label="プレイリストに追加">
+      <div class="pl-modal-box" role="dialog" aria-modal="true" aria-label="プレイリストに保存">
         <div class="pl-modal-head">
-          <span class="pl-modal-head-title">保存先を選択</span>
+          <span class="pl-modal-head-title">保存先</span>
           <button class="pl-modal-close" id="pl-modal-close" type="button" aria-label="閉じる">✕</button>
         </div>
         <div class="pl-modal-sub">${escapeHtml(subText)}</div>
-        <div class="pl-modal-list" id="pl-modal-list">${listHtml}</div>
+        <div class="pl-modal-list" id="pl-modal-list">${listHtmlAll()}</div>
         <button class="pl-modal-new" id="pl-modal-new" type="button">
           <span class="pl-modal-new-icon">＋</span> 新しいプレイリストを作成
         </button>
@@ -1100,32 +1118,40 @@ export function showAddToPlaylistModal(skeyOrArray, streamTitle) {
       const name = prompt('プレイリスト名')?.trim();
       if (!name) return;
       const pl = createPlaylist(name);
-      const n = addKeysTo(pl.id);
-      close();
-      _showToast(isBulk ? `「${name}」に${n}曲追加しました` : `「${name}」に追加しました`);
+      keys.forEach(k => addStreamToPlaylist(pl.id, k));
+      _showToast(isBulk ? `「${name}」に${keys.length}曲保存しました` : `「${name}」に保存しました`);
+      // 行を1つ追加するだけ（モーダルは閉じない）
+      const listEl = modal.querySelector('#pl-modal-list');
+      const empty = listEl?.querySelector('.pl-modal-empty');
+      if (empty) listEl.innerHTML = '';
+      if (listEl) listEl.insertAdjacentHTML('afterbegin', itemHtml(getPlaylists().find(p => p.id === pl.id)));
     });
 
-    // 未登録のプレイリスト行をクリックで即追加
-    modal.querySelectorAll('[data-pl-add]:not([disabled])').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const plId = btn.dataset.plAdd;
-        const pl = getPlaylists().find(p => p.id === plId);
-        const n = addKeysTo(plId);
-        if (isBulk) {
-          // まとめ追加は完了したら閉じる
-          close();
-          _showToast(`「${pl?.name}」に${n}曲追加しました`);
-        } else {
-          // 単曲はモーダルを再描画して登録済み表示に切り替え
-          _rebuildModal();
-          _showToast(`「${pl?.name}」に追加しました`);
-        }
-      });
+    // 行クリック＝保存トグル（その行だけ更新、モーダルは再ポップしない）
+    modal.querySelector('#pl-modal-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-pl-add]');
+      if (!btn) return;
+      const plId = btn.dataset.plAdd;
+      const lists = getPlaylists();
+      const pl = lists.find(p => p.id === plId);
+      if (!pl) return;
+      if (!Array.isArray(pl.streams)) pl.streams = [];
+      if (isSaved(pl)) {
+        keys.forEach(k => { pl.streams = pl.streams.filter(s => s !== k); });
+        savePlaylists(lists);
+        _showToast(isBulk ? `${keys.length}曲を削除しました` : '削除しました');
+      } else {
+        keys.forEach(k => { if (!pl.streams.includes(k)) pl.streams.push(k); });
+        savePlaylists(lists);
+        _showToast(isBulk ? `「${pl.name}」に${keys.length}曲保存しました` : `「${pl.name}」に保存しました`);
+      }
+      // クリックした行だけ差し替え（再描画による再ポップを避ける）
+      btn.outerHTML = itemHtml(getPlaylists().find(p => p.id === plId));
     });
   };
 
   const close = () => { modal.hidden = true; };
-  _rebuildModal();
+  _build();
 
   document.addEventListener('keydown', function onEsc(e) {
     if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }

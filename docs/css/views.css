@@ -1562,6 +1562,11 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   background: rgba(244, 196, 74, 0.08);
   transform: translateY(-1px);
 }
+.timeline-save-btn.is-saved {
+  border-color: var(--gold);
+  color: #9f7412;
+  background: rgba(244, 196, 74, 0.18);
+}
 
 .setlist {
   display: flex;

@@ -1,6 +1,7 @@
 import { state } from '../store.js';
 import { TIMELINE_INITIAL, TIMELINE_STEP } from '../config.js';
 import { $, $$, escapeHtml, fmtDate, streamKey } from '../utils.js';
+import { isStreamInAnyPlaylist } from './playlists.js';
 
 export function renderTimeline() {
   const { streams } = state.data;
@@ -116,7 +117,9 @@ function renderItem(s, idx, filter) {
   const watchHtml = s.url
     ? `<span class="watch-actions"><button class="watch-link" type="button" data-stream-play="${escapeHtml(streamKey(s))}" data-inline-youtube="${escapeHtml(s.url)}">▶ 再生</button><a class="watch-open-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener">↗ 開く</a></span>`
     : '';
-  const saveHtml = `<button class="timeline-save-btn" type="button" data-playlist-add="${escapeHtml(streamKey(s))}" data-stream-title="${escapeHtml(s.title || '配信')}" title="プレイリストに保存">☆</button>`;
+  const skey = streamKey(s);
+  const saved = isStreamInAnyPlaylist(skey);
+  const saveHtml = `<button class="timeline-save-btn${saved ? ' is-saved' : ''}" type="button" data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}" title="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${saved ? '★' : '☆'}</button>`;
   const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}">セトリコピー</button>`;
   return `
     <article class="timeline-item ${recentClass}">
