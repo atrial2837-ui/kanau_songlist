@@ -5053,32 +5053,6 @@ body.has-music-bar { padding-bottom: 72px; }
   color: var(--ink-mute);
   white-space: nowrap;
 }
-.pl-music-play-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-}
-.pl-music-play-all {
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--primary-strong);
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-}
-.pl-music-play-all:hover:not(:disabled) {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-}
-.pl-music-play-all:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
 .pl-music-views {
   display: flex;
   gap: 4px;
@@ -5129,6 +5103,7 @@ body.has-music-bar { padding-bottom: 72px; }
   cursor: pointer;
   background: var(--surface-3);
   padding: 0;
+  text-decoration: none;
 }
 .mv-card-thumb {
   width: 100%; height: 100%;
@@ -5139,19 +5114,6 @@ body.has-music-bar { padding-bottom: 72px; }
   width: 100%; height: 100%;
   background: var(--surface-3);
 }
-.mv-card-play-icon {
-  position: absolute;
-  inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px;
-  color: #fff;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  opacity: 0;
-  transition: opacity 0.15s;
-  background: rgba(0,0,0,0.25);
-}
-.mv-card-thumb-btn:hover .mv-card-play-icon { opacity: 1; }
-
 .mv-type-badge {
   position: absolute;
   top: 6px; left: 6px;
@@ -5185,7 +5147,7 @@ body.has-music-bar { padding-bottom: 72px; }
   color: var(--ink-mute);
 }
 .mv-card-actions {
-  padding: 2px 10px 8px;
+  padding: 2px 10px 10px;
   display: flex;
   justify-content: flex-end;
 }
@@ -5212,31 +5174,55 @@ body.has-music-bar { padding-bottom: 72px; }
 .mv-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
 .mv-list-row {
   display: grid;
-  grid-template-columns: 28px 30px 1fr auto auto auto;
+  grid-template-columns: 96px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 8px 10px;
   border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   transition: background 0.1s;
 }
 .mv-list-row:hover { background: var(--surface-3); }
-.mv-list-num { font-size: 12px; color: var(--ink-mute); text-align: right; }
-.mv-list-play {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--ink-soft);
+.mv-list-row--select {
+  grid-template-columns: 28px 96px minmax(0, 1fr) auto;
   cursor: pointer;
-  font-size: 10px;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.12s, color 0.12s;
 }
-.mv-list-play:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.mv-list-row.is-selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.mv-list-checkbox {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+.mv-list-thumb {
+  display: block;
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-3);
+  border: 1px solid var(--border-soft);
+}
+.mv-list-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .mv-list-info { min-width: 0; }
 .mv-list-title {
   display: block;
@@ -5254,6 +5240,26 @@ body.has-music-bar { padding-bottom: 72px; }
   position: static;
   font-size: 9px;
   padding: 2px 6px;
+}
+
+@media (max-width: 620px) {
+  .mv-grid {
+    grid-template-columns: 1fr;
+  }
+  .mv-list-row,
+  .mv-list-row--select {
+    grid-template-columns: 78px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .mv-list-row--select {
+    grid-template-columns: 24px 78px minmax(0, 1fr);
+  }
+  .mv-list-thumb {
+    width: 78px;
+  }
+  .mv-list-row .mv-type-badge {
+    display: none;
+  }
 }
 
 /* ── カテゴリビュー ── */

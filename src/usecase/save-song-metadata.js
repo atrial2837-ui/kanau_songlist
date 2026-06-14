@@ -56,8 +56,12 @@ export async function saveSongMetadata(deps, input) {
     throw new NotFoundError(`song not found: id=${songId}`);
   }
 
-  const displayKey = parseDisplayKey(input.displayKey ?? '');
-  const genre = parseGenre(input.genre ?? '');
+  const displayKey = input.displayKey === undefined
+    ? (song.display_key ?? song.displayKey ?? '')
+    : parseDisplayKey(input.displayKey);
+  const genre = input.genre === undefined
+    ? (song.genre ?? '')
+    : parseGenre(input.genre);
   const cleanTitle = input.title === undefined ? song.title : normalize(input.title);
   if (!cleanTitle) {
     throw new ValidationError('曲名を入力してください');

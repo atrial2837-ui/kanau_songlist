@@ -104,8 +104,7 @@ export class D1RestSongRepository {
 
   /**
    * 曲のメタデータ (display_key / genre) を更新する。
-   * display_key / genre は空文字の場合は既存値を保持する (COALESCE / NULLIF パターン)。
-   * 根拠: admin-server/server.js:300-306 (updateSongMetadata)
+   * 空文字も「明示的に空へ変更」として扱うため NULLIF は使わない。
    *
    * @param {number} id
    * @param {SongMetadata} metadata
@@ -118,8 +117,8 @@ export class D1RestSongRepository {
            normalized_title = COALESCE(?, normalized_title),
            artist_id   = COALESCE(?, artist_id),
            song_key    = COALESCE(?, song_key),
-           display_key = COALESCE(NULLIF(?, ''), display_key),
-           genre       = COALESCE(NULLIF(?, ''), genre)
+           display_key = COALESCE(?, display_key),
+           genre       = COALESCE(?, genre)
        WHERE id = ?`,
       metadata.title ?? null,
       metadata.normalizedTitle ?? null,

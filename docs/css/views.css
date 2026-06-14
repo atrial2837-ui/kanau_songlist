@@ -1374,7 +1374,10 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 
 .timeline {
   position: relative;
-  padding-left: 24px;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 .timeline-tools {
   display: flex;
@@ -1399,47 +1402,68 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   min-width: 190px;
   height: 36px;
 }
-.timeline::before {
-  content: "";
-  position: absolute;
-  top: 6px;
-  bottom: 6px;
-  left: 8px;
-  width: 3px;
-  background: linear-gradient(180deg, var(--primary), var(--accent));
-  border-radius: 2px;
-}
 .timeline-item {
   position: relative;
-  margin-bottom: 16px;
+  margin: 0;
   background: var(--surface);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  border: 2px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 0;
+  border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-sm);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
 }
 .timeline-item:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow);
   border-color: var(--border-strong);
 }
-.timeline-item::before {
-  content: "";
-  position: absolute;
-  top: 22px;
-  left: -22px;
-  width: 14px;
-  height: 14px;
-  background: var(--primary);
-  border: 3px solid var(--surface);
-  border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-.timeline-item.recent::before { background: var(--accent); }
 .timeline-item.focus {
   outline: 2px solid var(--primary);
   outline-offset: 3px;
+}
+.timeline-summary {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 86px;
+  padding: 18px 20px;
+  cursor: pointer;
+  list-style: none;
+  background: var(--surface);
+}
+.timeline-summary::-webkit-details-marker { display: none; }
+.timeline-summary::after {
+  content: "⌄";
+  position: absolute;
+  right: 12px;
+  top: 14px;
+  color: var(--ink-mute);
+  font-size: 15px;
+  transition: transform 0.14s;
+}
+.timeline-item[open] .timeline-summary::after {
+  transform: rotate(180deg);
+}
+.timeline-date-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  background: #3b1f1b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  font-feature-settings: var(--tnum);
+}
+.timeline-summary-main {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
 }
 .stream-anchor {
   position: absolute;
@@ -1450,31 +1474,26 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
-}
-.timeline-date {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--primary-strong);
-  font-feature-settings: var(--tnum);
+  margin-bottom: 0;
 }
 .timeline-stream-no {
   font-size: 11px;
-  color: var(--ink-mute);
-  background: var(--surface-3);
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-weight: 600;
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 800;
 }
 .timeline-songcount {
   font-size: 11px;
-  color: var(--accent-strong);
-  font-weight: 600;
+  color: var(--green-text);
+  font-weight: 800;
 }
 .timeline-title {
-  font-size: 13px;
+  display: block;
+  font-size: 13.5px;
   color: var(--ink-soft);
-  margin-bottom: 10px;
+  margin-bottom: 0;
   word-break: break-word;
   line-height: 1.5;
 }
@@ -1490,7 +1509,6 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   gap: 5px;
   margin-left: auto;
 }
-.watch-link,
 .watch-open-link {
   appearance: none;
   display: inline-flex;
@@ -1510,7 +1528,6 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   cursor: pointer;
   transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
-.watch-link:hover,
 .watch-open-link:hover {
   border-color: var(--primary);
   background: var(--primary-soft);
@@ -1576,6 +1593,19 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   gap: 6px;
   margin-top: 8px;
 }
+.timeline-setlist {
+  padding: 14px 60px 18px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface-2);
+}
+.timeline-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-right: 18px;
+  flex-wrap: wrap;
+}
 .setlist-song {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -1614,10 +1644,6 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 }
 
 @media (max-width: 600px) {
-  .watch-actions {
-    display: none;
-  }
-
   .timeline-tools {
     justify-content: stretch;
     margin: -2px 0 12px;
@@ -1633,28 +1659,26 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     min-width: 0;
     height: 34px;
   }
-  .timeline { padding-left: 14px; }
-  .timeline::before {
-    left: 5px;
-  }
+  .timeline { padding-left: 0; gap: 10px; }
   .timeline-item {
-    margin-bottom: 10px;
-    padding: 10px 10px;
-    border-radius: 14px;
+    border-radius: 12px;
   }
-  .timeline-item::before {
-    top: 18px;
-    left: -14px;
-    width: 11px;
-    height: 11px;
+  .timeline-summary {
+    grid-template-columns: 42px minmax(0, 1fr);
+    min-height: 76px;
+    padding: 13px 12px;
+    gap: 9px;
   }
+  .timeline-actions {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+    padding-right: 0;
+  }
+  .timeline-date-badge { width: 32px; height: 32px; font-size: 10px; }
   .timeline-head {
     align-items: center;
     gap: 5px 6px;
     margin-bottom: 3px;
-  }
-  .timeline-date {
-    font-size: 13px;
   }
   .timeline-stream-no,
   .timeline-songcount {
@@ -1665,7 +1689,9 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     font-size: 12px;
     line-height: 1.35;
   }
-  .watch-link,
+  .timeline-setlist {
+    padding: 10px 12px 14px;
+  }
   .timeline-copy-btn {
     width: auto;
     justify-content: center;

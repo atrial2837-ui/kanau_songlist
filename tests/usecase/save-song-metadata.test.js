@@ -56,13 +56,24 @@ describe('saveSongMetadata', () => {
     assert.equal(updated?.genre, 'アニソン');
   });
 
-  test('displayKey のみ更新 (genre 未指定は空文字)', async () => {
+  test('displayKey のみ更新 (genre 未指定は既存値維持)', async () => {
     const { deps, songId } = await setup();
+    await saveSongMetadata(deps, { songId, displayKey: '+2', genre: 'J-POP' });
     await saveSongMetadata(deps, { songId, displayKey: '原キー' });
 
     const updated = await deps.songs.findById(songId);
     assert.equal(updated?.display_key, '原キー');
-    assert.equal(updated?.genre, '');
+    assert.equal(updated?.genre, 'J-POP');
+  });
+
+  test('genre は 未分類 に明示更新できる', async () => {
+    const { deps, songId } = await setup();
+    await saveSongMetadata(deps, { songId, displayKey: '+2', genre: 'J-POP' });
+    await saveSongMetadata(deps, { songId, genre: '未分類' });
+
+    const updated = await deps.songs.findById(songId);
+    assert.equal(updated?.display_key, '+2');
+    assert.equal(updated?.genre, '未分類');
   });
 
   test('無効な displayKey は空文字に正規化される', async () => {

@@ -7,7 +7,7 @@
  *   - findByNormalizedTitle ← admin:400 `SELECT id FROM songs WHERE normalized_title = ?` を拡張
  *   - findAll          ← data.js:226 `SELECT * FROM songs ORDER BY id ASC`
  *   - insert           ← admin:244  `INSERT INTO songs (title, normalized_title, artist_id, song_key, display_key, genre, created_at)`
- *   - updateMetadata   ← admin:226-231 `UPDATE songs SET display_key = COALESCE(NULLIF(?, ''), display_key), genre = ...`
+ *   - updateMetadata   ← admin metadata editor. 空文字も明示更新として扱う
  *   - search           ← admin:329-339 LIKE 検索 title/artist/display_key/genre, 最大 80 件
  *   - findById         ← admin:343 saveSongMetadata が id で引くため
  *
@@ -100,8 +100,8 @@ export class D1SongRepository {
   }
 
   /**
-   * display_key / genre を COALESCE(NULLIF(?, ''), ...) ロジックで更新。
-   * 根拠: admin:226-231 updateSongMetadata の `COALESCE(NULLIF(?, ''), display_key)` を完全再現。
+   * display_key / genre を更新する。
+   * 空文字も「明示的に空へ変更」として扱うため NULLIF は使わない。
    *
    * @param {number} id
    * @param {SongMetadata} metadata
@@ -114,8 +114,8 @@ export class D1SongRepository {
            normalized_title = COALESCE(?, normalized_title),
            artist_id = COALESCE(?, artist_id),
            song_key = COALESCE(?, song_key),
-           display_key = COALESCE(NULLIF(?, ''), display_key),
-           genre = COALESCE(NULLIF(?, ''), genre)
+           display_key = COALESCE(?, display_key),
+           genre = COALESCE(?, genre)
        WHERE id = ?`,
       metadata.title ?? null,
       metadata.normalizedTitle ?? null,

@@ -232,46 +232,6 @@ export function renderPlaylists() {
       return;
     }
 
-    // ── 音楽再生 ──
-    const playMusicBtn = e.target.closest('[data-play-music]');
-    if (playMusicBtn && _musicVideos?.length) {
-      const globalIdx = Number(playMusicBtn.dataset.playMusic);
-      const items = _filterMusicVideos(_musicVideos);
-      const localIdx = Math.max(0, items.findIndex(({ i }) => i === globalIdx));
-      const queue = items.length ? items.map(({ v }) => v) : _musicVideos;
-      import('../music-player.js').then(m => m.playMusicQueue(queue, localIdx));
-      return;
-    }
-
-    const playFilteredMusicBtn = e.target.closest('[data-play-filtered-music]');
-    if (playFilteredMusicBtn && _musicVideos?.length) {
-      const items = _filterMusicVideos(_musicVideos).map(({ v }) => v);
-      if (!items.length) return;
-      const shuffle = playFilteredMusicBtn.dataset.playFilteredMusic === 'shuffle';
-      const start = shuffle ? Math.floor(Math.random() * items.length) : 0;
-      import('../music-player.js').then(m => m.playMusicQueue(items, start, { shuffle }));
-      return;
-    }
-
-    // ── 歌みた・オリ曲を YouTube で連続再生（フィルタ適用後の表示対象）──
-    const ytFilteredBtn = e.target.closest('[data-yt-filtered-music]');
-    if (ytFilteredBtn && _musicVideos?.length) {
-      const ids = _filterMusicVideos(_musicVideos)
-        .map(({ v }) => v.url ? youtubeVideoId(v.url) : '')
-        .filter(Boolean);
-      _openYouTubePlaylist(ids);
-      return;
-    }
-
-    // ── 動画視聴（ストリームビューワーで開く）──
-    const watchMusicBtn = e.target.closest('[data-watch-music]');
-    if (watchMusicBtn && _musicVideos?.length) {
-      const idx = Number(watchMusicBtn.dataset.watchMusic);
-      const video = _musicVideos[idx];
-      if (video?.url) window.__openStreamViewer?.({ url: video.url, title: video.title, isMv: true });
-      return;
-    }
-
     // ── 音楽動画をプレイリストに追加 ──
     const addMvBtn = e.target.closest('[data-playlist-add-mv]');
     if (addMvBtn) {
@@ -471,11 +431,6 @@ function _renderMusicViewBar(videos) {
           aria-label="歌みた・オリ曲を検索">
       </label>
       <span class="pl-music-count">${shown}${shown === videos.length ? '' : ` / ${videos.length}`}件</span>
-      <div class="pl-music-play-actions">
-        <button class="pl-music-play-all" data-play-filtered-music="all" type="button" ${shown ? '' : 'disabled'}>▶ 全曲再生</button>
-        <button class="pl-music-play-all" data-play-filtered-music="shuffle" type="button" ${shown ? '' : 'disabled'}>🔀 シャッフル</button>
-        <button class="pl-music-play-all pl-music-yt-btn" data-yt-filtered-music="1" type="button" ${shown ? '' : 'disabled'} title="表示中の動画を YouTube で連続再生">▶ YouTubeで連続再生</button>
-      </div>
       <div class="pl-music-views">
         <button class="pl-music-view-btn${_musicView === 'grid'     ? ' active' : ''}" data-music-view="grid"     type="button">グリッド</button>
         <button class="pl-music-view-btn${_musicView === 'list'     ? ' active' : ''}" data-music-view="list"     type="button">リスト</button>
@@ -640,6 +595,10 @@ function _mvBadge(video) {
   }
 }
 
+function _musicDateText(video) {
+  return video.publishedAt ? String(video.publishedAt).replaceAll('-', '/') : '公開日未登録';
+}
+
 function _musicCard(video, globalIdx) {
   const thumb = youtubeThumb(video.url);
   const thumbFb = youtubeThumbFallback(video.url);
@@ -665,21 +624,17 @@ function _musicCard(video, globalIdx) {
   }
   return `
     <div class="mv-card">
-      <button class="mv-card-thumb-btn" type="button" data-play-music="${globalIdx}" aria-label="再生">
+      <a class="mv-card-thumb-btn" href="${escapeHtml(video.url || '#')}" target="_blank" rel="noopener" aria-label="YouTubeで開く">
         ${thumb
           ? `<img class="mv-card-thumb" src="${escapeHtml(thumb)}" data-fallback="${escapeHtml(thumbFb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
           : '<div class="mv-card-thumb mv-card-thumb-placeholder"></div>'}
-        <span class="mv-card-play-icon">▶</span>
         <span class="mv-type-badge ${badgeClass}">${badge}</span>
-      </button>
+      </a>
       <div class="mv-card-info">
         <span class="mv-card-title">${escapeHtml(video.title || '—')}</span>
-        <span class="mv-card-sub">${escapeHtml(sub)}</span>
+        <span class="mv-card-sub">${escapeHtml(_musicDateText(video))}</span>
       </div>
       <div class="mv-card-actions">
-        <button class="mv-watch-btn" type="button" data-watch-music="${globalIdx}" title="動画で見る">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
-        </button>
         <button class="mv-add-btn${saved ? ' is-saved' : ''}" type="button"
           data-playlist-add-mv="${escapeHtml(video.id)}"
           data-stream-title="${escapeHtml(video.title || '')}"
@@ -689,6 +644,8 @@ function _musicCard(video, globalIdx) {
 }
 
 function _musicListRow(video, globalIdx) {
+  const thumb = youtubeThumb(video.url);
+  const thumbFb = youtubeThumbFallback(video.url);
   const { label: badge, cls: badgeClass, sub } = _mvBadge(video);
   const saved = isStreamInAnyPlaylist('mv:' + video.id);
   if (_musicSelectMode) {
@@ -696,25 +653,30 @@ function _musicListRow(video, globalIdx) {
     return `
     <div class="mv-list-row mv-list-row--select${sel ? ' is-selected' : ''}" data-mv-select="${escapeHtml(video.id)}" role="button" aria-pressed="${sel}">
       <span class="mv-list-checkbox">${sel ? '✓' : ''}</span>
+      <span class="mv-list-thumb">
+        ${thumb
+          ? `<img src="${escapeHtml(thumb)}" data-fallback="${escapeHtml(thumbFb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+          : ''}
+      </span>
       <div class="mv-list-info">
         <span class="mv-list-title">${escapeHtml(video.title || '—')}</span>
-        <span class="mv-list-sub">${escapeHtml(sub)}</span>
+        <span class="mv-list-sub">${escapeHtml(_musicDateText(video))}</span>
       </div>
       <span class="mv-type-badge ${badgeClass}">${badge}</span>
     </div>`;
   }
   return `
     <div class="mv-list-row">
-      <span class="mv-list-num">${globalIdx + 1}</span>
-      <button class="mv-list-play" type="button" data-play-music="${globalIdx}" aria-label="再生">▶</button>
+      <a class="mv-list-thumb" href="${escapeHtml(video.url || '#')}" target="_blank" rel="noopener" aria-label="YouTubeで開く">
+        ${thumb
+          ? `<img src="${escapeHtml(thumb)}" data-fallback="${escapeHtml(thumbFb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+          : ''}
+      </a>
       <div class="mv-list-info">
         <span class="mv-list-title">${escapeHtml(video.title || '—')}</span>
-        <span class="mv-list-sub">${escapeHtml(sub)}</span>
+        <span class="mv-list-sub">${escapeHtml(_musicDateText(video))}</span>
       </div>
       <span class="mv-type-badge ${badgeClass}">${badge}</span>
-      <button class="mv-watch-btn" type="button" data-watch-music="${globalIdx}" title="動画で見る">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
-      </button>
       <button class="mv-add-btn${saved ? ' is-saved' : ''}" type="button"
         data-playlist-add-mv="${escapeHtml(video.id)}"
         data-stream-title="${escapeHtml(video.title || '')}"

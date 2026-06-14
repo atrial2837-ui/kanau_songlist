@@ -2581,70 +2581,6 @@ window.__closeStreamMiniPlayer = () => {
   return false;
 };
 
-/** 曲詳細モーダル用: 月別歌唱スパークライン SVG を返す */
-function buildSparkline(song) {
-  const allRefs = song.streamRefs || [];
-  if (allRefs.length <= 1) return ''; // 1件以下なら描画しない
-
-  // 月キーごとにカウント
-  const countByMonth = new Map();
-  for (const ref of allRefs) {
-    if (!ref.date) continue;
-    const d = ref.date instanceof Date ? ref.date : new Date(ref.date);
-    if (isNaN(d)) continue;
-    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    countByMonth.set(k, (countByMonth.get(k) || 0) + 1);
-  }
-  if (!countByMonth.size) return '';
-
-  // 最初の月〜最後の月（直近 18 ヶ月以内に限定）
-  const allKeys = [...countByMonth.keys()].sort();
-  const latestKey = allKeys[allKeys.length - 1];
-  const [ly, lm] = latestKey.split('-').map(Number);
-  const limitDate = new Date(ly, lm - 19, 1); // 18 ヶ月前
-  const firstKey = allKeys[0];
-  const [fy, fm] = firstKey.split('-').map(Number);
-  const startDate = new Date(fy, fm - 1, 1) < limitDate ? limitDate : new Date(fy, fm - 1, 1);
-  const startKey = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
-
-  // 月リスト生成
-  const months = [];
-  let cur = new Date(startDate);
-  const end = new Date(ly, lm - 1, 1);
-  while (cur <= end) {
-    const k = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`;
-    months.push({ k, count: countByMonth.get(k) || 0 });
-    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
-  }
-  if (months.length < 2) return '';
-
-  const maxCount = Math.max(1, ...months.map(m => m.count));
-  const W = 300;
-  const H = 40;
-  const barW = Math.max(3, Math.floor(W / months.length) - 1);
-  const gap = Math.max(1, Math.floor(W / months.length) - barW);
-  const totalW = months.length * (barW + gap);
-  const bars = months.map((m, i) => {
-    const h = m.count > 0 ? Math.max(4, Math.round((m.count / maxCount) * (H - 4))) : 0;
-    const x = i * (barW + gap);
-    const y = H - h;
-    const opacity = m.count > 0 ? 1 : 0;
-    const label = `${m.k} (${m.count}回)`;
-    return m.count > 0
-      ? `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="var(--primary)" opacity="${opacity}" rx="1"><title>${escapeHtml(label)}</title></rect>`
-      : `<rect x="${x}" y="${H - 2}" width="${barW}" height="2" fill="var(--border)" opacity="0.5" rx="1"><title>${escapeHtml(label)}</title></rect>`;
-  }).join('');
-
-  return `
-    <div class="song-detail-spark">
-      <svg class="song-detail-spark-svg" viewBox="0 0 ${totalW} ${H}" xmlns="http://www.w3.org/2000/svg" aria-label="歌唱履歴スパークライン (${months.length}ヶ月分)" role="img">
-        ${bars}
-      </svg>
-      <div class="song-detail-spark-label">${escapeHtml(months[0].k.replace('-', '/'))} 〜 ${escapeHtml(months[months.length - 1].k.replace('-', '/'))}</div>
-    </div>
-  `;
-}
-
 function openSongDetail(key) {
   const song = findSong(key);
   const modal = $('#song-modal');
@@ -2688,11 +2624,10 @@ function openSongDetail(key) {
     </div>
     <div class="song-detail-history">
       <h3>歌った歌枠</h3>
-      ${buildSparkline(song)}
       ${refs.length ? refs.map(ref => `
         <div class="song-detail-stream">
           ${ref.thumbnail && ref.url
-            ? `<span class="song-detail-thumb-wrap"><button class="song-detail-thumb-link" type="button" data-inline-youtube="${escapeHtml(ref.url)}" aria-label="インライン再生"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" data-fallback="${escapeHtml(ref.thumbnailFallback)}" data-tiny="${escapeHtml(ref.thumbnailTiny)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>再生</span></button><a class="song-detail-youtube-link" href="${escapeHtml(ref.url)}" target="_blank" rel="noopener">開く</a></span>`
+            ? `<a class="song-detail-thumb-link" href="${escapeHtml(ref.url)}" target="_blank" rel="noopener" aria-label="YouTubeで開く"><img class="song-detail-thumb" src="${escapeHtml(ref.thumbnail)}" data-fallback="${escapeHtml(ref.thumbnailFallback)}" data-tiny="${escapeHtml(ref.thumbnailTiny)}" alt="" loading="lazy" referrerpolicy="no-referrer"></a>`
             : '<div class="song-detail-thumb placeholder"></div>'}
           <button class="song-detail-frame" type="button" data-detail-action="stream" data-songkey="${escapeHtml(song.key)}" data-streamkey="${escapeHtml(ref.detailKey)}">
             <span>${fmtDate(ref.date)}</span>
@@ -2714,13 +2649,6 @@ function initSongModal() {
   closeBtn.addEventListener('click', close);
   modal.addEventListener('click', (event) => {
     if (event.target === modal) close();
-    const inlineYt = event.target.closest('[data-inline-youtube]');
-    if (inlineYt) {
-      event.preventDefault();
-      event.stopPropagation();
-      playYouTubeInline(inlineYt.dataset.inlineYoutube);
-      return;
-    }
     const action = event.target.closest('[data-detail-action]');
     if (!action) return;
     event.stopPropagation();
@@ -3161,16 +3089,7 @@ document.body.addEventListener('click', (e) => {
     const foundStream = (state.data?.streams || []).find(s => streamKey(s) === skey);
     if (foundStream?.url) {
       openStreamViewer(foundStream);
-    } else if (streamPlayEl.dataset.inlineYoutube) {
-      playYouTubeInline(streamPlayEl.dataset.inlineYoutube);
     }
-    return;
-  }
-  const inlineYt = e.target.closest('[data-inline-youtube]');
-  if (inlineYt) {
-    e.preventDefault();
-    e.stopPropagation();
-    playYouTubeInline(inlineYt.dataset.inlineYoutube);
     return;
   }
   if (isLink(e.target)) return;

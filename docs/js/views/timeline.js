@@ -81,6 +81,7 @@ export function renderTimeline() {
   $('#timeline').onclick = async (event) => {
     const btn = event.target.closest('[data-copy-stream]');
     if (!btn) return;
+    event.preventDefault();
     event.stopPropagation();
     const stream = limited[Number(btn.dataset.copyStream)];
     if (!stream) return;
@@ -115,26 +116,33 @@ function renderItem(s, idx, filter) {
     ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || '配信')}</a>`
     : escapeHtml(s.title || '配信');
   const watchHtml = s.url
-    ? `<span class="watch-actions"><button class="watch-link" type="button" data-stream-play="${escapeHtml(streamKey(s))}" data-inline-youtube="${escapeHtml(s.url)}">▶ 再生</button><a class="watch-open-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener">↗ 開く</a></span>`
+    ? `<span class="watch-actions"><a class="watch-open-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener">YouTube</a></span>`
     : '';
   const skey = streamKey(s);
   const saved = isStreamInAnyPlaylist(skey);
   const saveHtml = `<button class="timeline-save-btn${saved ? ' is-saved' : ''}" type="button" data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}" title="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${saved ? '★' : '☆'}</button>`;
   const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}">セトリコピー</button>`;
+  const open = idx === 0 || !!filter ? ' open' : '';
   return `
-    <article class="timeline-item ${recentClass}">
+    <details class="timeline-item ${recentClass}"${open}>
       <span class="stream-anchor" data-streamkey="${escapeHtml(streamKey(s))}"></span>
-      <header class="timeline-head">
-        <span class="timeline-date">${fmtDate(s.date)}</span>
-        <span class="timeline-stream-no">第${s.index}枠</span>
-        <span class="timeline-songcount">🎤 ${s.songs.length}曲</span>
-        ${saveHtml}
-        ${copyHtml}
-        ${watchHtml}
-      </header>
-      <div class="timeline-title">${titleHtml}</div>
-      <div class="setlist">${setlistHtml}</div>
-    </article>
+      <summary class="timeline-summary">
+        <span class="timeline-date-badge">${fmtDate(s.date).replace(/^\d{4}\//, '')}</span>
+        <span class="timeline-summary-main">
+          <span class="timeline-head">
+            <span class="timeline-stream-no">第${s.index}枠</span>
+            <span class="timeline-songcount">✓ ${s.songs.length}曲</span>
+          </span>
+          <span class="timeline-title">${titleHtml}</span>
+        </span>
+        <span class="timeline-actions">
+          ${saveHtml}
+          ${copyHtml}
+          ${watchHtml}
+        </span>
+      </summary>
+      <div class="setlist timeline-setlist">${setlistHtml}</div>
+    </details>
   `;
 }
 
