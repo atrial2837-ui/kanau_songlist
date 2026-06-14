@@ -586,14 +586,14 @@ button.official-link {
 .tabs {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   max-width: 100%;
   width: fit-content;
   margin: 26px 0 18px;
-  padding: 4px;
+  padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface-3) 78%, var(--surface) 22%);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 72%, var(--surface-3) 28%);
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
   scrollbar-width: none;
@@ -605,27 +605,53 @@ button.official-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 6px 14px;
-  border: 0;
-  border-radius: 10px;
+  gap: 7px;
+  min-height: 38px;
+  padding: 7px 15px;
+  border: 1px solid transparent;
+  border-radius: 999px;
   background: transparent;
   color: var(--ink-mute);
   font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
-  transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
   white-space: nowrap;
 }
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: currentColor;
+}
+.tab-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tab-icon svg path:first-child:last-child,
+.tab-icon svg rect:first-child:last-child {
+  fill: none;
+}
 .tab-btn:hover {
-  background: color-mix(in srgb, var(--surface) 64%, var(--primary-soft) 36%);
+  background: color-mix(in srgb, var(--surface) 68%, var(--primary-soft) 32%);
+  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
   color: var(--primary-strong);
 }
 .tab-btn.active,
 .tab-btn[aria-selected="true"] {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 74%, var(--primary-soft) 26%);
   color: var(--primary-strong);
-  box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--border-strong), inset 0 -3px 0 var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px color-mix(in srgb, var(--primary) 16%, transparent);
 }
 .tab-btn:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--primary) 32%, transparent);
@@ -4948,7 +4974,7 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
 .sv-bp-nav-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 10px;
 }
 
 .sv-bp-nav-card {
@@ -4987,7 +5013,7 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
   font-weight: 700;
   color: var(--primary-strong);
   padding: 8px 0;
-  width: 62px;
+  width: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4998,27 +5024,27 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
 }
 
 .sv-bp-nav-thumb {
-  width: 96px;
-  height: 54px;
+  width: 136px;
+  height: 76px;
   object-fit: cover;
   display: block;
   background: var(--surface-3);
   flex-shrink: 0;
 }
 .sv-bp-nav-thumb--empty {
-  width: 96px;
-  height: 54px;
+  width: 136px;
+  height: 76px;
   background: var(--surface-3);
   display: block;
 }
 
 .sv-bp-nav-info {
-  padding: 7px 9px;
+  padding: 9px 11px;
   min-width: 0;
   flex: 1;
 }
 .sv-bp-nav-title {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink);
   display: -webkit-box;
@@ -5029,7 +5055,7 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
   margin-bottom: 3px;
 }
 .sv-bp-nav-meta {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--ink-mute);
 }
 
