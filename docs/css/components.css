@@ -2279,24 +2279,42 @@ body.has-sv-fullscreen .container { z-index: auto; }
   scrollbar-color: var(--border) transparent;
 }
 
-.sv-setlist::-webkit-scrollbar { width: 4px; }
+.sv-setlist::-webkit-scrollbar { width: 6px; }
 .sv-setlist::-webkit-scrollbar-track { background: transparent; }
-.sv-setlist::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.sv-setlist::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.sv-setlist::-webkit-scrollbar-thumb:hover { background: var(--ink-mute); }
 
 .sv-song {
   display: grid;
   grid-template-columns: 22px 1fr auto;
   grid-template-rows: auto auto;
   column-gap: 8px;
-  padding: 8px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-soft);
-  transition: background 0.12s;
+  transition: background 0.15s ease;
   cursor: default;
 }
 
 .sv-song:last-child { border-bottom: none; }
 
 .sv-song:hover { background: var(--surface-3); }
+
+/* 現在再生中の曲ハイライト */
+.sv-song.is-current {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-left: 3px solid var(--accent);
+  padding-left: 11px; /* 14px - 3px border */
+}
+.sv-song.is-current .sv-song-num {
+  background: var(--accent);
+  color: #fff;
+}
+.sv-song.is-current .sv-song-title {
+  color: var(--accent);
+}
+.sv-song.is-current .sv-cts-propose {
+  opacity: 1;
+}
 
 .sv-song-num {
   grid-column: 1;
@@ -2495,6 +2513,16 @@ body.has-sv-fullscreen .container { z-index: auto; }
   .sv-share-btn {
     flex-shrink: 0;
   }
+
+  /* ボタンラベルを非表示にしてアイコンのみに */
+  .sv-close-label,
+  .sv-music-label,
+  .sv-share-label,
+  .sv-yt-label { display: none; }
+  .sv-close-btn { padding: 6px 10px; }
+  .sv-yt-link,
+  .sv-music-btn,
+  .sv-share-btn { padding: 6px 10px; }
 
   /* パンくずを省略 */
   .sv-breadcrumb {
@@ -3016,12 +3044,25 @@ body.has-sv-fullscreen .container { z-index: auto; }
 #stream-viewer.sv-fullscreen .sv-setlist {
   scrollbar-color: rgba(74, 178, 220, 0.2) transparent;
 }
+#stream-viewer.sv-fullscreen .sv-setlist::-webkit-scrollbar { width: 6px; }
 #stream-viewer.sv-fullscreen .sv-setlist::-webkit-scrollbar-thumb {
   background: rgba(74, 178, 220, 0.2);
 }
 
 #stream-viewer.sv-fullscreen .sv-song { border-bottom-color: rgba(255,255,255,0.05); }
 #stream-viewer.sv-fullscreen .sv-song:hover { background: rgba(74, 178, 220, 0.07); }
+#stream-viewer.sv-fullscreen .sv-song.is-current {
+  background: rgba(74, 178, 220, 0.12);
+  border-left: 3px solid rgba(74, 178, 220, 0.8);
+  padding-left: 11px;
+}
+#stream-viewer.sv-fullscreen .sv-song.is-current .sv-song-num {
+  background: rgba(74, 178, 220, 0.8);
+  color: #fff;
+}
+#stream-viewer.sv-fullscreen .sv-song.is-current .sv-song-title {
+  color: #7ecfee;
+}
 #stream-viewer.sv-fullscreen .sv-song-num {
   background: rgba(255,255,255,0.06);
   color: rgba(255,255,255,0.35);

@@ -1256,7 +1256,10 @@ function _svSaveTs(stream, ts) {
   catch (_) { /* quota */ }
 }
 
-function _svSongRow(song, i, ts) {
+let _svCurSongIdx = -1; // 現在再生中の曲インデックス
+
+function _svSongRow(song, i, ts, currentIdx) {
+  const isCurrent = i === currentIdx;
   const time = ts[i];
   const badge = time != null
     ? `<button class="sv-ts-badge" data-idx="${i}" data-action="seek" title="${escapeHtml(_fmtTs(time))} に移動">${escapeHtml(_fmtTs(time))}</button><button class="sv-ts-del" data-idx="${i}" data-action="del-ts" aria-label="タイムスタンプ削除">✕</button>`
@@ -1268,7 +1271,7 @@ function _svSongRow(song, i, ts) {
   ).join('');
   const proposeBtn = `<button class="sv-cts-propose" data-idx="${i}" data-action="cts-propose" type="button">+ 提案</button>`;
   const ctsRow = `<div class="sv-cts-row">${ctsBadges}${proposeBtn}</div>`;
-  return `<div class="sv-song" data-idx="${i}">
+  return `<div class="sv-song${isCurrent ? ' is-current' : ''}" data-idx="${i}">
     <span class="sv-song-num">${i + 1}</span>
     <div class="sv-song-info">
       <span class="sv-song-title">${escapeHtml(song.title)}</span>
@@ -1302,7 +1305,7 @@ async function _svLoadCommunityTs(stream) {
   const el = $('#stream-viewer');
   if (!el || el._currentStream !== stream) return;
   const setlistEl = $('#sv-setlist');
-  if (setlistEl) _svRefreshSetlist(setlistEl, stream.songs, _svLoadTs(stream));
+  if (setlistEl) _svRefreshSetlist(setlistEl, stream.songs, _svLoadTs(stream), _svCurSongIdx);
   _svUpdateBulkBtn(stream);
 }
 
@@ -1797,8 +1800,30 @@ function _svStartEndedWatch(gen, viewer) {
       } else if (st === window.YT?.PlayerState?.PLAYING) {
         seenEnded = false;
       }
+      // 現在再生中の曲インデックスを更新
+      const curTime = _svPlayer.getCurrentTime?.() ?? 0;
+      const stream = viewer._currentStream;
+      if (stream?.songs?.length) {
+        const ts = _svLoadTs(stream);
+        let found = -1;
+        for (let i = 0; i < stream.songs.length; i++) {
+          if (ts[i] != null && curTime >= ts[i]) found = i;
+        }
+        if (found !== _svCurSongIdx) {
+          _svCurSongIdx = found;
+          _svHighlightCurrentSong(found);
+        }
+      }
     } catch (_) {}
   }, 700);
+}
+
+/** セットリスト内で現在再生中の曲をハイライト（DOM更新なし） */
+function _svHighlightCurrentSong(idx) {
+  const setlistEl = $('#sv-setlist');
+  if (!setlistEl) return;
+  const songs = setlistEl.querySelectorAll('.sv-song');
+  songs.forEach((el, i) => el.classList.toggle('is-current', i === idx));
 }
 
 /** プレイヤー下のナビカードHTMLを返す */
@@ -2149,8 +2174,8 @@ async function _svRenderBelowPlayerMv(stream) {
   _svQueueAfterRender(el);
 }
 
-function _svRefreshSetlist(setlistEl, songs, ts) {
-  setlistEl.innerHTML = songs.map((s, i) => _svSongRow(s, i, ts)).join('');
+function _svRefreshSetlist(setlistEl, songs, ts, currentIdx) {
+  setlistEl.innerHTML = songs.map((s, i) => _svSongRow(s, i, ts, currentIdx)).join('');
 }
 
 // タイムスタンプ文字列（MM:SS or H:MM:SS）を秒数に変換
@@ -2207,7 +2232,7 @@ function initStreamViewer() {
     <div class="sv-container">
       <div class="sv-header">
         <button class="sv-close-btn" id="sv-close" type="button" title="ミニプレイヤーで再生を続けながら戻ります（Esc）">
-          ← 戻る <span class="sv-esc-hint">Esc</span>
+          ← <span class="sv-close-label">戻る</span><span class="sv-esc-hint">Esc</span>
         </button>
         <div class="sv-title-area">
           <nav class="sv-breadcrumb" aria-label="現在地">
@@ -2225,9 +2250,15 @@ function initStreamViewer() {
           <button class="vol-btn" id="sv-vol-btn" type="button" aria-label="音量">🔊</button>
           <input class="vol-slider" id="sv-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
         </div>
-        <button class="sv-music-btn" id="sv-music-btn" type="button" title="現在位置から音楽プレイヤーで聴く">🎵 音楽プレイヤーで聴く</button>
-        <button class="sv-share-btn" id="sv-share-btn" type="button" title="この動画の共有リンクをコピー">🔗 共有</button>
-        <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener">↗ YouTubeで開く</a>
+        <button class="sv-music-btn" id="sv-music-btn" type="button" title="現在位置から音楽プレイヤーで聴く">
+          <span class="sv-music-icon">🎵</span><span class="sv-music-label">音楽プレイヤーで聴く</span>
+        </button>
+        <button class="sv-share-btn" id="sv-share-btn" type="button" title="この動画の共有リンクをコピー">
+          <span class="sv-share-icon">🔗</span><span class="sv-share-label">共有</span>
+        </button>
+        <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener" title="YouTubeで開く">
+          <span class="sv-yt-icon">↗</span><span class="sv-yt-label">YouTubeで開く</span>
+        </a>
       </div>
       <div class="sv-body">
         <div class="sv-player-section">
@@ -2330,7 +2361,7 @@ function initStreamViewer() {
     const ts = _svLoadTs(stream);
     times.forEach((t, i) => { if (i < stream.songs.length) ts[i] = t; });
     _svSaveTs(stream, ts);
-    _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+    _svRefreshSetlist($('#sv-setlist'), stream.songs, ts, _svCurSongIdx);
     const area = $('#sv-import-area');
     if (area) area.hidden = true;
     input.value = '';
@@ -2359,12 +2390,12 @@ function initStreamViewer() {
       if (time != null) {
         ts[idx] = Math.floor(time);
         _svSaveTs(stream, ts);
-        _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+        _svRefreshSetlist($('#sv-setlist'), stream.songs, ts, _svCurSongIdx);
       }
     } else if (btn.dataset.action === 'del-ts') {
       delete ts[idx];
       _svSaveTs(stream, ts);
-      _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+      _svRefreshSetlist($('#sv-setlist'), stream.songs, ts, _svCurSongIdx);
     } else if (btn.dataset.action === 'cts-seek') {
       const sec = Number(btn.dataset.ctsSeconds);
       if (!isNaN(sec) && _svPlayer?.seekTo) {
@@ -2477,7 +2508,7 @@ function openStreamViewer(stream, resumeAt = 0) {
     _svRenderBelowPlayerMv(stream);
   } else {
     const ts = _svLoadTs(stream);
-    _svRefreshSetlist($('#sv-setlist'), stream.songs, ts);
+    _svRefreshSetlist($('#sv-setlist'), stream.songs, ts, _svCurSongIdx);
     _svLoadCommunityTs(stream);
     _svRenderBelowPlayer(stream);
   }
