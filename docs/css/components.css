@@ -2134,11 +2134,11 @@ body.has-sv-fullscreen .container { z-index: auto; }
 }
 
 .sv-panel-head > span:first-child {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 800;
-  color: var(--ink-mute);
+  color: var(--ink-soft);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   flex: 1;
 }
 
@@ -2174,9 +2174,10 @@ body.has-sv-fullscreen .container { z-index: auto; }
   font-weight: 700;
   color: var(--primary-strong);
   background: var(--primary-soft);
-  padding: 2px 9px;
+  padding: 3px 10px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  white-space: nowrap;
 }
 
 /* ── Import form ── */
