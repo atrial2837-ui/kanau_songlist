@@ -602,7 +602,7 @@ function _musicDateText(video) {
 function _musicCard(video, globalIdx) {
   const thumb = youtubeThumb(video.url);
   const thumbFb = youtubeThumbFallback(video.url);
-  const { label: badge, cls: badgeClass, sub } = _mvBadge(video);
+  const { label: badge, cls: badgeClass } = _mvBadge(video);
   const saved = isStreamInAnyPlaylist('mv:' + video.id);
   // 選択モード: カードクリックで選択トグル（再生はしない）
   if (_musicSelectMode) {
@@ -618,7 +618,7 @@ function _musicCard(video, globalIdx) {
       </button>
       <div class="mv-card-info">
         <span class="mv-card-title">${escapeHtml(video.title || '—')}</span>
-        <span class="mv-card-sub">${escapeHtml(sub)}</span>
+        <span class="mv-card-sub">${escapeHtml(_musicDateText(video))}</span>
       </div>
     </div>`;
   }
@@ -630,15 +630,14 @@ function _musicCard(video, globalIdx) {
           : '<div class="mv-card-thumb mv-card-thumb-placeholder"></div>'}
         <span class="mv-type-badge ${badgeClass}">${badge}</span>
       </a>
+      <button class="pl-sg-add mv-add-btn mv-add-btn--overlay${saved ? ' is-saved' : ''}" type="button"
+        data-playlist-add-mv="${escapeHtml(video.id)}"
+        data-stream-title="${escapeHtml(video.title || '')}"
+        aria-label="${saved ? 'プレイリストに保存済み' : 'プレイリストに追加'}"
+        title="${saved ? 'プレイリストに保存済み' : 'プレイリストに追加'}">${PL_BOOKMARK_SVG}</button>
       <div class="mv-card-info">
         <span class="mv-card-title">${escapeHtml(video.title || '—')}</span>
         <span class="mv-card-sub">${escapeHtml(_musicDateText(video))}</span>
-      </div>
-      <div class="mv-card-actions">
-        <button class="mv-add-btn${saved ? ' is-saved' : ''}" type="button"
-          data-playlist-add-mv="${escapeHtml(video.id)}"
-          data-stream-title="${escapeHtml(video.title || '')}"
-          title="${saved ? 'プレイリストに保存済み' : 'プレイリストに追加'}">${saved ? '◆' : '＋'}</button>
       </div>
     </div>`;
 }
@@ -689,7 +688,7 @@ function _renderMusicGrid(items) {
 }
 
 function _renderMusicList(items) {
-  return `<div class="mv-list">${items.map(({ v, i }) => _musicListRow(v, i)).join('')}</div>`;
+  return _renderMusicGrid(items);
 }
 
 function _renderMusicCategory(items) {

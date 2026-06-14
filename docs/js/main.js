@@ -401,6 +401,18 @@ function youtubeVideoId(url) {
   return '';
 }
 
+function _isResponsivePlaybackDisabled() {
+  return window.matchMedia('(max-width: 700px)').matches;
+}
+
+function _youtubeExternalUrl(url, startAt = 0) {
+  const raw = String(url || '');
+  const id = youtubeVideoId(raw);
+  if (!id) return raw;
+  const t = Math.max(0, Math.floor(Number(startAt) || 0));
+  return `https://www.youtube.com/watch?v=${id}${t > 0 ? `&t=${t}s` : ''}`;
+}
+
 function youtubeThumb(url) {
   const id = youtubeVideoId(url);
   return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
@@ -945,8 +957,8 @@ async function _maybeOpenSharedVideo() {
 function playYouTubeInline(url, startAt = 0, streamTitle = '') {
   const id = youtubeVideoId(url);
   if (!id) return;
-  if (window.matchMedia('(max-width: 600px)').matches) {
-    window.open(String(url || ''), '_blank', 'noopener');
+  if (_isResponsivePlaybackDisabled()) {
+    window.open(_youtubeExternalUrl(url, startAt), '_blank', 'noopener');
     return;
   }
 
@@ -2359,6 +2371,10 @@ function openStreamViewer(stream, resumeAt = 0) {
   if (!stream?.url) return;
   const id = youtubeVideoId(stream.url);
   if (!id) { playYouTubeInline(stream.url); return; }
+  if (_isResponsivePlaybackDisabled()) {
+    window.open(_youtubeExternalUrl(stream.url, resumeAt), '_blank', 'noopener');
+    return;
+  }
 
   initStreamViewer();
   _loadYtApi();
