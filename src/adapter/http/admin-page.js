@@ -5,10 +5,14 @@
  * admin-server/server.js から分離。Phase 5 完了条件 (エントリの薄化) のため。
  */
 
+import { GENRE_LIST } from '../../domain/song/genre.js';
+
 /**
  * @returns {string}
  */
 export function renderAdminPage() {
+  const genreOptions = ['', ...GENRE_LIST];
+
   return `<!doctype html>
 <html lang="ja">
 <head>
@@ -34,6 +38,7 @@ export function renderAdminPage() {
     .ok { color: #12683d; }
     .warn { color: #b06a00; }
     .compact-input { min-width: 110px; padding: 7px 9px; }
+    .genre-select { min-width: 150px; padding: 7px 9px; }
     @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -123,8 +128,18 @@ export function renderAdminPage() {
 
     function renderSongMeta(rows) {
       $('songMetaBox').innerHTML = '<table><thead><tr><th>曲</th><th>歌手</th><th>キー</th><th>ジャンル</th><th></th></tr></thead><tbody>' +
-        rows.map(row => '<tr data-song-id="' + row.id + '"><td><input class="compact-input" data-field="title" value="' + escapeHtml(row.title || '') + '"></td><td><input class="compact-input" data-field="artist" value="' + escapeHtml(row.artist || '') + '"></td><td><input class="compact-input" data-field="displayKey" value="' + escapeHtml(row.display_key || '') + '"></td><td><input class="compact-input" data-field="genre" value="' + escapeHtml(row.genre || '') + '"></td><td><button class="ghost" type="button" data-save-meta>保存</button></td></tr>').join('') +
+        rows.map(row => '<tr data-song-id="' + row.id + '"><td><input class="compact-input" data-field="title" value="' + escapeHtml(row.title || '') + '"></td><td><input class="compact-input" data-field="artist" value="' + escapeHtml(row.artist || '') + '"></td><td><input class="compact-input" data-field="displayKey" value="' + escapeHtml(row.display_key || row.displayKey || '') + '"></td><td>' + renderGenreSelect(row.genre || '') + '</td><td><button class="ghost" type="button" data-save-meta>保存</button></td></tr>').join('') +
         '</tbody></table>';
+    }
+
+    function renderGenreSelect(current) {
+      const normalized = String(current || '');
+      const options = ${JSON.stringify(genreOptions)}.map(genre => {
+        const label = genre || '未設定';
+        const selected = genre === normalized ? ' selected' : '';
+        return '<option value="' + escapeHtml(genre) + '"' + selected + '>' + escapeHtml(label) + '</option>';
+      }).join('');
+      return '<select class="genre-select" data-field="genre">' + options + '</select>';
     }
 
     function escapeHtml(value) {
@@ -193,6 +208,8 @@ export function renderAdminPage() {
           genre: row.querySelector('[data-field="genre"]').value,
         });
         $('metaStatus').textContent = '保存しました';
+        button.textContent = '保存済み';
+        setTimeout(() => { button.textContent = '保存'; }, 900);
       } catch (error) {
         $('metaStatus').textContent = error.message;
       }
