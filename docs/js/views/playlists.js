@@ -812,7 +812,8 @@ function _renderPlaylistCard(pl, allStreams) {
     if (isMv) {
       if (!mv) return `
         <div class="pl-stream-row pl-stream-missing" data-pl-skey="${escapeHtml(skey)}" data-pl-id="${escapeHtml(pl.id)}">${dragHandle}
-          <span class="pl-stream-title">（動画データなし）</span>${rmBtn}
+          <div class="pl-stream-info"><span class="pl-stream-title">（動画データなし）</span></div>
+          <div class="pl-stream-actions">${rmBtn}</div>
         </div>`;
       const { label: badge, sub } = _mvBadge(mv);
       const mvTypeKey = mv.type || 'original';
@@ -836,7 +837,8 @@ function _renderPlaylistCard(pl, allStreams) {
 
     if (!stream) return `
       <div class="pl-stream-row pl-stream-missing" data-pl-skey="${escapeHtml(skey)}" data-pl-id="${escapeHtml(pl.id)}">${dragHandle}
-        <span class="pl-stream-title">（配信データなし）</span>${rmBtn}
+        <div class="pl-stream-info"><span class="pl-stream-title">（配信データなし）</span></div>
+        <div class="pl-stream-actions">${rmBtn}</div>
       </div>`;
     return `
       <div class="pl-stream-row" data-pl-skey="${escapeHtml(skey)}" data-pl-id="${escapeHtml(pl.id)}">

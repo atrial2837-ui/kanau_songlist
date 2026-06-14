@@ -126,7 +126,8 @@ import{e as D}from"./chunk-JT7WCFD3.js";import{F as q,H as E,I as z,J as A,K as 
         <button class="pl-new-btn" id="pl-new-btn" type="button">\uFF0B \u65B0\u898F\u4F5C\u6210</button>
       </div>`}function Ht(t,e){let s=t.streams.map(m=>{let o=m.startsWith("mv:"),f=o?j(m):null;return{skey:m,isMv:o,mv:f,stream:o?null:e.find(i=>E(i)===m)}}),n=s.find(({stream:m,mv:o})=>m?.url||o?.url)?.stream?.url||s.find(({mv:m})=>m?.url)?.mv?.url,a=n?`<img class="pl-card-cover" src="${c(A(n))}" alt="" loading="lazy" referrerpolicy="no-referrer">`:"",l=s.length,r=s.map(({skey:m,isMv:o,mv:f,stream:i})=>{let b=c(t.id+"|:|"+m),d='<span class="pl-drag-handle" aria-hidden="true" title="\u30C9\u30E9\u30C3\u30B0\u3057\u3066\u4E26\u3073\u66FF\u3048">\u283F</span>',u=`<button class="pl-rm-btn" data-pl-rm-stream="${b}" type="button" title="\u524A\u9664">\u2715</button>`;if(o){if(!f)return`
         <div class="pl-stream-row pl-stream-missing" data-pl-skey="${c(m)}" data-pl-id="${c(t.id)}">${d}
-          <span class="pl-stream-title">\uFF08\u52D5\u753B\u30C7\u30FC\u30BF\u306A\u3057\uFF09</span>${u}
+          <div class="pl-stream-info"><span class="pl-stream-title">\uFF08\u52D5\u753B\u30C7\u30FC\u30BF\u306A\u3057\uFF09</span></div>
+          <div class="pl-stream-actions">${u}</div>
         </div>`;let{label:h,sub:x}=tt(f),y=f.type||"original",_=(v||[]).indexOf(f);return`
         <div class="pl-stream-row" data-pl-skey="${c(m)}" data-pl-id="${c(t.id)}">
           ${d}
@@ -154,7 +155,8 @@ import{e as D}from"./chunk-JT7WCFD3.js";import{F as q,H as E,I as z,J as A,K as 
         </div>
       </div>`:`
       <div class="pl-stream-row pl-stream-missing" data-pl-skey="${c(m)}" data-pl-id="${c(t.id)}">${d}
-        <span class="pl-stream-title">\uFF08\u914D\u4FE1\u30C7\u30FC\u30BF\u306A\u3057\uFF09</span>${u}
+        <div class="pl-stream-info"><span class="pl-stream-title">\uFF08\u914D\u4FE1\u30C7\u30FC\u30BF\u306A\u3057\uFF09</span></div>
+        <div class="pl-stream-actions">${u}</div>
       </div>`}).join(""),p=ft(t,e);return`
     <div class="pl-card">
       <div class="pl-card-head">
