@@ -552,34 +552,72 @@ button.official-link {
 /* === Tabs === */
 
 .tabs {
-  display: flex;
-  gap: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  width: fit-content;
   margin: 26px 0 18px;
-  flex-wrap: wrap;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-3) 78%, var(--surface) 22%);
+  box-shadow: var(--shadow-sm);
   overflow-x: auto;
-  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 .tab-btn {
-  background: var(--surface);
-  border: 2px solid var(--border);
-  color: var(--ink-soft);
-  padding: 9px 18px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-mute);
+  font-size: 12.5px;
+  font-weight: 800;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
   white-space: nowrap;
 }
 .tab-btn:hover {
-  border-color: var(--primary);
+  background: color-mix(in srgb, var(--surface) 64%, var(--primary-soft) 36%);
   color: var(--primary-strong);
 }
-.tab-btn.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
-  border-color: var(--primary-strong);
-  color: #fff;
-  box-shadow: var(--shadow-sm);
+.tab-btn.active,
+.tab-btn[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--primary-strong);
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--border-strong), inset 0 -3px 0 var(--primary);
+}
+.tab-btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 32%, transparent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 6px;
+    margin: 20px 0 16px;
+    padding: 6px;
+    border-radius: 16px;
+    overflow: visible;
+  }
+  .tab-btn {
+    min-width: 0;
+    padding: 8px 8px;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .panels { min-height: 720px; }

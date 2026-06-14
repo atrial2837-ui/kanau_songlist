@@ -187,7 +187,11 @@ function activateTab(tab, options = {}) {
 }
 
 function syncActiveTabUi(tab) {
-  $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  $$('.tab-btn').forEach(b => {
+    const isActive = b.dataset.tab === tab;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
 }
 
@@ -1193,7 +1197,10 @@ let _svEndedWatchInterval = null;
 function showPlayerPanel() {
   _epPrevTab = state.activeTab || 'timeline';
   state.activeTab = 'player';
-  $$('.tab-btn').forEach(b => b.classList.remove('active'));
+  $$('.tab-btn').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected', 'false');
+  });
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-player'));
 }
 
