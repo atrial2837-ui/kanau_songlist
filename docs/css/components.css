@@ -504,9 +504,33 @@ button.official-link {
   font-size: 12px;
   font-weight: 600;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  position: relative;
 }
 .theme-toggle:hover {
   border-color: var(--primary);
+}
+/* テーマ切替: ツールチップ（ラベル非表示時もヒントを提供） */
+.theme-toggle::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 10;
+}
+.theme-toggle:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 .theme-icon { font-size: 14px; }
 .theme-label { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); }
@@ -1740,51 +1764,8 @@ mark.hl {
 
 #stream-viewer[hidden] { display: none; }
 
-/* ミニプレイヤーへの引き継ぎ中: 操作をブロックしつつ映像を覆う（音声は継続） */
-#stream-viewer.sv-to-mini::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 200;
-  cursor: wait;
-  /* フェードインアニメーション */
-  animation: sv-to-mini-fadein 0.3s ease-out;
-}
-
-@keyframes sv-to-mini-fadein {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* ミニプレイヤー遷移時のローディングオーバーレイ */
-.sv-to-mini-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 201;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  pointer-events: none;
-}
-
-.sv-to-mini-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #4ab2dc;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.sv-to-mini-text {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
+/* ミニ化はゼロラグ（同一 iframe を CSS で移動するだけ）のため、
+   旧方式の暗転オーバーレイ/スピナーは廃止（一瞬の暗転の原因だった） */
 
 /* 全画面時: DOM を移動せず CSS だけで fullscreen 化する。
    .container が z-index:1 で stacking context を作るため、
@@ -2457,9 +2438,11 @@ body.has-sv-fullscreen .container { z-index: auto; }
 
 @media (max-width: 479px) {
   .sv-header {
-    padding: 0 10px;
-    height: 46px;
-    gap: 8px;
+    padding: 6px 10px;
+    height: auto;
+    min-height: 46px;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
   .sv-close-btn { padding: 5px 10px; font-size: 11px; }
@@ -2469,6 +2452,30 @@ body.has-sv-fullscreen .container { z-index: auto; }
   .sv-bc-btn    { font-size: 10px; }
   .sv-bc-current { font-size: 10.5px; }
   .sv-stream-meta  { font-size: 10px; }
+
+  /* ヘッダー2段構成: タイトルエリアを全幅に */
+  .sv-title-area {
+    flex: 1 1 100%;
+    order: -1;
+  }
+
+  /* ボタン類を縮小して横並び維持 */
+  .sv-close-btn,
+  .sv-yt-link,
+  .sv-music-btn,
+  .sv-share-btn {
+    flex-shrink: 0;
+  }
+
+  /* パンくずを省略 */
+  .sv-breadcrumb {
+    display: none;
+  }
+
+  .sv-bc-current {
+    font-size: 11px;
+    max-width: 100%;
+  }
 }
 
 /* ============================================================
@@ -5757,9 +5764,17 @@ body.has-music-bar { padding-bottom: 72px; }
 
 /* ── レスポンシブ ── */
 @media (max-width: 700px) {
-  .mbar-body { grid-template-columns: 1fr auto; padding: 0 12px; }
+  .mbar-body { grid-template-columns: 1fr auto; padding: 0 12px; height: 60px; gap: 10px; }
   .mbar-end { display: none; }
   .mbar-video-wrap { width: 64px; height: 36px; }
+  .mbar-thumb-wrap { width: 64px; height: 36px; }
+  .mbar-title { font-size: 11.5px; }
+  .mbar-type-badge { display: none; }
+  .mbar-controls { gap: 3px; }
+  .mbar-ctrl-btn { width: 32px; height: 32px; }
+  .mbar-play-btn { width: 38px; height: 38px; }
+  .mbar-play-btn::before { font-size: 14px; }
+  .mbar-mode-btn { width: 24px; height: 24px; font-size: 12px; }
   .mv-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .mv-list-row { grid-template-columns: 72px 1fr auto; gap: 8px; }
   .mv-list-row--select { grid-template-columns: 22px 72px 1fr; }
@@ -5770,6 +5785,22 @@ body.has-music-bar { padding-bottom: 72px; }
   #stream-viewer.sv-music-minified {
     display: none !important;
   }
+}
+
+@media (max-width: 420px) {
+  .mbar-body { padding: 0 8px; gap: 6px; }
+  .mbar-track-info { gap: 8px; }
+  .mbar-thumb-wrap { display: none; }
+  .mbar-video-wrap { display: none; }
+  .mbar-text { gap: 0; }
+  .mbar-title { font-size: 11px; }
+  .mbar-controls { gap: 2px; }
+  .mbar-ctrl-btn { width: 28px; height: 28px; }
+  .mbar-play-btn { width: 34px; height: 34px; }
+  .mbar-play-btn::before { font-size: 12px; }
+  .mbar-mode-btn { display: none; }
+  .mbar-volume { display: none; }
+  .mbar-expand-btn { min-width: 24px; height: 24px; padding: 0 6px; font-size: 10px; }
 }
 @media (max-width: 500px) {
   .sv-volume-wrap .vol-slider { display: none; }

@@ -527,8 +527,6 @@ function _svMinify() {
   _miniPlayer = _svPlayer;
   _svPlayer = null;
 
-  // ミニプレイヤー遷移アニメーション用クラスを追加
-  viewer.classList.add('sv-to-mini');
   viewer.classList.add('sv-minified');
   document.body.classList.add('has-sv-mini');
   document.body.style.overflow = '';
@@ -536,8 +534,6 @@ function _svMinify() {
   hidePlayerPanel();
   _svUpdateUrl();
 
-  // 遷移アニメーション完了後にクラスを削除
-  setTimeout(() => { viewer.classList.remove('sv-to-mini'); }, 600);
   // タブ切替直後のリフローやアニメーションで座標がずれるため多段同期
   _syncMiniPos();
   requestAnimationFrame(_syncMiniPos);
@@ -639,16 +635,12 @@ function _svMoveToMusicBar() {
   _svLastStream = null;
   _svFullscreen = false;
   viewer.classList.remove('sv-fullscreen', 'sv-minified');
-  // 音楽バー遷移アニメーション用クラスを追加
-  viewer.classList.add('sv-to-mini');
   viewer.classList.add('sv-music-minified');
   document.body.classList.remove('has-sv-fullscreen', 'has-sv-mini');
   document.body.classList.add('has-sv-music');
   document.body.style.overflow = '';
   viewer.hidden = false;
 
-  // 遷移アニメーション完了後にクラスを削除
-  setTimeout(() => { viewer.classList.remove('sv-to-mini'); }, 600);
   const panel = $('#yt-player-panel');
   if (panel) panel.hidden = true;
   hidePlayerPanel();
