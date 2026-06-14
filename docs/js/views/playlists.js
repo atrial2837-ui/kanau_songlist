@@ -204,6 +204,16 @@ export function renderPlaylists() {
       return;
     }
 
+    // ── 歌みた・オリ曲を YouTube で連続再生（フィルタ適用後の表示対象）──
+    const ytFilteredBtn = e.target.closest('[data-yt-filtered-music]');
+    if (ytFilteredBtn && _musicVideos?.length) {
+      const ids = _filterMusicVideos(_musicVideos)
+        .map(({ v }) => v.url ? youtubeVideoId(v.url) : '')
+        .filter(Boolean);
+      _openYouTubePlaylist(ids);
+      return;
+    }
+
     // ── 動画視聴（ストリームビューワーで開く）──
     const watchMusicBtn = e.target.closest('[data-watch-music]');
     if (watchMusicBtn && _musicVideos?.length) {
@@ -411,6 +421,7 @@ function _renderMusicViewBar(videos) {
       <div class="pl-music-play-actions">
         <button class="pl-music-play-all" data-play-filtered-music="all" type="button" ${shown ? '' : 'disabled'}>▶ 全曲再生</button>
         <button class="pl-music-play-all" data-play-filtered-music="shuffle" type="button" ${shown ? '' : 'disabled'}>🔀 シャッフル</button>
+        <button class="pl-music-play-all pl-music-yt-btn" data-yt-filtered-music="1" type="button" ${shown ? '' : 'disabled'} title="表示中の動画を YouTube で連続再生">▶ YouTubeで連続再生</button>
       </div>
       <div class="pl-music-views">
         <button class="pl-music-view-btn${_musicView === 'grid'     ? ' active' : ''}" data-music-view="grid"     type="button">グリッド</button>
@@ -630,6 +641,48 @@ export function resolveMusicVideoId(mvKey) {
   return (_musicVideos || []).find(v => v.id === id) || null;
 }
 
+/**
+ * プレイリストの YouTube 動画 ID を収集する共有ヘルパー。
+ * mv: キーは resolveMusicVideoId で解決し、それ以外は allStreams で解決する。
+ * 解決できた URL から youtubeVideoId で ID を抽出し、falsy を除いた配列を返す。
+ */
+function _playlistVideoIds(pl, allStreams) {
+  return (pl.streams || [])
+    .map(skey => {
+      if (skey.startsWith('mv:')) {
+        const mv = resolveMusicVideoId(skey);
+        return mv?.url ? youtubeVideoId(mv.url) : '';
+      }
+      const s = allStreams.find(st => streamKey(st) === skey);
+      return s?.url ? youtubeVideoId(s.url) : '';
+    })
+    .filter(Boolean);
+}
+
+/**
+ * 動画 ID 配列から YouTube 再生 URL を開く（Task A / B 共通ロジック）。
+ * - 0 本: alert
+ * - 1 本: watch?v=ID
+ * - 2 本以上: watch_videos?video_ids= (先頭 50 本)
+ */
+function _openYouTubePlaylist(videoIds) {
+  if (!videoIds.length) {
+    alert('YouTubeで再生できる動画がありません');
+    return;
+  }
+  let url;
+  if (videoIds.length === 1) {
+    url = `https://www.youtube.com/watch?v=${videoIds[0]}`;
+  } else {
+    const ids = videoIds.slice(0, 50);
+    if (videoIds.length > 50) {
+      alert(`動画が${videoIds.length}本あります。先頭50本で連続再生します。`);
+    }
+    url = `https://www.youtube.com/watch_videos?video_ids=${ids.join(',')}`;
+  }
+  window.open(url, '_blank', 'noopener noreferrer');
+}
+
 /* ── マイリスト ────────────────────────────────────────────────────────── */
 
 function _renderMyPlaylists(allStreams) {
@@ -721,13 +774,8 @@ function _renderPlaylistCard(pl, allStreams) {
       </div>`;
   }).join('');
 
-  // YouTube共有可能な動画IDを収集（stream のみ、mv: は除外）
-  const videoIds = entries
-    .map(({ stream, mv }) => {
-      const url = stream?.url || mv?.url;
-      return url ? youtubeVideoId(url) : '';
-    })
-    .filter(Boolean);
+  // YouTube共有可能な動画IDを収集（stream + mv: 両方を含む）
+  const videoIds = _playlistVideoIds(pl, allStreams);
 
   return `
     <div class="pl-card">
@@ -853,17 +901,7 @@ function _handleMyPlaylistsClick(e, allStreams) {
     const plId = ytShareBtn.dataset.plYtShare;
     const pl = getPlaylists().find(p => p.id === plId);
     if (!pl) return;
-    const videoIds = pl.streams
-      .map(skey => allStreams.find(s => streamKey(s) === skey))
-      .filter(s => s?.url)
-      .map(s => youtubeVideoId(s.url))
-      .filter(Boolean);
-    if (!videoIds.length) {
-      alert('YouTubeのURLが登録されている配信がありません');
-      return;
-    }
-    const url = `https://www.youtube.com/watch_videos?video_ids=${videoIds.join(',')}`;
-    window.open(url, '_blank', 'noopener noreferrer');
+    _openYouTubePlaylist(_playlistVideoIds(pl, allStreams));
     return;
   }
 }

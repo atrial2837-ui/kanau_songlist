@@ -4716,7 +4716,7 @@ body.has-music-bar { padding-bottom: 72px; }
 .mbar-thumb-overlay {
   position: absolute;
   inset: 0;
-  background: transparent;
+  background: rgba(0,0,0,0.18); /* サムネがクリックで動画ビューワーへ行くと分かるよう常時うっすら暗く */
   border: none;
   cursor: pointer;
   border-radius: 6px;
@@ -4726,13 +4726,21 @@ body.has-music-bar { padding-bottom: 72px; }
   justify-content: center;
   transition: background 0.15s;
 }
+/* 常時表示の再生バッジ（丸 + ▶）。ホバーで拡大・濃く */
 .mbar-thumb-overlay::before {
   content: '▶';
-  font-size: 18px;
+  font-size: 11px;
   color: #fff;
-  opacity: 0;
-  transition: opacity 0.15s;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding-left: 2px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  opacity: 0.9;
+  transition: opacity 0.15s, transform 0.15s, background 0.15s;
 }
 .mbar-thumb-overlay:hover,
 .mbar-thumb-overlay:focus-visible {
@@ -4742,6 +4750,8 @@ body.has-music-bar { padding-bottom: 72px; }
 .mbar-thumb-overlay:hover::before,
 .mbar-thumb-overlay:focus-visible::before {
   opacity: 1;
+  transform: scale(1.12);
+  background: var(--primary-strong, #1f789f);
 }
 
 .mbar-text {
