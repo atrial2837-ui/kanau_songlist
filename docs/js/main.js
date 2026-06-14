@@ -1190,11 +1190,14 @@ let _epPrevTab = 'timeline';  // 埋め込みプレイヤーを開く前のタ�
 let _pendingTabOptions = {};  // activateTab → closeStreamViewer → hidePlayerPanel に引き継ぐ options
 /** @type {Object<number, Array<{timeSeconds: number, note: string|null}>>} */
 let _svCommunityTs = {};      // songIndex → 承認済みコミュニティタイムスタンプ
+const _svCommunityTsCache = new Map();
 let _svAutoPlay = false;      // 連続再生フラグ
 let _svRepeat = false;        // ビューワーのリピート再生フラグ
 let _miniPlayer = null;           // ミニプレイヤーの YT.Player インスタンス
 let _miniProgressInterval = null; // 進捗バー更新タイマー
 let _svEndedWatchInterval = null;
+const SV_SETLIST_COLLAPSED_KEY = 'kanauViewerSetlistCollapsed';
+let _svSetlistCollapsed = false;
 
 /** 埋め込みプレイヤーパネルを表示（タブバーの active はリセット） */
 function showPlayerPanel() {
@@ -1291,6 +1294,16 @@ function _svSongRow(song, i, ts, currentIdx) {
 async function _svLoadCommunityTs(stream) {
   _svCommunityTs = {};
   if (!stream?.channel || stream?.index == null) return;
+  const cacheKey = `${stream.channel}:${stream.index}`;
+  if (_svCommunityTsCache.has(cacheKey)) {
+    _svCommunityTs = _svCommunityTsCache.get(cacheKey) || {};
+    const el = $('#stream-viewer');
+    if (!el || el._currentStream !== stream) return;
+    const setlistEl = $('#sv-setlist');
+    if (setlistEl) _svRefreshSetlist(setlistEl, stream.songs, _svLoadTs(stream), _svCurSongIdx);
+    _svUpdateBulkBtn(stream);
+    return;
+  }
   try {
     const url = `/api/timestamps/${encodeURIComponent(stream.channel)}/${stream.index}`;
     const res = await fetch(url);
@@ -1300,6 +1313,7 @@ async function _svLoadCommunityTs(stream) {
       if (!_svCommunityTs[item.songIndex]) _svCommunityTs[item.songIndex] = [];
       _svCommunityTs[item.songIndex].push({ timeSeconds: item.timeSeconds, note: item.note ?? null });
     }
+    _svCommunityTsCache.set(cacheKey, _svCommunityTs);
   } catch (_) { /* ネットワークエラーは無視 */ }
   // 再描画（stream-viewer が同じ配信のままの場合のみ）
   const el = $('#stream-viewer');
@@ -1826,6 +1840,102 @@ function _svHighlightCurrentSong(idx) {
   songs.forEach((el, i) => el.classList.toggle('is-current', i === idx));
 }
 
+function _svSetSetlistCollapsed(collapsed) {
+  _svSetlistCollapsed = !!collapsed;
+  try { localStorage.setItem(SV_SETLIST_COLLAPSED_KEY, _svSetlistCollapsed ? '1' : '0'); } catch (_) {}
+  const panel = $('#stream-viewer .sv-panel');
+  const btn = $('#sv-setlist-toggle');
+  if (panel) panel.classList.toggle('is-setlist-collapsed', _svSetlistCollapsed);
+  if (btn) {
+    btn.textContent = _svSetlistCollapsed ? '開く' : '畳む';
+    btn.title = _svSetlistCollapsed ? 'セットリストを開く' : 'セットリストを折りたたむ';
+    btn.setAttribute('aria-expanded', String(!_svSetlistCollapsed));
+  }
+}
+
+function _svApplySetlistCollapsed() {
+  try { _svSetlistCollapsed = localStorage.getItem(SV_SETLIST_COLLAPSED_KEY) === '1'; } catch (_) {}
+  _svSetSetlistCollapsed(_svSetlistCollapsed);
+}
+
+function _svPlayPrev() {
+  const streams = state.data?.streams || [];
+  const viewer = $('#stream-viewer');
+  const stream = viewer?._currentStream;
+  if (!stream) return;
+  const idx = streams.findIndex(s => s.channel === stream.channel && s.index === stream.index);
+  if (idx <= 0) return;
+  openStreamViewer(streams[idx - 1]);
+}
+
+function _svTogglePlayback() {
+  const player = _svPlayer || _miniPlayer;
+  if (!player) return;
+  try {
+    const stateCode = player.getPlayerState?.();
+    if (stateCode === window.YT?.PlayerState?.PLAYING) player.pauseVideo?.();
+    else player.playVideo?.();
+  } catch (_) {}
+}
+
+function _svUpdatePlayToggle(isPlaying) {
+  $$('.sv-bp-control-btn[data-bp-action="toggle-play"]').forEach(btn => {
+    btn.textContent = isPlaying ? '⏸' : '▶';
+    btn.title = isPlaying ? '一時停止' : '再生';
+    btn.setAttribute('aria-label', isPlaying ? '一時停止' : '再生');
+    btn.setAttribute('aria-pressed', String(isPlaying));
+  });
+}
+
+function _svBookmarkSvg() {
+  return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/></svg>';
+}
+
+function _svIsSavedInAnyPlaylist(skey) {
+  return _getPlaylists().some(pl => (pl.streams || []).includes(skey));
+}
+
+function _svOpenPlaylistModal(skey, title, button) {
+  import('./views/playlists.js').then(m => {
+    m.showAddToPlaylistModal(skey, title, {
+      onChange: (saved) => {
+        button?.classList.toggle('is-saved', !!saved);
+        button?.setAttribute('aria-pressed', String(!!saved));
+        if (button) button.title = saved ? 'プレイリストに保存済み' : 'プレイリストに保存';
+      },
+    });
+  }).catch(() => {});
+}
+
+function _svRelatedHtml(related) {
+  if (!related.length) {
+    return '<div class="sv-side-empty">同じ曲を歌った配信はまだありません</div>';
+  }
+  return related.map(r => {
+    const rthumb = youtubeThumbTiny(r.stream.url) || youtubeThumb(r.stream.url);
+    return `<button class="sv-side-rel-card" type="button" data-bp-action="open-stream" data-bp-channel="${escapeHtml(r.stream.channel)}" data-bp-index="${r.stream.index}">
+      ${rthumb ? `<img class="sv-side-rel-thumb" src="${escapeHtml(rthumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span class="sv-side-rel-thumb sv-side-rel-thumb--empty"></span>'}
+      <span class="sv-side-rel-body">
+        <span class="sv-side-rel-title">${escapeHtml(r.stream.title || '配信')}</span>
+        <span class="sv-side-rel-meta">${fmtDate(r.stream.date)} / ${r.overlap}曲一致</span>
+        <span class="sv-side-rel-songs">${r.sharedSongs.map(t => escapeHtml(t)).join('、')}</span>
+      </span>
+    </button>`;
+  }).join('');
+}
+
+function _svRenderSideRelated(related) {
+  const el = $('#sv-side-related');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="sv-side-related-head">
+      <span>関連配信</span>
+      <span>${related.length ? `${related.length}件` : ''}</span>
+    </div>
+    <div class="sv-side-related-list">${_svRelatedHtml(related)}</div>
+  `;
+}
+
 /** プレイヤー下のナビカードHTMLを返す */
 function _svNavCard(s, dir) {
   if (!s) {
@@ -1874,17 +1984,22 @@ function _svRenderBelowPlayer(stream) {
     .sort((a, b) => b.overlap - a.overlap)
     .slice(0, 8);
 
-  // プレイリスト
-  const playlists = _getPlaylists();
   const skey = streamKey(stream);
+  const saved = _svIsSavedInAnyPlaylist(skey);
 
   el.innerHTML = `
     <div class="sv-bp-wrap">
       ${_svQueueSectionHtml()}
 
-      <!-- 連続再生 + 前後ナビ -->
+      <!-- 操作 + 前後ナビ -->
       <div class="sv-bp-section sv-bp-section--nav">
-        <div class="sv-bp-autoplay-bar">
+        <div class="sv-bp-control-bar">
+          <button class="sv-bp-control-btn" type="button" data-bp-action="prev-stream"
+            ${newerStream ? '' : 'disabled'} title="前の配信" aria-label="前の配信">⏮</button>
+          <button class="sv-bp-control-btn sv-bp-control-btn--play" type="button" data-bp-action="toggle-play"
+            title="再生 / 一時停止" aria-label="再生 / 一時停止">▶</button>
+          <button class="sv-bp-control-btn" type="button" data-bp-action="next-stream"
+            ${olderStream ? '' : 'disabled'} title="次の配信" aria-label="次の配信">⏭</button>
           <label class="sv-bp-ap-label" for="sv-ap-check">
             <span class="sv-bp-ap-switch${_svAutoPlay ? ' sv-bp-ap-switch--on' : ''}">
               <input type="checkbox" id="sv-ap-check" class="sv-bp-ap-check"${_svAutoPlay ? ' checked' : ''}>
@@ -1899,75 +2014,29 @@ function _svRenderBelowPlayer(stream) {
             </span>
             リピート
           </label>
+          <button class="sv-bp-control-btn sv-bp-bookmark-btn${saved ? ' is-saved' : ''}" type="button"
+            data-bp-action="bookmark-stream" aria-pressed="${saved}" title="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}"
+            aria-label="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${_svBookmarkSvg()}</button>
+        </div>
+        <div class="sv-bp-next-hint">
           ${olderStream
-            ? `<span class="sv-bp-ap-hint">次：${escapeHtml(olderStream.title || '次の配信')}</span>`
-            : `<span class="sv-bp-ap-hint sv-bp-ap-hint--end">（最後の配信）</span>`}
+            ? `次：${escapeHtml(olderStream.title || '次の配信')}`
+            : '最後の配信です'}
         </div>
         <div class="sv-bp-nav-cards">
-          ${_svNavCard(olderStream, 'older')}
           ${_svNavCard(newerStream, 'newer')}
+          ${_svNavCard(olderStream, 'older')}
+        </div>
+        <div class="sv-bp-info-compact">
+          <span>${fmtDate(stream.date)}</span>
+          <span>第${stream.index}枠</span>
+          <span>${stream.songs.length}曲</span>
         </div>
       </div>
-
-      <!-- 配信統計 -->
-      <div class="sv-bp-section">
-        <div class="sv-bp-sh">配信情報</div>
-        <div class="sv-bp-stats">
-          <div class="sv-bp-stat">
-            <span class="sv-bp-stat-val">${stream.songs.length}</span>
-            <span class="sv-bp-stat-label">曲数</span>
-          </div>
-          <div class="sv-bp-stat">
-            <span class="sv-bp-stat-val">第${stream.index}枠</span>
-            <span class="sv-bp-stat-label">配信番号</span>
-          </div>
-          <div class="sv-bp-stat">
-            <span class="sv-bp-stat-val">${fmtDate(stream.date)}</span>
-            <span class="sv-bp-stat-label">配信日</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 関連配信 -->
-      ${related.length ? `
-      <div class="sv-bp-section">
-        <div class="sv-bp-sh">関連配信 <span class="sv-bp-sh-sub">（同じ曲を歌った回）</span></div>
-        <div class="sv-bp-related-list">
-          ${related.map(r => {
-            const rthumb = youtubeThumb(r.stream.url);
-            return `<button class="sv-bp-rel-card" type="button" data-bp-action="open-stream" data-bp-channel="${escapeHtml(r.stream.channel)}" data-bp-index="${r.stream.index}">
-              ${rthumb ? `<img class="sv-bp-rel-thumb" src="${escapeHtml(rthumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="sv-bp-rel-thumb sv-bp-rel-thumb--empty"></div>'}
-              <div class="sv-bp-rel-info">
-                <div class="sv-bp-rel-title">${escapeHtml(r.stream.title || '配信')}</div>
-                <div class="sv-bp-rel-meta">${fmtDate(r.stream.date)}</div>
-                <div class="sv-bp-rel-songs">${r.sharedSongs.map(t => escapeHtml(t)).join('、')}</div>
-              </div>
-              <div class="sv-bp-rel-badge">${r.overlap}曲</div>
-            </button>`;
-          }).join('')}
-        </div>
-      </div>
-      ` : ''}
-
-      <!-- プレイリストへ追加 -->
-      ${playlists.length ? `
-      <div class="sv-bp-section">
-        <div class="sv-bp-sh">プレイリストへ追加</div>
-        <div class="sv-bp-pl-list" id="sv-bp-pl-list">
-          ${playlists.map(pl => {
-            const added = (pl.streams || []).includes(skey);
-            return `<button class="sv-bp-pl-btn${added ? ' sv-bp-pl-btn--added' : ''}" type="button"
-              data-bp-action="add-pl" data-bp-pl-id="${escapeHtml(String(pl.id))}"${added ? ' disabled' : ''}>
-              <span class="sv-bp-pl-name">${escapeHtml(pl.name || 'プレイリスト')}</span>
-              <span class="sv-bp-pl-status">${added ? '✓ 登録済み' : '＋ 追加'}</span>
-            </button>`;
-          }).join('')}
-        </div>
-      </div>
-      ` : ''}
 
     </div>
   `;
+  _svRenderSideRelated(related);
 
   // イベント委譲（el.onXxx で上書きして重複防止）
   el.onchange = (e) => {
@@ -1996,18 +2065,22 @@ function _svRenderBelowPlayer(stream) {
       const targetIdx = parseInt(btn.dataset.bpIndex, 10);
       const target = (state.data?.streams || []).find(s => s.channel === ch && s.index === targetIdx);
       if (target) openStreamViewer(target);
-    } else if (action === 'add-pl') {
-      const plId = btn.dataset.bpPlId;
-      if (_addStreamToPlaylist(plId, skey)) {
-        btn.classList.add('sv-bp-pl-btn--added');
-        btn.disabled = true;
-        const statusEl = btn.querySelector('.sv-bp-pl-status');
-        if (statusEl) statusEl.textContent = '✓ 登録済み';
-      }
+    } else if (action === 'prev-stream') {
+      _svPlayPrev();
+    } else if (action === 'next-stream') {
+      _svPlayNext();
+    } else if (action === 'toggle-play') {
+      _svTogglePlayback();
+    } else if (action === 'bookmark-stream') {
+      _svOpenPlaylistModal(skey, stream.title || '配信', btn);
     }
   };
 
   _svQueueAfterRender(el);
+  try {
+    const isPlaying = (_svPlayer || _miniPlayer)?.getPlayerState?.() === window.YT?.PlayerState?.PLAYING;
+    _svUpdatePlayToggle(isPlaying);
+  } catch (_) {}
 }
 
 // ─── MV モード: プレイヤー下コンテンツ ──────────────────────────────────────
@@ -2271,6 +2344,7 @@ function initStreamViewer() {
           <div class="sv-panel-head">
             <span>セットリスト</span>
             <div class="sv-panel-head-right">
+              <button class="sv-setlist-toggle" id="sv-setlist-toggle" type="button" aria-expanded="true">畳む</button>
               <button class="sv-import-toggle" id="sv-import-toggle" type="button">一括入力</button>
               <button class="sv-cts-bulk-btn" id="sv-cts-bulk-btn" type="button" hidden>セトリ登録</button>
               <span class="sv-song-count" id="sv-song-count"></span>
@@ -2287,6 +2361,7 @@ function initStreamViewer() {
           </div>
           <div class="sv-panel-hint">⏱ で現在時刻をメモ ／ バッジをタップで移動</div>
           <div class="sv-setlist" id="sv-setlist"></div>
+          <div class="sv-side-related" id="sv-side-related"></div>
         </div>
       </div>
     </div>
@@ -2300,6 +2375,15 @@ function initStreamViewer() {
 
   // 全画面ボタン
   $('#sv-fullscreen-btn').addEventListener('click', enterStreamFullscreen);
+  $('#sv-setlist-toggle')?.addEventListener('click', () => _svSetSetlistCollapsed(!_svSetlistCollapsed));
+  $('#sv-side-related')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-bp-action="open-stream"]');
+    if (!btn) return;
+    const ch = btn.dataset.bpChannel;
+    const targetIdx = parseInt(btn.dataset.bpIndex, 10);
+    const target = (state.data?.streams || []).find(s => s.channel === ch && s.index === targetIdx);
+    if (target) openStreamViewer(target);
+  });
 
   // 音量
   const svVolSlider = $('#sv-vol-slider');
@@ -2474,6 +2558,7 @@ function openStreamViewer(stream, resumeAt = 0) {
     || /\/shorts\//.test(stream.url || '');
   viewer.classList.toggle('sv-portrait', _vertical);
   viewer._currentStream = stream;
+  _svApplySetlistCollapsed();
   const gen = ++_svGen;
 
   // パンくずリンクを用途に合わせて切り替え（MV: プレイリスト / 配信: タイムライン）
@@ -2505,6 +2590,8 @@ function openStreamViewer(stream, resumeAt = 0) {
     if (setlist) setlist.innerHTML = '';
     const belowPlayer = $('#sv-below-player');
     if (belowPlayer) belowPlayer.innerHTML = '';
+    const sideRelated = $('#sv-side-related');
+    if (sideRelated) sideRelated.innerHTML = '';
     _svRenderBelowPlayerMv(stream);
   } else {
     const ts = _svLoadTs(stream);
@@ -2543,6 +2630,7 @@ function openStreamViewer(stream, resumeAt = 0) {
       _svPlayer.playVideo?.();
     } catch (_) {}
     _applyVol($('#sv-vol-slider'), $('#sv-vol-btn'), null, _storedVol());
+    _svUpdatePlayToggle(true);
     _svStartEndedWatch(gen, viewer);
     return;
   }
@@ -2560,6 +2648,7 @@ function openStreamViewer(stream, resumeAt = 0) {
         playerVars: {
           autoplay: 1,
           playsinline: 1,
+          origin: location.origin,
           rel: 0,
           modestbranding: 1,
           ...(startSec > 0 ? { start: startSec } : {}),
@@ -2577,6 +2666,7 @@ function openStreamViewer(stream, resumeAt = 0) {
           },
           onStateChange: (event) => {
             if (gen !== _svGen) return;
+            _svUpdatePlayToggle(event.data === window.YT.PlayerState.PLAYING);
             if (event.data === window.YT.PlayerState.PLAYING) {
               try { event.target.setPlaybackQuality('hd1080'); } catch (_) {}
             }
@@ -2584,12 +2674,12 @@ function openStreamViewer(stream, resumeAt = 0) {
           },
           onError: () => {
             if (gen !== _svGen) return;
-            wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0${startSec > 0 ? `&start=${startSec}` : ''}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+            wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}${startSec > 0 ? `&start=${startSec}` : ''}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
           },
         },
       });
     } catch (_) {
-      wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0${startSec > 0 ? `&start=${startSec}` : ''}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}${startSec > 0 ? `&start=${startSec}` : ''}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
     }
   });
 }
