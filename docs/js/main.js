@@ -1774,6 +1774,15 @@ async function _svPlayNextMv(stream) {
   openStreamViewer({ ...next, isMv: true });
 }
 
+async function _svPlayPrevMv(stream) {
+  const videos = await _mvFetchVideos();
+  const curId = youtubeVideoId(stream?.url);
+  if (!curId || !videos.length) return;
+  const idx = videos.findIndex(v => youtubeVideoId(v.url) === curId);
+  if (idx <= 0) return;
+  openStreamViewer({ ...videos[idx - 1], isMv: true });
+}
+
 function _svHandleEnded(viewer) {
   if (!viewer || _svIsDocked(viewer)) return;
   const player = _svPlayer || _miniPlayer;
@@ -2150,12 +2159,29 @@ async function _svRenderBelowPlayerMv(stream) {
     .slice(0, 12);
   const curIdx = videos.findIndex(v => youtubeVideoId(v.url) === youtubeVideoId(stream.url));
   const nextVideo = curIdx >= 0 && curIdx < videos.length - 1 ? videos[curIdx + 1] : null;
+  const prevVideo = curIdx > 0 ? videos[curIdx - 1] : null;
+  // 現在の動画のプレイリストキー（保存済み判定・栞用）
+  const curVidObj = cur || videos.find(v => youtubeVideoId(v.url) === youtubeVideoId(stream.url));
+  const mvKey = curVidObj ? 'mv:' + curVidObj.id : '';
+  const mvSaved = mvKey ? _svIsSavedInAnyPlaylist(mvKey) : false;
+  // キュー再生中はキューの前後を優先
+  const q = _svListQueue;
+  const qActive = !!q?.items?.length;
+  const canPrev = (qActive && q.idx > 0) || !!prevVideo;
+  const canNext = (qActive && q.idx < q.items.length - 1) || !!nextVideo;
 
   el.innerHTML = `
     <div class="sv-bp-wrap">
       ${_svQueueSectionHtml()}
+      <!-- 操作（歌枠ビューワーと同じ: 前へ / 再生停止 / 次へ / 連続再生 / リピート / 栞）-->
       <div class="sv-bp-section sv-bp-section--nav">
-        <div class="sv-bp-autoplay-bar">
+        <div class="sv-bp-control-bar">
+          <button class="sv-bp-control-btn" type="button" data-mv-action="mv-prev"
+            ${canPrev ? '' : 'disabled'} title="前の動画" aria-label="前の動画">${icon('previous')}</button>
+          <button class="sv-bp-control-btn sv-bp-control-btn--play" type="button" data-mv-action="toggle-play"
+            title="再生 / 一時停止" aria-label="再生 / 一時停止">${icon('play')}</button>
+          <button class="sv-bp-control-btn" type="button" data-mv-action="mv-next"
+            ${canNext ? '' : 'disabled'} title="次の動画" aria-label="次の動画">${icon('next')}</button>
           <label class="sv-bp-ap-label" for="sv-ap-check">
             <span class="sv-bp-ap-switch${_svAutoPlay ? ' sv-bp-ap-switch--on' : ''}">
               <input type="checkbox" id="sv-ap-check" class="sv-bp-ap-check"${_svAutoPlay ? ' checked' : ''}>
@@ -2170,9 +2196,15 @@ async function _svRenderBelowPlayerMv(stream) {
             </span>
             リピート
           </label>
+          <button class="sv-bp-control-btn sv-bp-bookmark-btn${mvSaved ? ' is-saved' : ''}" type="button"
+            data-mv-action="bookmark-mv" data-mv-key="${escapeHtml(mvKey)}" aria-pressed="${mvSaved}"
+            title="${mvSaved ? 'プレイリストに保存済み' : 'プレイリストに保存'}"
+            aria-label="${mvSaved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${_svBookmarkSvg()}</button>
+        </div>
+        <div class="sv-bp-next-hint">
           ${nextVideo
-            ? `<span class="sv-bp-ap-hint">次：${escapeHtml(nextVideo.title || '次の動画')}</span>`
-            : `<span class="sv-bp-ap-hint sv-bp-ap-hint--end">（最後の動画）</span>`}
+            ? `次：${escapeHtml(nextVideo.title || '次の動画')}`
+            : `<span class="sv-bp-ap-hint--end">（最後の動画）</span>`}
         </div>
       </div>
       ${relatedShown.length ? `
@@ -2244,10 +2276,24 @@ async function _svRenderBelowPlayerMv(stream) {
       openStreamViewer({ url: btn.dataset.mvUrl, title: btn.dataset.mvTitle, isMv: true });
     } else if (action === 'all-videos') {
       activateTab('playlists');
+    } else if (action === 'toggle-play') {
+      _svTogglePlayback();
+    } else if (action === 'mv-prev') {
+      if (qActive && q.idx > 0) _svListQueueOpen(q.idx - 1);
+      else _svPlayPrevMv(stream);
+    } else if (action === 'mv-next') {
+      if (qActive && q.idx < q.items.length - 1) _svListQueueOpen(q.idx + 1);
+      else _svPlayNextMv(stream);
+    } else if (action === 'bookmark-mv') {
+      _svOpenPlaylistModal(btn.dataset.mvKey, stream.title || '動画', btn);
     }
   };
 
   _svQueueAfterRender(el);
+  try {
+    const isPlaying = (_svPlayer || _miniPlayer)?.getPlayerState?.() === window.YT?.PlayerState?.PLAYING;
+    _svUpdatePlayToggle(isPlaying);
+  } catch (_) {}
 }
 
 function _svRefreshSetlist(setlistEl, songs, ts, currentIdx) {
