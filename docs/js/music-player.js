@@ -226,6 +226,8 @@ export function initMusicPlayer() {
 
 export function playMusicQueue(videos, startIdx = 0, options = {}) {
   if (!videos?.length) return;
+  // バー再生を始めるので、表示中の配信ミニプレイヤーは閉じる（二重表示防止）
+  try { window.__closeStreamMiniPlayer?.(); } catch (_) {}
   _queue = videos.slice();
   _qIdx  = Math.max(0, Math.min(startIdx, _queue.length - 1));
   if (options.shuffle != null) {

@@ -28,6 +28,8 @@ let _musicLoadPromise = null;
 let _musicLoading = false;
 let _musicQuery   = '';
 let _musicSearchDebounce = null;
+let _musicSelectMode = false;        // 歌みた・オリ曲: まとめて追加の選択モード
+const _musicSelection = new Set();   // 選択中の動画 id
 
 /* ── データ操作（localStorage） ─────────────────────────────────────────── */
 
@@ -176,10 +178,57 @@ export function renderPlaylists() {
     }
 
     // ── 音楽ビュー切替 ──
-    const viewBtn = e.target.closest('[data-music-view]');
+    const viewBtn = e.target.closest('[data-music-view]:not([data-music-select-toggle])');
     if (viewBtn) {
       _musicView = viewBtn.dataset.musicView;
       _refreshMusicResults();
+      return;
+    }
+
+    // ── 選択モード: ON/OFF トグル ──
+    if (e.target.closest('[data-music-select-toggle]')) {
+      _musicSelectMode = !_musicSelectMode;
+      if (!_musicSelectMode) _musicSelection.clear();
+      _rerenderMusicBody();
+      return;
+    }
+
+    // ── 選択モード: 個別トグル（全再描画せず対象カードだけ更新＝スクロール維持）──
+    const selEl = e.target.closest('[data-mv-select]');
+    if (selEl) {
+      const id = selEl.dataset.mvSelect;
+      const nowSel = !_musicSelection.has(id);
+      if (nowSel) _musicSelection.add(id); else _musicSelection.delete(id);
+      const container = selEl.classList.contains('mv-list-row') ? selEl : selEl.closest('.mv-card');
+      if (container) container.classList.toggle('is-selected', nowSel);
+      const cb = container?.querySelector('.mv-card-checkbox, .mv-list-checkbox');
+      if (cb) cb.textContent = nowSel ? '✓' : '';
+      selEl.setAttribute('aria-pressed', String(nowSel));
+      _updateMusicSelBar();
+      return;
+    }
+
+    // ── 選択モード: 表示中をすべて選択 ──
+    if (e.target.closest('[data-music-select-all]')) {
+      _filterMusicVideos(_musicVideos || []).forEach(({ v }) => _musicSelection.add(v.id));
+      _rerenderMusicBody();
+      return;
+    }
+
+    // ── 選択モード: 選択解除 ──
+    if (e.target.closest('[data-music-select-clear]')) {
+      _musicSelection.clear();
+      _rerenderMusicBody();
+      return;
+    }
+
+    // ── 選択モード: まとめて追加 ──
+    if (e.target.closest('[data-music-select-add]')) {
+      if (!_musicSelection.size) return;
+      const keys = [...(_musicVideos || [])]
+        .filter(v => _musicSelection.has(v.id))
+        .map(v => 'mv:' + v.id);
+      showAddToPlaylistModal(keys);
       return;
     }
 
@@ -427,6 +476,23 @@ function _renderMusicViewBar(videos) {
         <button class="pl-music-view-btn${_musicView === 'grid'     ? ' active' : ''}" data-music-view="grid"     type="button">グリッド</button>
         <button class="pl-music-view-btn${_musicView === 'list'     ? ' active' : ''}" data-music-view="list"     type="button">リスト</button>
         <button class="pl-music-view-btn${_musicView === 'category' ? ' active' : ''}" data-music-view="category" type="button">カテゴリ</button>
+        <button class="pl-music-view-btn pl-music-select-toggle${_musicSelectMode ? ' active' : ''}" data-music-select-toggle="1" type="button" ${shown ? '' : 'disabled'} title="複数選択してまとめて追加">☑ 選択</button>
+      </div>
+    </div>
+    ${_musicSelectMode ? _renderMusicSelectBar() : ''}`;
+}
+
+/** 選択モードのアクションバー */
+function _renderMusicSelectBar() {
+  const n = _musicSelection.size;
+  return `
+    <div class="pl-music-selbar">
+      <span class="pl-music-selcount" id="pl-music-selcount">${n}曲を選択中</span>
+      <div class="pl-music-selactions">
+        <button class="pl-sel-btn" data-music-select-all="1" type="button">表示中をすべて選択</button>
+        <button class="pl-sel-btn" data-music-select-clear="1" type="button" ${n ? '' : 'disabled'}>選択解除</button>
+        <button class="pl-sel-btn primary" data-music-select-add="1" type="button" ${n ? '' : 'disabled'}>＋ ${n}曲をまとめて追加</button>
+        <button class="pl-sel-btn" data-music-select-toggle="1" type="button">完了</button>
       </div>
     </div>`;
 }
@@ -457,6 +523,25 @@ function _currentMusicQuery() {
   const input = $('#pl-music-search');
   if (input) _musicQuery = input.value || '';
   return _musicQuery;
+}
+
+/** 音楽サブタブ本体（ビューバー + 結果）を丸ごと再描画する。
+ *  選択モードのトグル/選択変化で、選択バーやチェック状態も含めて更新する。
+ *  検索クエリは _musicQuery から value 復元されるため保持される。 */
+function _rerenderMusicBody() {
+  const body = $('#pl-subtab-body');
+  if (body) body.innerHTML = _renderMusicLibrary(_musicVideos || []);
+}
+
+/** 選択バーの件数・ボタン状態だけ更新（全再描画なし） */
+function _updateMusicSelBar() {
+  const n = _musicSelection.size;
+  const c = $('#pl-music-selcount');
+  if (c) c.textContent = `${n}曲を選択中`;
+  const addBtn = document.querySelector('[data-music-select-add]');
+  if (addBtn) { addBtn.disabled = !n; addBtn.textContent = `＋ ${n}曲をまとめて追加`; }
+  const clearBtn = document.querySelector('[data-music-select-clear]');
+  if (clearBtn) clearBtn.disabled = !n;
 }
 
 function _refreshMusicResults() {
@@ -555,6 +640,24 @@ function _musicCard(video, globalIdx) {
   const thumb = youtubeThumb(video.url);
   const thumbFb = youtubeThumbFallback(video.url);
   const { label: badge, cls: badgeClass, sub } = _mvBadge(video);
+  // 選択モード: カードクリックで選択トグル（再生はしない）
+  if (_musicSelectMode) {
+    const sel = _musicSelection.has(video.id);
+    return `
+    <div class="mv-card mv-card--select${sel ? ' is-selected' : ''}">
+      <button class="mv-card-thumb-btn" type="button" data-mv-select="${escapeHtml(video.id)}" aria-pressed="${sel}">
+        ${thumb
+          ? `<img class="mv-card-thumb" src="${escapeHtml(thumb)}" data-fallback="${escapeHtml(thumbFb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+          : '<div class="mv-card-thumb mv-card-thumb-placeholder"></div>'}
+        <span class="mv-card-checkbox">${sel ? '✓' : ''}</span>
+        <span class="mv-type-badge ${badgeClass}">${badge}</span>
+      </button>
+      <div class="mv-card-info">
+        <span class="mv-card-title">${escapeHtml(video.title || '—')}</span>
+        <span class="mv-card-sub">${escapeHtml(sub)}</span>
+      </div>
+    </div>`;
+  }
   return `
     <div class="mv-card">
       <button class="mv-card-thumb-btn" type="button" data-play-music="${globalIdx}" aria-label="再生">
@@ -582,6 +685,18 @@ function _musicCard(video, globalIdx) {
 
 function _musicListRow(video, globalIdx) {
   const { label: badge, cls: badgeClass, sub } = _mvBadge(video);
+  if (_musicSelectMode) {
+    const sel = _musicSelection.has(video.id);
+    return `
+    <div class="mv-list-row mv-list-row--select${sel ? ' is-selected' : ''}" data-mv-select="${escapeHtml(video.id)}" role="button" aria-pressed="${sel}">
+      <span class="mv-list-checkbox">${sel ? '✓' : ''}</span>
+      <div class="mv-list-info">
+        <span class="mv-list-title">${escapeHtml(video.title || '—')}</span>
+        <span class="mv-list-sub">${escapeHtml(sub)}</span>
+      </div>
+      <span class="mv-type-badge ${badgeClass}">${badge}</span>
+    </div>`;
+  }
   return `
     <div class="mv-list-row">
       <span class="mv-list-num">${globalIdx + 1}</span>
@@ -915,7 +1030,12 @@ function _promptCreate() {
 
 /* ── プレイリスト追加モーダル（タイムラインから呼ばれる） ──────────────── */
 
-export function showAddToPlaylistModal(skey, streamTitle) {
+/** プレイリスト追加モーダル。skeyOrArray は単一キーまたはキー配列（まとめて追加）。 */
+export function showAddToPlaylistModal(skeyOrArray, streamTitle) {
+  const keys = Array.isArray(skeyOrArray) ? skeyOrArray.filter(Boolean) : [skeyOrArray].filter(Boolean);
+  if (!keys.length) return;
+  const isBulk = keys.length > 1;
+
   let modal = $('#pl-add-modal');
   if (!modal) {
     modal = document.createElement('div');
@@ -925,27 +1045,38 @@ export function showAddToPlaylistModal(skey, streamTitle) {
     document.body.appendChild(modal);
   }
 
-  const lists = getPlaylists();
+  /** プレイリストに未登録のキーだけ追加し、追加件数を返す */
+  const addKeysTo = (plId) => {
+    let added = 0;
+    for (const k of keys) { if (addStreamToPlaylist(plId, k)) added++; }
+    return added;
+  };
 
   const _rebuildModal = () => {
     const currentLists = getPlaylists();
     const listHtml = !currentLists.length
       ? '<p class="pl-modal-empty">プレイリストがありません<br><span style="font-size:11px">先に「新しいプレイリストを作成」してください</span></p>'
       : currentLists.map(pl => {
-          const added = pl.streams.includes(skey);
+          const allAdded = keys.every(k => pl.streams.includes(k));
+          const someAdded = !allAdded && keys.some(k => pl.streams.includes(k));
+          const status = allAdded
+            ? '<span class="pl-modal-status-check">✓</span> 登録済み'
+            : (someAdded ? '＋ 残りを追加' : '＋ 追加');
           return `
-            <button class="pl-modal-item${added ? ' pl-modal-item--added' : ' pl-modal-item--free'}"
+            <button class="pl-modal-item${allAdded ? ' pl-modal-item--added' : ' pl-modal-item--free'}"
               data-pl-add="${escapeHtml(pl.id)}"
-              ${added ? 'disabled aria-disabled="true"' : ''} type="button">
+              ${allAdded ? 'disabled aria-disabled="true"' : ''} type="button">
               <div class="pl-modal-item-info">
                 <span class="pl-modal-item-name">${escapeHtml(pl.name)}</span>
                 <span class="pl-modal-item-count">${pl.streams.length}枠</span>
               </div>
-              <span class="pl-modal-item-status${added ? ' status--added' : ' status--free'}">
-                ${added ? '<span class="pl-modal-status-check">✓</span> 登録済み' : '＋ 追加'}
+              <span class="pl-modal-item-status${allAdded ? ' status--added' : ' status--free'}">
+                ${status}
               </span>
             </button>`;
         }).join('');
+
+    const subText = isBulk ? `${keys.length}曲をまとめて追加` : (streamTitle || '配信');
 
     modal.innerHTML = `
       <div class="pl-modal-backdrop" id="pl-modal-backdrop"></div>
@@ -954,7 +1085,7 @@ export function showAddToPlaylistModal(skey, streamTitle) {
           <span class="pl-modal-head-title">保存先を選択</span>
           <button class="pl-modal-close" id="pl-modal-close" type="button" aria-label="閉じる">✕</button>
         </div>
-        <div class="pl-modal-sub">${escapeHtml(streamTitle || '配信')}</div>
+        <div class="pl-modal-sub">${escapeHtml(subText)}</div>
         <div class="pl-modal-list" id="pl-modal-list">${listHtml}</div>
         <button class="pl-modal-new" id="pl-modal-new" type="button">
           <span class="pl-modal-new-icon">＋</span> 新しいプレイリストを作成
@@ -969,9 +1100,9 @@ export function showAddToPlaylistModal(skey, streamTitle) {
       const name = prompt('プレイリスト名')?.trim();
       if (!name) return;
       const pl = createPlaylist(name);
-      addStreamToPlaylist(pl.id, skey);
+      const n = addKeysTo(pl.id);
       close();
-      _showToast(`「${name}」に追加しました`);
+      _showToast(isBulk ? `「${name}」に${n}曲追加しました` : `「${name}」に追加しました`);
     });
 
     // 未登録のプレイリスト行をクリックで即追加
@@ -979,10 +1110,16 @@ export function showAddToPlaylistModal(skey, streamTitle) {
       btn.addEventListener('click', () => {
         const plId = btn.dataset.plAdd;
         const pl = getPlaylists().find(p => p.id === plId);
-        addStreamToPlaylist(plId, skey);
-        // モーダルを再描画して登録済み表示に切り替え
-        _rebuildModal();
-        _showToast(`「${pl?.name}」に追加しました`);
+        const n = addKeysTo(plId);
+        if (isBulk) {
+          // まとめ追加は完了したら閉じる
+          close();
+          _showToast(`「${pl?.name}」に${n}曲追加しました`);
+        } else {
+          // 単曲はモーダルを再描画して登録済み表示に切り替え
+          _rebuildModal();
+          _showToast(`「${pl?.name}」に追加しました`);
+        }
       });
     });
   };

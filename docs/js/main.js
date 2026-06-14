@@ -2566,6 +2566,21 @@ function closeStreamViewer() {
 // プレイリストビューからストリームを開けるようにグローバル公開
 window.__openStreamViewer = openStreamViewer;
 
+/** 配信ミニプレイヤー（yt-player-panel にドック中 or インライン）を閉じる。
+ *  音楽バー再生開始時に呼び、ミニプレイヤーとバーが二重に出るのを防ぐ。 */
+window.__closeStreamMiniPlayer = () => {
+  const viewer = $('#stream-viewer');
+  if (_svIsDocked(viewer)) { _svDiscardMini(); return true; }
+  const panel = $('#yt-player-panel');
+  if (panel && !panel.hidden) {
+    panel.hidden = true;
+    _miniDestroyPlayer();
+    _svLastStream = null;
+    return true;
+  }
+  return false;
+};
+
 /** 曲詳細モーダル用: 月別歌唱スパークライン SVG を返す */
 function buildSparkline(song) {
   const allRefs = song.streamRefs || [];
