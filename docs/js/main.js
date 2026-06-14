@@ -7,6 +7,7 @@ import { $, $$, escapeHtml, fmtDate, daysSince, isLink, formatNumber, streamKey 
 import { DEFAULT_CHANNEL } from './config.js';
 import { readUrlState, writeUrlState } from './url-state.js';
 import { initSearchPalette, openSearchPalette, closeSearchPalette, isSearchPaletteOpen } from './views/search-palette.js';
+import { icon } from './icons.js';
 
 initTheme();
 initStore();
@@ -783,9 +784,9 @@ function _svInitShareModal() {
     <div class="sv-share-backdrop"></div>
     <div class="sv-share-dialog" role="dialog" aria-modal="true" aria-label="動画を共有">
       <div class="sv-share-head">
-        <span class="sv-share-head-icon">♡</span>
+        <span class="sv-share-head-icon">${icon('heart')}</span>
         <span class="sv-share-head-title">この歌枠をおすそわけ</span>
-        <button class="sv-share-close" id="sv-share-close" type="button" aria-label="閉じる">✕</button>
+        <button class="sv-share-close" id="sv-share-close" type="button" aria-label="閉じる">${icon('close')}</button>
       </div>
       <div class="sv-share-charm" aria-hidden="true">
         <span></span><span></span><span></span>
@@ -1070,10 +1071,10 @@ function initYouTubePlayer() {
         <span class="yt-mini-hint" id="yt-mini-hint"></span>
       </button>
       <div class="yt-mini-vol-wrap">
-        <button class="vol-btn" id="yt-mini-vol-btn" type="button" aria-label="音量">🔊</button>
+        <button class="vol-btn" id="yt-mini-vol-btn" type="button" aria-label="音量">${icon('volume')}</button>
         <input class="vol-slider" id="yt-mini-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
       </div>
-      <button id="yt-player-close" type="button" class="yt-mini-close-btn" aria-label="閉じる">✕</button>
+      <button id="yt-player-close" type="button" class="yt-mini-close-btn" aria-label="閉じる">${icon('close')}</button>
     </div>
   `;
   document.body.appendChild(panel);
@@ -1122,12 +1123,12 @@ function initYouTubePlayer() {
     const v0 = _storedVol();
     miniVolSlider.value = v0;
     miniVolSlider.style.setProperty('--pct', `${v0}%`);
-    if (miniVolBtn) miniVolBtn.textContent = _volIcon(v0);
+    if (miniVolBtn) miniVolBtn.innerHTML = _volIcon(v0);
     miniVolSlider.addEventListener('input', e => {
       const v = parseInt(e.target.value);
       e.target.style.setProperty('--pct', `${v}%`);
       _saveVol(v);
-      if (miniVolBtn) miniVolBtn.textContent = _volIcon(v);
+      if (miniVolBtn) miniVolBtn.innerHTML = _volIcon(v);
       if (_miniPlayer) try { _miniPlayer.setVolume(v); } catch (_) {}
     });
   }
@@ -1172,11 +1173,11 @@ function _onYtReady(fn) {
 
 const _storedVol = () => Math.max(0, Math.min(100, parseInt(localStorage.getItem('kanaVol') ?? '100') || 100));
 const _saveVol   = v  => localStorage.setItem('kanaVol', String(v));
-const _volIcon   = v  => v === 0 ? '🔇' : v < 50 ? '🔉' : '🔊';
+const _volIcon   = () => icon('volume');
 
 function _applyVol(slider, btn, player, v) {
   if (slider) { slider.value = v; slider.style.setProperty('--pct', `${v}%`); }
-  if (btn) btn.textContent = _volIcon(v);
+  if (btn) btn.innerHTML = _volIcon(v);
   if (player) try { player.setVolume(v); } catch (_) {}
 }
 
@@ -1265,7 +1266,7 @@ function _svSongRow(song, i, ts, currentIdx) {
   const isCurrent = i === currentIdx;
   const time = ts[i];
   const badge = time != null
-    ? `<button class="sv-ts-badge" data-idx="${i}" data-action="seek" title="${escapeHtml(_fmtTs(time))} に移動">${escapeHtml(_fmtTs(time))}</button><button class="sv-ts-del" data-idx="${i}" data-action="del-ts" aria-label="タイムスタンプ削除">✕</button>`
+    ? `<button class="sv-ts-badge" data-idx="${i}" data-action="seek" title="${escapeHtml(_fmtTs(time))} に移動">${escapeHtml(_fmtTs(time))}</button><button class="sv-ts-del" data-idx="${i}" data-action="del-ts" aria-label="タイムスタンプ削除">${icon('close')}</button>`
     : '';
   // コミュニティタイムスタンプ（承認済み）
   const ctsItems = _svCommunityTs[i] || [];
@@ -1280,7 +1281,7 @@ function _svSongRow(song, i, ts, currentIdx) {
       <span class="sv-song-title">${escapeHtml(song.title)}</span>
       <span class="sv-song-artist">${escapeHtml(song.artist)}</span>
     </div>
-    <div class="sv-song-actions">${badge}<button class="sv-ts-set" data-idx="${i}" data-action="set-ts" title="現在の再生時刻をタイムスタンプに記録">⏱ メモ</button></div>
+    <div class="sv-song-actions">${badge}<button class="sv-ts-set" data-idx="${i}" data-action="set-ts" title="現在の再生時刻をタイムスタンプに記録">${icon('time')} メモ</button></div>
     ${ctsRow}
   </div>`;
 }
@@ -1344,7 +1345,7 @@ function _svShowProposeModal(stream, songIdx, songTitle) {
     <div class="sv-cts-modal-box" role="dialog" aria-modal="true" aria-label="タイムスタンプを提案">
       <div class="sv-cts-modal-head">
         <span class="sv-cts-modal-title">タイムスタンプを提案</span>
-        <button class="sv-cts-modal-close" type="button" aria-label="閉じる">✕</button>
+        <button class="sv-cts-modal-close" type="button" aria-label="閉じる">${icon('close')}</button>
       </div>
       <p class="sv-cts-modal-song">${escapeHtml(songTitle)}</p>
       <label class="sv-cts-modal-label">
@@ -1456,7 +1457,7 @@ function _svShowBulkProposeModal(stream) {
         <span class="sv-bulk-title" title="${escapeHtml(song.title)}">${escapeHtml(song.title)}</span>
         <input class="sv-bulk-ts-input" type="text" value="${escapeHtml(prefill)}"
           placeholder="0:00" autocomplete="off" data-bulk-ts-idx="${idx}">
-        <button class="sv-bulk-ts-now" type="button" title="現在時刻を入力" data-bulk-now="${idx}">⏱</button>
+        <button class="sv-bulk-ts-now" type="button" title="現在時刻を入力" data-bulk-now="${idx}">${icon('time')}</button>
       </div>`;
   }).join('');
 
@@ -1468,7 +1469,7 @@ function _svShowBulkProposeModal(stream) {
       aria-label="${isRevise ? '修正申請' : 'セトリ登録'}">
       <div class="sv-cts-modal-head">
         <span class="sv-cts-modal-title">${isRevise ? '修正申請' : 'セトリ登録'}</span>
-        <button class="sv-cts-modal-close" type="button" aria-label="閉じる">✕</button>
+        <button class="sv-cts-modal-close" type="button" aria-label="閉じる">${icon('close')}</button>
       </div>
       <details class="sv-paste-area">
         <summary class="sv-paste-summary">配信コメントから一括入力</summary>
@@ -1688,7 +1689,7 @@ function _svQueueSectionHtml() {
     : (current?.stream?.title || '配信');
   return `
     <div class="sv-bp-section sv-queue-section${q.collapsed ? ' is-collapsed' : ''}">
-      <div class="sv-bp-sh sv-queue-head">📋 ${escapeHtml(q.name)}
+      <div class="sv-bp-sh sv-queue-head">${icon('playlist')} ${escapeHtml(q.name)}
         <span class="sv-bp-sh-sub">（${q.idx + 1} / ${q.items.length}）</span>
         <span class="sv-queue-current">${escapeHtml(currentTitle)}</span>
         <button class="sv-queue-toggle" type="button"
@@ -1696,14 +1697,14 @@ function _svQueueSectionHtml() {
           title="${q.collapsed ? 'キューを開く' : 'キューを閉じる'}">${q.collapsed ? '開く' : '閉じる'}</button>
         <button class="sv-queue-repeat${q.repeat ? ' is-on' : ''}" type="button"
           data-svq-action="repeat" aria-pressed="${q.repeat}"
-          title="リストリピート（ON: 最後まで再生したら先頭へ戻る）">🔁 リピート</button>
+          title="リストリピート（ON: 最後まで再生したら先頭へ戻る）">${icon('repeat')} リピート</button>
       </div>
       <div class="sv-queue-list">
         ${q.items.map((it, i) => {
           const title = it.kind === 'mv' ? (it.video?.title || '動画') : (it.stream?.title || '配信');
           const meta = it.kind === 'mv'
-            ? '🎬 動画'
-            : `📅 ${fmtDate(it.stream?.date)}　第${it.stream?.index}枠`;
+            ? `${icon('video')} 動画`
+            : `${icon('calendar')} ${fmtDate(it.stream?.date)}　第${it.stream?.index}枠`;
           return `<button class="sv-queue-row${i === q.idx ? ' is-current' : ''}" type="button"
             data-svq-action="jump" data-svq-idx="${i}">
             <span class="sv-queue-num">${i + 1}</span>
@@ -1880,7 +1881,7 @@ function _svTogglePlayback() {
 
 function _svUpdatePlayToggle(isPlaying) {
   $$('.sv-bp-control-btn[data-bp-action="toggle-play"]').forEach(btn => {
-    btn.textContent = isPlaying ? '⏸' : '▶';
+    btn.innerHTML = isPlaying ? icon('pause') : icon('play');
     btn.title = isPlaying ? '一時停止' : '再生';
     btn.setAttribute('aria-label', isPlaying ? '一時停止' : '再生');
     btn.setAttribute('aria-pressed', String(isPlaying));
@@ -1995,11 +1996,11 @@ function _svRenderBelowPlayer(stream) {
       <div class="sv-bp-section sv-bp-section--nav">
         <div class="sv-bp-control-bar">
           <button class="sv-bp-control-btn" type="button" data-bp-action="prev-stream"
-            ${newerStream ? '' : 'disabled'} title="前の配信" aria-label="前の配信">⏮</button>
+            ${newerStream ? '' : 'disabled'} title="前の配信" aria-label="前の配信">${icon('previous')}</button>
           <button class="sv-bp-control-btn sv-bp-control-btn--play" type="button" data-bp-action="toggle-play"
-            title="再生 / 一時停止" aria-label="再生 / 一時停止">▶</button>
+            title="再生 / 一時停止" aria-label="再生 / 一時停止">${icon('play')}</button>
           <button class="sv-bp-control-btn" type="button" data-bp-action="next-stream"
-            ${olderStream ? '' : 'disabled'} title="次の配信" aria-label="次の配信">⏭</button>
+            ${olderStream ? '' : 'disabled'} title="次の配信" aria-label="次の配信">${icon('next')}</button>
           <label class="sv-bp-ap-label" for="sv-ap-check">
             <span class="sv-bp-ap-switch${_svAutoPlay ? ' sv-bp-ap-switch--on' : ''}">
               <input type="checkbox" id="sv-ap-check" class="sv-bp-ap-check"${_svAutoPlay ? ' checked' : ''}>
@@ -2174,7 +2175,7 @@ async function _svRenderBelowPlayerMv(stream) {
       </div>
       ${relatedShown.length ? `
       <div class="sv-bp-section">
-        <div class="sv-bp-sh">🎤 この曲が歌われた歌枠 <span class="sv-bp-sh-sub">（全${related.length}回）</span></div>
+        <div class="sv-bp-sh">${icon('mic')} この曲が歌われた歌枠 <span class="sv-bp-sh-sub">（全${related.length}回）</span></div>
         <div class="sv-bp-related-list">
           ${relatedShown.map(r => {
             const rthumb = youtubeThumb(r.stream.url);
@@ -2183,7 +2184,7 @@ async function _svRenderBelowPlayerMv(stream) {
               <div class="sv-bp-rel-info">
                 <div class="sv-bp-rel-title">${escapeHtml(r.stream.title || '配信')}</div>
                 <div class="sv-bp-rel-meta">${fmtDate(r.stream.date)}　第${r.stream.index}枠</div>
-                <div class="sv-bp-rel-songs">🎵 ${escapeHtml(r.songTitle)}</div>
+                <div class="sv-bp-rel-songs">${icon('music')} ${escapeHtml(r.songTitle)}</div>
               </div>
             </button>`;
           }).join('')}
@@ -2193,7 +2194,7 @@ async function _svRenderBelowPlayerMv(stream) {
 
       ${others.length ? `
       <div class="sv-bp-section">
-        <div class="sv-bp-sh">🎬 ほかの動画 <button class="sv-mv-all-btn" type="button" data-mv-action="all-videos">すべて見る →</button></div>
+        <div class="sv-bp-sh">${icon('video')} ほかの動画 <button class="sv-mv-all-btn" type="button" data-mv-action="all-videos">すべて見る →</button></div>
         <div class="sv-mv-grid">
           ${others.map(v => {
             const thumb = youtubeThumb(v.url);
@@ -2318,19 +2319,19 @@ function initStreamViewer() {
           <div class="sv-stream-meta" id="sv-stream-meta"></div>
         </div>
         <button class="sv-fullscreen-btn" id="sv-fullscreen-btn" type="button"
-          title="大画面で再生" aria-pressed="false">⛶</button>
+          title="大画面で再生" aria-pressed="false">${icon('external')}</button>
         <div class="sv-volume-wrap">
-          <button class="vol-btn" id="sv-vol-btn" type="button" aria-label="音量">🔊</button>
+          <button class="vol-btn" id="sv-vol-btn" type="button" aria-label="音量">${icon('volume')}</button>
           <input class="vol-slider" id="sv-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
         </div>
         <button class="sv-music-btn" id="sv-music-btn" type="button" title="現在位置から音楽プレイヤーで聴く">
-          <span class="sv-music-icon">🎵</span><span class="sv-music-label">音楽プレイヤーで聴く</span>
+          <span class="sv-music-icon">${icon('music')}</span><span class="sv-music-label">音楽プレイヤーで聴く</span>
         </button>
         <button class="sv-share-btn" id="sv-share-btn" type="button" title="この動画の共有リンクをコピー">
-          <span class="sv-share-icon">🔗</span><span class="sv-share-label">共有</span>
+          <span class="sv-share-icon">${icon('link')}</span><span class="sv-share-label">共有</span>
         </button>
         <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener" title="YouTubeで開く">
-          <span class="sv-yt-icon">↗</span><span class="sv-yt-label">YouTubeで開く</span>
+          <span class="sv-yt-icon">${icon('external')}</span><span class="sv-yt-label">YouTubeで開く</span>
         </a>
       </div>
       <div class="sv-body">
@@ -2359,7 +2360,7 @@ function initStreamViewer() {
               <button class="sv-import-cancel" id="sv-import-cancel" type="button">キャンセル</button>
             </div>
           </div>
-          <div class="sv-panel-hint">⏱ で現在時刻をメモ ／ バッジをタップで移動</div>
+      <div class="sv-panel-hint">${icon('time')} で現在時刻をメモ ／ バッジをタップで移動</div>
           <div class="sv-setlist" id="sv-setlist"></div>
           <div class="sv-side-related" id="sv-side-related"></div>
         </div>
@@ -2392,12 +2393,12 @@ function initStreamViewer() {
     const v0 = _storedVol();
     svVolSlider.value = v0;
     svVolSlider.style.setProperty('--pct', `${v0}%`);
-    if (svVolBtn) svVolBtn.textContent = _volIcon(v0);
+    if (svVolBtn) svVolBtn.innerHTML = _volIcon(v0);
     svVolSlider.addEventListener('input', e => {
       const v = parseInt(e.target.value);
       e.target.style.setProperty('--pct', `${v}%`);
       _saveVol(v);
-      if (svVolBtn) svVolBtn.textContent = _volIcon(v);
+      if (svVolBtn) svVolBtn.innerHTML = _volIcon(v);
       if (_svPlayer) try { _svPlayer.setVolume(v); } catch (_) {}
     });
   }
@@ -2577,7 +2578,7 @@ function openStreamViewer(stream, resumeAt = 0) {
   const bcTitleEl = $('#sv-bc-title');
   if (bcTitleEl) bcTitleEl.textContent = stream.title || '配信';
   const metaEl = $('#sv-stream-meta');
-  if (metaEl) metaEl.textContent = stream.isMv ? '' : `${fmtDate(stream.date)}　第${stream.index}枠　🎤 ${stream.songs.length}曲`;
+  if (metaEl) metaEl.innerHTML = stream.isMv ? '' : `${fmtDate(stream.date)}　第${stream.index}枠　${icon('mic')} ${stream.songs.length}曲`;
   const ytLink = $('#sv-yt-link');
   if (ytLink) ytLink.href = stream.url;
   const songCount = $('#sv-song-count');
@@ -2772,7 +2773,7 @@ function openSongDetail(key) {
       </div>
     </div>
     <div class="song-detail-actions">
-      <button class="btn ${favActive ? 'primary' : 'ghost'}" type="button" data-detail-action="favorite" data-songkey="${escapeHtml(song.key)}">${favActive ? '♥ お気に入り解除' : '♡ お気に入りに追加'}</button>
+      <button class="btn ${favActive ? 'primary' : 'ghost'}" type="button" data-detail-action="favorite" data-songkey="${escapeHtml(song.key)}">${icon('heart')} ${favActive ? 'お気に入り解除' : 'お気に入りに追加'}</button>
       <button class="btn primary" type="button" data-detail-action="timeline" data-songkey="${escapeHtml(song.key)}">歌枠を見る</button>
       <button class="btn ghost" type="button" data-detail-action="close">閉じる</button>
     </div>
@@ -2811,7 +2812,7 @@ function initSongModal() {
       const key = action.dataset.songkey;
       toggleFavorite(key);
       const nowActive = isFavorite(key);
-      action.textContent = nowActive ? '♥ お気に入り解除' : '♡ お気に入りに追加';
+      action.innerHTML = `${icon('heart')} ${nowActive ? 'お気に入り解除' : 'お気に入りに追加'}`;
       action.classList.toggle('primary', nowActive);
       action.classList.toggle('ghost', !nowActive);
     }
@@ -3236,7 +3237,7 @@ document.body.addEventListener('click', (e) => {
     // 追加/削除の瞬間に呼び出し元ボタンの保存済み表示を切り替える
     const onChange = (saved) => {
       plAddEl.classList.toggle('is-saved', saved);
-      if (plAddEl.classList.contains('timeline-save-btn')) plAddEl.textContent = saved ? '★' : '☆';
+      if (plAddEl.classList.contains('timeline-save-btn')) plAddEl.innerHTML = icon('bookmark');
       plAddEl.title = saved ? 'プレイリストに保存済み' : 'プレイリストに保存';
     };
     import('./views/playlists.js').then(m => m.showAddToPlaylistModal(skey, title, { onChange }));

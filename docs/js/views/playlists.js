@@ -12,6 +12,7 @@
 
 import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbFallback, youtubeVideoId } from '../utils.js';
+import { icon } from '../icons.js';
 
 const STORAGE_KEY = 'kanau-playlists';
 const MUSIC_CACHE_KEY = 'kanau-music-videos-cache-v2';
@@ -202,7 +203,7 @@ export function renderPlaylists() {
       const container = selEl.classList.contains('mv-list-row') ? selEl : selEl.closest('.mv-card');
       if (container) container.classList.toggle('is-selected', nowSel);
       const cb = container?.querySelector('.mv-card-checkbox, .mv-list-checkbox');
-      if (cb) cb.textContent = nowSel ? '✓' : '';
+      if (cb) cb.innerHTML = nowSel ? icon('check') : '';
       selEl.setAttribute('aria-pressed', String(nowSel));
       _updateMusicSelBar();
       return;
@@ -461,7 +462,7 @@ function _renderMusicSelectBar() {
       <div class="pl-music-selactions">
         <button class="pl-sel-btn" data-music-select-all="1" type="button">表示中をすべて選択</button>
         <button class="pl-sel-btn" data-music-select-clear="1" type="button" ${n ? '' : 'disabled'}>選択解除</button>
-        <button class="pl-sel-btn primary" data-music-select-add="1" type="button" ${n ? '' : 'disabled'}>＋ ${n}曲をまとめて追加</button>
+        <button class="pl-sel-btn primary" data-music-select-add="1" type="button" ${n ? '' : 'disabled'}>${icon('plus')} ${n}曲をまとめて追加</button>
         <button class="pl-sel-btn" data-music-select-toggle="1" type="button">完了</button>
       </div>
     </div>`;
@@ -509,7 +510,7 @@ function _updateMusicSelBar() {
   const c = $('#pl-music-selcount');
   if (c) c.textContent = `${n}曲を選択中`;
   const addBtn = document.querySelector('[data-music-select-add]');
-  if (addBtn) { addBtn.disabled = !n; addBtn.textContent = `＋ ${n}曲をまとめて追加`; }
+  if (addBtn) { addBtn.disabled = !n; addBtn.innerHTML = `${icon('plus')} ${n}曲をまとめて追加`; }
   const clearBtn = document.querySelector('[data-music-select-clear]');
   if (clearBtn) clearBtn.disabled = !n;
 }
@@ -624,7 +625,7 @@ function _musicCard(video, globalIdx) {
         ${thumb
           ? `<img class="mv-card-thumb" src="${escapeHtml(thumb)}" data-fallback="${escapeHtml(thumbFb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
           : '<div class="mv-card-thumb mv-card-thumb-placeholder"></div>'}
-        <span class="mv-card-checkbox">${sel ? '✓' : ''}</span>
+        <span class="mv-card-checkbox">${sel ? icon('check') : ''}</span>
         <span class="mv-type-badge ${badgeClass}">${badge}</span>
       </button>
       <div class="mv-card-info">
@@ -640,7 +641,7 @@ function _musicCard(video, globalIdx) {
         ${thumb
           ? `<img class="mv-card-thumb" src="${escapeHtml(thumb)}" data-fallback="${escapeHtml(thumbFb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
           : '<div class="mv-card-thumb mv-card-thumb-placeholder"></div>'}
-        <span class="mv-card-play-icon">▶</span>
+        <span class="mv-card-play-icon">${icon('play')}</span>
         <span class="mv-type-badge ${badgeClass}">${badge}</span>
       </a>
       <button class="pl-sg-add mv-add-btn mv-add-btn--overlay${saved ? ' is-saved' : ''}" type="button"
@@ -664,7 +665,7 @@ function _musicListRow(video, globalIdx) {
     const sel = _musicSelection.has(video.id);
     return `
     <div class="mv-list-row mv-list-row--select${sel ? ' is-selected' : ''}" data-mv-select="${escapeHtml(video.id)}" role="button" aria-pressed="${sel}">
-      <span class="mv-list-checkbox">${sel ? '✓' : ''}</span>
+      <span class="mv-list-checkbox">${sel ? icon('check') : ''}</span>
       <span class="mv-list-thumb">
         ${thumb
           ? `<img src="${escapeHtml(thumb)}" data-fallback="${escapeHtml(thumbFb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
@@ -692,7 +693,7 @@ function _musicListRow(video, globalIdx) {
       <button class="mv-add-btn${saved ? ' is-saved' : ''}" type="button"
         data-playlist-add-mv="${escapeHtml(video.id)}"
         data-stream-title="${escapeHtml(video.title || '')}"
-        title="${saved ? 'プレイリストに保存済み' : 'プレイリストに追加'}">${saved ? '◆' : '＋'}</button>
+        title="${saved ? 'プレイリストに保存済み' : 'プレイリストに追加'}">${icon('bookmark')}</button>
     </div>`;
 }
 
@@ -786,17 +787,17 @@ function _renderMyPlaylists(allStreams) {
     return `
       <div class="pl-empty-state">
         <p>まだプレイリストがありません</p>
-        <p class="pl-empty-hint">タイムラインの配信枠から <strong>☆ 保存</strong> を押して追加できます</p>
+        <p class="pl-empty-hint">タイムラインの配信枠から <strong>栞ボタン</strong> を押して追加できます</p>
       </div>
       <div class="pl-my-actions">
-        <button class="pl-new-btn" id="pl-new-btn" type="button">＋ 新規作成</button>
+        <button class="pl-new-btn" id="pl-new-btn" type="button">${icon('plus')} 新規作成</button>
       </div>`;
   }
 
   return `
     <div class="pl-my-actions">
       <span class="pl-my-count">${lists.length}件のプレイリスト</span>
-      <button class="pl-new-btn" id="pl-new-btn" type="button">＋ 新規作成</button>
+      <button class="pl-new-btn" id="pl-new-btn" type="button">${icon('plus')} 新規作成</button>
     </div>
     <div class="pl-grid">
       ${lists.map(pl => _renderPlaylistCard(pl, allStreams)).join('')}
@@ -820,7 +821,7 @@ function _renderPlaylistCard(pl, allStreams) {
   const items = entries.map(({ skey, isMv, mv, stream }) => {
     const moveKey = escapeHtml(pl.id + '|:|' + skey);
     const dragHandle = `<span class="pl-drag-handle" aria-hidden="true" title="ドラッグして並び替え">⠿</span>`;
-    const rmBtn = `<button class="pl-rm-btn" data-pl-rm-stream="${moveKey}" type="button" title="削除">✕</button>`;
+    const rmBtn = `<button class="pl-rm-btn" data-pl-rm-stream="${moveKey}" type="button" title="削除">${icon('close')}</button>`;
 
     if (isMv) {
       if (!mv) return `
@@ -841,7 +842,7 @@ function _renderPlaylistCard(pl, allStreams) {
           </div>
           <div class="pl-stream-actions">
             ${mvIdx >= 0
-              ? `<button class="pl-play-stream-btn" data-play-music-pl="${mvIdx}" type="button" title="再生">▶</button>`
+              ? `<button class="pl-play-stream-btn" data-play-music-pl="${mvIdx}" type="button" title="再生">${icon('play')}</button>`
               : ''}
             ${rmBtn}
           </div>
@@ -864,7 +865,7 @@ function _renderPlaylistCard(pl, allStreams) {
         <div class="pl-stream-actions">
           ${stream.url
             ? `<button class="pl-play-stream-btn" data-pl-play-stream="${escapeHtml(skey)}"
-                type="button" title="再生">▶</button>`
+                type="button" title="再生">${icon('play')}</button>`
             : ''}
           ${rmBtn}
         </div>
@@ -899,7 +900,7 @@ function _renderPlaylistCard(pl, allStreams) {
         </button>` : ''}
         ${pl.streams.length ? `
         <button class="pl-yt-share-btn" data-pl-share="${escapeHtml(pl.id)}"
-          type="button" title="このプレイリストの共有リンクをコピー">🔗 リンクを共有</button>` : ''}
+          type="button" title="このプレイリストの共有リンクをコピー">${icon('link')} リンクを共有</button>` : ''}
       </div>` : ''}
     </div>`;
 }
@@ -920,8 +921,8 @@ function _handleMyPlaylistsClick(e, allStreams) {
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     const url = `${location.origin}${location.pathname}?pl=${b64}`;
     const done = (ok) => {
-      shareBtn.textContent = ok ? '✓ コピーしました' : 'コピーできません';
-      setTimeout(() => { shareBtn.textContent = '🔗 リンクを共有'; }, 1600);
+      shareBtn.innerHTML = ok ? `${icon('check')} コピーしました` : 'コピーできません';
+      setTimeout(() => { shareBtn.innerHTML = `${icon('link')} リンクを共有`; }, 1600);
     };
     navigator.clipboard?.writeText(url).then(() => done(true)).catch(() => {
       try {
@@ -1085,12 +1086,12 @@ export function showAddToPlaylistModal(skeyOrArray, streamTitle, opts = {}) {
       <div class="pl-modal-box" role="dialog" aria-modal="true" aria-label="プレイリストに保存">
         <div class="pl-modal-head">
           <span class="pl-modal-head-title">保存先</span>
-          <button class="pl-modal-close" id="pl-modal-close" type="button" aria-label="閉じる">✕</button>
+          <button class="pl-modal-close" id="pl-modal-close" type="button" aria-label="閉じる">${icon('close')}</button>
         </div>
         <div class="pl-modal-sub">${escapeHtml(subText)}</div>
         <div class="pl-modal-list" id="pl-modal-list">${listHtmlAll()}</div>
         <button class="pl-modal-new" id="pl-modal-new" type="button">
-          <span class="pl-modal-new-icon">＋</span> 新しいプレイリストを作成
+          <span class="pl-modal-new-icon">${icon('plus')}</span> 新しいプレイリストを作成
         </button>
       </div>`;
     modal.hidden = false;

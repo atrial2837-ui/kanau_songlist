@@ -9,6 +9,7 @@
  */
 
 import { $, escapeHtml, youtubeVideoId, youtubeThumb } from './utils.js';
+import { icon } from './icons.js';
 
 /* ── 状態 ────────────────────────────────────────────────────────────────── */
 
@@ -30,7 +31,7 @@ let _apiLoader = null;
 
 const _storedVol = () => Math.max(0, Math.min(100, parseInt(localStorage.getItem('kanaVol') ?? '100') || 100));
 const _saveVol   = v  => localStorage.setItem('kanaVol', String(v));
-const _volIcon   = v  => v === 0 ? '🔇' : v < 50 ? '🔉' : '🔊';
+const _volIcon   = () => icon('volume');
 
 /* ── YT API 連携 ─────────────────────────────────────────────────────────── */
 
@@ -104,7 +105,7 @@ export function initMusicPlayer() {
       </div>
       <div class="mbar-end">
         <div class="mbar-volume">
-          <button class="vol-btn" id="mbar-vol-btn" type="button" aria-label="音量">🔊</button>
+          <button class="vol-btn" id="mbar-vol-btn" type="button" aria-label="音量">${icon('volume')}</button>
           <input class="vol-slider" id="mbar-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
         </div>
         <button class="mbar-expand-btn" id="mbar-expand" type="button" title="現在位置から動画ビューワーで見る" aria-label="現在位置から動画ビューワーで見る">
@@ -112,7 +113,7 @@ export function initMusicPlayer() {
           <span>動画で見る</span>
         </button>
         <span class="mbar-queue-info" id="mbar-queue-info"></span>
-        <button class="mbar-close-btn" id="mbar-close" type="button" aria-label="閉じる">✕</button>
+        <button class="mbar-close-btn" id="mbar-close" type="button" aria-label="閉じる">${icon('close')}</button>
       </div>
     </div>
     <div class="mbar-queue-popup" id="mbar-queue-popup" hidden></div>`;
@@ -142,12 +143,12 @@ export function initMusicPlayer() {
     const v0 = _storedVol();
     volSlider.value = v0;
     volSlider.style.setProperty('--pct', `${v0}%`);
-    if (volBtn) volBtn.textContent = _volIcon(v0);
+    if (volBtn) volBtn.innerHTML = _volIcon(v0);
     volSlider.addEventListener('input', e => {
       const v = parseInt(e.target.value);
       e.target.style.setProperty('--pct', `${v}%`);
       _saveVol(v);
-      if (volBtn) volBtn.textContent = _volIcon(v);
+      if (volBtn) volBtn.innerHTML = _volIcon(v);
       const player = _player();
       if (player) try { player.setVolume(v); } catch (_) {}
     });
@@ -161,7 +162,7 @@ export function initMusicPlayer() {
       if (cur > 0) _preMute = cur;
       volSlider.value = newV;
       volSlider.style.setProperty('--pct', `${newV}%`);
-      volBtn.textContent = _volIcon(newV);
+      volBtn.innerHTML = _volIcon(newV);
       const player = _player();
       if (player) try { player.setVolume(newV); } catch (_) {}
     });
@@ -437,7 +438,7 @@ function _loadTrack(idx, startAt = 0) {
             const s = $('#mbar-vol-slider');
             if (s) { s.value = v; s.style.setProperty('--pct', `${v}%`); }
             const b = $('#mbar-vol-btn');
-            if (b) b.textContent = _volIcon(v);
+            if (b) b.innerHTML = _volIcon(v);
             _startProg();
           },
           onStateChange: (ev) => {

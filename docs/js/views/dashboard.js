@@ -2,6 +2,7 @@ import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, fmtMonth, daysSince, youtubeThumb } from '../utils.js';
 import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsThisMonth, buildMonthly, buildHeatmap, heatLevel, isoDate } from '../domain-compat.js';
 import { getToday } from '../store.js';
+import { icon } from '../icons.js';
 
 export function renderDashboard() {
   const { songs, streams } = state.data;
@@ -18,7 +19,7 @@ export function renderDashboard() {
 
   const activityHtml = `
     <div class="card dashboard-card dashboard-activity-card">
-      <div class="card-title">📈 今月の活動</div>
+      <div class="card-title">${icon('analytics')} 今月の活動</div>
       <div class="dashboard-metric-list">
         <div class="activity-row">
           <span class="a-date">配信</span>
@@ -46,7 +47,7 @@ export function renderDashboard() {
 
   const top5Html = `
     <div class="card dashboard-card dashboard-top-card">
-      <div class="card-title">🏆 TOP5 楽曲</div>
+      <div class="card-title">${icon('rank')} TOP5 楽曲</div>
       <div class="bar-list">
         ${top5.length ? top5.map((s, i) => topBarRow(s, i, top5Max)).join('') : '<div class="empty-state">曲データなし</div>'}
       </div>
@@ -63,17 +64,17 @@ export function renderDashboard() {
           ${top5Html}
         </div>
         <div class="card dashboard-card dashboard-monthly-card">
-          <div class="card-title">🎶 月別 歌唱数 <span class="pill">直近12か月</span></div>
+          <div class="card-title">${icon('music')} 月別 歌唱数 <span class="pill">直近12か月</span></div>
           ${renderMonthlyBars(monthly, monthlyMax)}
         </div>
       </div>
       <div class="card dashboard-card dashboard-side-card">
         <section class="dashboard-side-section">
-          <div class="card-title">🎸 ジャンル分布 <span class="pill">楽曲数</span></div>
+          <div class="card-title">${icon('chart')} ジャンル分布 <span class="pill">楽曲数</span></div>
           ${renderGenreChart(songs)}
         </section>
         <section class="dashboard-side-section">
-          <div class="card-title">📅 配信ヒートマップ <span class="pill">直近1年</span></div>
+          <div class="card-title">${icon('calendar')} 配信ヒートマップ <span class="pill">直近1年</span></div>
           ${renderHeatmap(heatmap)}
         </section>
       </div>
@@ -91,7 +92,7 @@ function renderRecapCardShell() {
   return `
     <div class="card dashboard-card dashboard-recap-card" id="dashboard-recap-card">
       <div class="card-title">
-        📊 かなうのまとめ
+        ${icon('chart')} かなうのまとめ
         <span class="dashboard-recap-toggle" id="dashboard-recap-toggle">
           <button class="btn ghost" type="button" data-recap-period="year" id="recap-btn-year">今年</button>
           <button class="btn ghost" type="button" data-recap-period="month" id="recap-btn-month">今月</button>
@@ -188,7 +189,7 @@ function recapBodyHtml(recap, periodLabel) {
       </div>
     </div>
     <div class="recap-top-song">
-      🏆 最多歌唱: ${topSongHtml}
+      ${icon('rank')} 最多歌唱: ${topSongHtml}
     </div>
   `;
 }
@@ -250,7 +251,7 @@ function renderResumeSection() {
   if (!entries.length) return '';
   return `
     <div class="card dashboard-card dashboard-resume-card">
-      <div class="card-title">⏯ 続きから見る
+      <div class="card-title">${icon('play')} 続きから見る
         <span class="dashboard-resume-actions">
           <button class="dashboard-resume-clear dashboard-resume-queue" id="dashboard-resume-queue" type="button" title="履歴をキューとして再生">キュー再生</button>
           <button class="dashboard-resume-clear" id="dashboard-resume-clear" type="button" title="履歴を消去">消去</button>
@@ -265,7 +266,7 @@ function renderResumeSection() {
           <button class="dashboard-resume-item" type="button" data-resume-idx="${i}" title="${escapeHtml(e.title || '')}">
             ${thumb ? `<img class="dashboard-resume-thumb" src="${escapeHtml(thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="dashboard-resume-thumb"></div>'}
             <span class="dashboard-resume-title">${escapeHtml(e.title || '動画')}</span>
-            <span class="dashboard-resume-meta">⏱ ${_fmtPos(e.t)} から ・ ${ago}</span>
+            <span class="dashboard-resume-meta">${icon('time')} ${_fmtPos(e.t)} から ・ ${ago}</span>
           </button>`;
         }).join('')}
       </div>
@@ -322,40 +323,40 @@ function deferredDashboardHtml(streams, songs, recent) {
   const yearlyHits = periodHits(streams, 'year', getToday());
   return `
     <div class="card dashboard-card dashboard-list-card dashboard-list-month">
-      <div class="card-title">🗳 今月のよく歌われた曲 <span class="pill">軽量版</span></div>
+      <div class="card-title">${icon('rank')} 今月のよく歌われた曲 <span class="pill">軽量版</span></div>
       <div class="bar-list">
         ${monthlyHits.length ? monthlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, monthlyHits[0].count)).join('') : '<div class="empty-state">今月の歌唱履歴なし</div>'}
       </div>
     </div>
 
     <div class="card dashboard-card dashboard-list-card dashboard-list-year">
-      <div class="card-title">🗳 今年のよく歌われた曲 <span class="pill">軽量版</span></div>
+      <div class="card-title">${icon('rank')} 今年のよく歌われた曲 <span class="pill">軽量版</span></div>
       <div class="bar-list">
         ${yearlyHits.length ? yearlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, yearlyHits[0].count)).join('') : '<div class="empty-state">今年の歌唱履歴なし</div>'}
       </div>
     </div>
 
     <div class="card dashboard-card dashboard-list-card dashboard-list-stale">
-      <div class="card-title">💤 久しぶり候補 <span class="pill">180日以上</span></div>
+      <div class="card-title">${icon('time')} 久しぶり候補 <span class="pill">180日以上</span></div>
       <div class="bar-list">
         ${stalePicks.length ? stalePicks.map((s, i) => topBarRow(s, i, stalePicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
       </div>
     </div>
 
     <div class="card dashboard-card dashboard-list-card dashboard-list-recent">
-      <div class="card-title">✨ 最近歌った定番 <span class="pill">30日以内</span></div>
+      <div class="card-title">${icon('sparkle')} 最近歌った定番 <span class="pill">30日以内</span></div>
       <div class="bar-list">
         ${recentPicks.length ? recentPicks.map((s, i) => topBarRow(s, i, recentPicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
       </div>
     </div>
 
     <div class="card dashboard-card dashboard-recent-card">
-      <div class="card-title">📺 直近の歌枠 <span class="pill">最新${recent.length}件</span></div>
+      <div class="card-title">${icon('video')} 直近の歌枠 <span class="pill">最新${recent.length}件</span></div>
       ${recent.map(s => `
         <div class="activity-row">
           <span class="a-date">${fmtDate(s.date)}</span>
           <span class="a-title">${s.url ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || '配信')}</a>` : escapeHtml(s.title)}</span>
-          <span class="a-meta">🎤 ${s.songs.length}曲</span>
+          <span class="a-meta">${icon('mic')} ${s.songs.length}曲</span>
         </div>
       `).join('')}
     </div>

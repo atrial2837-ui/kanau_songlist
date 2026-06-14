@@ -1,6 +1,7 @@
 import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, daysClass } from '../utils.js';
 import { RANKING_LIST_LIMIT } from '../config.js';
+import { icon } from '../icons.js';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // メインレンダー
@@ -27,7 +28,7 @@ export function renderRanking() {
 
   panel.innerHTML = `
     <div class="section-header">
-      <h2>🏆 歌唱回数ランキング</h2>
+      <h2>${icon('rank')} 歌唱回数ランキング</h2>
       <span class="count-pill">${songs.length}曲中</span>
     </div>
     ${renderPeriodSelector(streams, period, streamsLoaded)}
@@ -286,14 +287,14 @@ function getAvailableMonths(streams) {
 // ──────────────────────────────────────────────────────────────────────────────
 
 function podiumCard(s, i) {
-  const medals = ['🥇', '🥈', '🥉'];
+  const medals = ['1', '2', '3'];
   return `
     <div class="podium-card rank-${i + 1}"
       data-songkey="${escapeHtml(s.key)}"
       data-songtitle="${escapeHtml(s.title)}"
       data-songartist="${escapeHtml(s.artist)}"
       title="クリックで配信タイムラインに絞り込み">
-      <div class="podium-medal">${medals[i]}</div>
+      <div class="podium-medal" aria-label="${i + 1}位"><span>${medals[i]}</span></div>
       <div class="song-title">${escapeHtml(s.title)}</div>
       <button class="song-artist artist-search-btn" type="button" data-artist-search="${escapeHtml(s.artist)}">${escapeHtml(s.artist)}</button>
       <div class="count-big">${s.count}<small>回</small></div>

@@ -730,6 +730,34 @@ button.official-link {
 
 /* === Section header === */
 
+.ui-icon,
+.label-icon,
+.section-header h2 > svg,
+.card-title > svg,
+.omni-search-icon > svg,
+.omni-item-icon > svg,
+.pl-icon,
+.btn-icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.16em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.section-header h2,
+.card-title,
+.omni-section-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .section-header {
   display: flex;
   align-items: center;
@@ -1710,11 +1738,20 @@ mark.hl {
   transition: background 0.12s, color 0.12s;
 }
 .yt-mini-play-btn::before {
-  content: '▶';
+  content: '';
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 9px solid currentColor;
 }
 .yt-mini-play-btn[data-playing="1"]::before {
-  content: '⏸';
-  font-size: 10px;
+  width: 11px;
+  height: 12px;
+  margin-left: 0;
+  border: 0;
+  background: linear-gradient(90deg, currentColor 0 35%, transparent 35% 65%, currentColor 65% 100%);
 }
 .yt-mini-play-btn:hover {
   background: rgba(74, 178, 220, 0.32);
@@ -2552,7 +2589,15 @@ body.has-sv-fullscreen .container { z-index: auto; }
   transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
-.sv-ts-badge::before { content: '▶'; font-size: 8px; opacity: 0.7; }
+.sv-ts-badge::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  opacity: 0.7;
+}
 
 .sv-ts-badge:hover {
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
@@ -4464,8 +4509,12 @@ body.has-sv-fullscreen .container { z-index: auto; }
   transition: background 0.12s, border-color 0.12s;
 }
 .sv-cts-badge::before {
-  content: '👥';
-  font-size: 10px;
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  box-shadow: -5px 3px 0 -3px currentColor, 5px 3px 0 -3px currentColor;
 }
 .sv-cts-badge:hover {
   background: color-mix(in srgb, var(--primary) 22%, var(--surface));
@@ -4747,7 +4796,15 @@ body.has-sv-fullscreen .container { z-index: auto; }
   align-items: center;
   gap: 6px;
 }
-.sv-paste-summary::before { content: '▶'; font-size: 9px; transition: transform .15s; }
+.sv-paste-summary::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  transition: transform .15s;
+}
 details[open] .sv-paste-summary::before { transform: rotate(90deg); }
 .sv-paste-summary::-webkit-details-marker { display: none; }
 .sv-paste-textarea {
@@ -5024,16 +5081,16 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
 }
 
 .sv-bp-nav-thumb {
-  width: 136px;
-  height: 76px;
+  width: 192px;
+  height: 108px;
   object-fit: cover;
   display: block;
   background: var(--surface-3);
   flex-shrink: 0;
 }
 .sv-bp-nav-thumb--empty {
-  width: 136px;
-  height: 76px;
+  width: 192px;
+  height: 108px;
   background: var(--surface-3);
   display: block;
 }
@@ -5229,6 +5286,11 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
   .sv-bp-nav-cards {
     grid-template-columns: 1fr 1fr;
   }
+  .sv-bp-nav-thumb,
+  .sv-bp-nav-thumb--empty {
+    width: 132px;
+    height: 74px;
+  }
   .sv-bp-stat-val { font-size: 16px; }
   .sv-bp-stat { padding: 8px 12px; }
 }
@@ -5238,6 +5300,11 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
   .sv-bp-nav-cards { grid-template-columns: 1fr; }
   .sv-bp-nav-dir { padding: 6px 8px 2px; }
   .sv-bp-nav-info { padding: 6px 8px 8px; }
+  .sv-bp-nav-thumb,
+  .sv-bp-nav-thumb--empty {
+    width: 148px;
+    height: 83px;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -5328,11 +5395,15 @@ body.has-music-bar { padding-bottom: 72px; }
   justify-content: center;
   transition: background 0.15s;
 }
-/* 常時表示の再生バッジ（丸 + ▶）。ホバーで拡大・濃く */
+/* 常時表示の再生バッジ（丸 + 再生マーク）。ホバーで拡大・濃く */
 .mbar-thumb-overlay::before {
-  content: '▶';
-  font-size: 11px;
-  color: #fff;
+  content: '';
+  width: 0;
+  height: 0;
+  margin-left: 1px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5477,8 +5548,22 @@ body.has-music-bar { padding-bottom: 72px; }
   position: relative;
 }
 .mbar-play-btn:hover { background: var(--primary-strong); transform: scale(1.06); }
-.mbar-play-btn::before { content: '▶'; font-size: 16px; margin-left: 2px; }
-.mbar-play-btn[data-playing="1"]::before { content: '⏸'; margin-left: 0; }
+.mbar-play-btn::before {
+  content: '';
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 12px solid currentColor;
+}
+.mbar-play-btn[data-playing="1"]::before {
+  width: 12px;
+  height: 15px;
+  margin-left: 0;
+  border: 0;
+  background: linear-gradient(90deg, currentColor 0 35%, transparent 35% 65%, currentColor 65% 100%);
+}
 
 /* ── 右: キュー情報 + 閉じる ── */
 .mbar-end {
