@@ -897,8 +897,8 @@ function balanceChip(label, rows) {
 function setlistItemHtml(item, index) {
   return `
     <div class="setlist-item" data-index="${index}">
-      <div class="setlist-drag-handle" title="ドラッグして並び替え" aria-label="ドラッグハンドル">⠿</div>
       <div class="setlist-no">${index + 1}</div>
+      <div class="setlist-drag-handle" title="ドラッグして並び替え" aria-label="ドラッグハンドル">⠿</div>
       <div class="setlist-info">
         <strong>${escapeHtml(item.title)}</strong>
         <span>${item.artist ? escapeHtml(item.artist) : 'アーティスト未入力'}${item.displayKey ? ` · key ${escapeHtml(item.displayKey)}` : ''}${item.custom ? ' · 新規' : ''}</span>

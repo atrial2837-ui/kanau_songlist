@@ -173,8 +173,8 @@ import{a as it,e as at,f as O,g as ot,h as rt,j as lt,l as w}from"./chunk-FIQJD2
     </div>
   `,At(),Bt()}function ut(t,s){return s.length?`<span>${t} ${s.map(([n,a])=>`${l(n)} ${a}`).join(" / ")}</span>`:`<span>${t} \u2014</span>`}function Ct(t,s){return`
     <div class="setlist-item" data-index="${s}">
-      <div class="setlist-drag-handle" title="\u30C9\u30E9\u30C3\u30B0\u3057\u3066\u4E26\u3073\u66FF\u3048" aria-label="\u30C9\u30E9\u30C3\u30B0\u30CF\u30F3\u30C9\u30EB">\u283F</div>
       <div class="setlist-no">${s+1}</div>
+      <div class="setlist-drag-handle" title="\u30C9\u30E9\u30C3\u30B0\u3057\u3066\u4E26\u3073\u66FF\u3048" aria-label="\u30C9\u30E9\u30C3\u30B0\u30CF\u30F3\u30C9\u30EB">\u283F</div>
       <div class="setlist-info">
         <strong>${l(t.title)}</strong>
         <span>${t.artist?l(t.artist):"\u30A2\u30FC\u30C6\u30A3\u30B9\u30C8\u672A\u5165\u529B"}${t.displayKey?` \xB7 key ${l(t.displayKey)}`:""}${t.custom?" \xB7 \u65B0\u898F":""}</span>
