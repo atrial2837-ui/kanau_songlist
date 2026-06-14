@@ -578,6 +578,20 @@ kbd {
   color: var(--ink-mute);
   font-size: 13px;
 }
+.song-detail-spark {
+  margin: 0 0 14px;
+}
+.song-detail-spark-svg {
+  display: block;
+  width: 100%;
+  height: 40px;
+  overflow: visible;
+}
+.song-detail-spark-label {
+  font-size: 10px;
+  color: var(--ink-mute);
+  margin-top: 2px;
+}
 .welcome-tip {
   position: fixed;
   right: 18px;

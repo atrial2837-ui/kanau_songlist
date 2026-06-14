@@ -12,7 +12,35 @@ let currentFiltered = [];
 let _setlistSearchClickOut = null;
 let _dragCleanup = null;
 
+// ── 無限スクロール（IntersectionObserver） ────────────────────────────────
+let _infiniteObserver = null;
+
+function _disconnectInfinite() {
+  if (_infiniteObserver) {
+    _infiniteObserver.disconnect();
+    _infiniteObserver = null;
+  }
+}
+
+function _setupInfinite(total) {
+  _disconnectInfinite();
+  if (state.songsLimit >= total) return; // 全件表示済み
+
+  // センチネル要素を moreBtnWrap の中に埋め込む
+  const sentinel = document.getElementById('songs-infinite-sentinel');
+  if (!sentinel) return;
+
+  _infiniteObserver = new IntersectionObserver((entries) => {
+    if (!entries[0].isIntersecting) return;
+    state.songsLimit += 100;
+    refresh();
+  }, { rootMargin: '200px' });
+
+  _infiniteObserver.observe(sentinel);
+}
+
 export function renderSongs() {
+  _disconnectInfinite(); // タブ再描画時にリーク防止
   loadSetlist();
   restoreSetlistFromUrl();
   ensureSongsTags(state.data?.songs || []);
@@ -494,12 +522,18 @@ function refresh() {
   renderSetlistPlanner();
 
   if (state.songsLimit < filtered.length) {
-    moreBtnWrap.innerHTML = `<button class="load-more-btn" id="songs-more">▼ もっと表示 (残り${filtered.length - state.songsLimit}曲)</button>`;
+    moreBtnWrap.innerHTML = `
+      <div id="songs-infinite-sentinel" style="height:1px;width:100%;"></div>
+      <button class="load-more-btn" id="songs-more">▼ もっと表示 (残り${filtered.length - state.songsLimit}曲)</button>
+    `;
     $('#songs-more').addEventListener('click', () => {
       state.songsLimit += 200;
       refresh();
     });
+    // センチネルが DOM に挿入された後に observer を設定
+    _setupInfinite(filtered.length);
   } else {
+    _disconnectInfinite();
     moreBtnWrap.innerHTML = '';
   }
 }

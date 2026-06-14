@@ -2063,3 +2063,75 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   color: var(--ink-mute);
   padding: 0 9px;
 }
+
+/* ── ダッシュボード: まとめカード（リキャップ） ── */
+.dashboard-recap-card {
+  grid-column: 1 / -1;
+}
+
+.dashboard-recap-card .card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dashboard-recap-toggle {
+  display: inline-flex;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.recap-period-label {
+  font-size: 12px;
+  color: var(--ink-mute);
+  margin-bottom: 10px;
+}
+
+.recap-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.recap-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  min-width: 80px;
+  text-align: center;
+  flex: 1 1 80px;
+}
+
+.recap-tile strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--primary-strong);
+  line-height: 1.1;
+}
+
+.recap-tile span {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  margin-top: 3px;
+}
+
+.recap-top-song {
+  font-size: 13px;
+  color: var(--ink);
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary);
+}
+
+.recap-sub {
+  color: var(--ink-mute);
+  font-size: 11px;
+}

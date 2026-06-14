@@ -200,7 +200,7 @@ function renderArtistBars(artists) {
   el.innerHTML = top.map((a, i) => {
     const pct = Math.round((a.totalCount / max) * 100);
     return `
-      <div class="bar-row">
+      <div class="bar-row" data-artist-search="${escapeHtml(a.artist)}" style="cursor:pointer;" title="クリックでこのアーティストの曲を表示">
         <div class="bar-rank">${i + 1}</div>
         <div class="bar-content">
           <div class="bar-label">${escapeHtml(a.artist)} <span style="color:var(--ink-mute);font-size:11px;">（${a.songCount}曲）</span></div>

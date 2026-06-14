@@ -56,6 +56,7 @@ export function renderDashboard() {
   panel.innerHTML = `
     <div class="dashboard-grid" id="dashboard-grid">
       ${renderResumeSection()}
+      ${renderRecapCardShell()}
       <div class="dashboard-main-stack">
         <div class="dashboard-lead">
           ${activityHtml}
@@ -80,6 +81,154 @@ export function renderDashboard() {
     </div>
   `;
   bindResumeSection();
+  bindRecapCard(streams, songs);
+}
+
+/* ── まとめカード（年間/月間リキャップ） ────────────────────────────────── */
+
+/** カード外枠 HTML（内容は bindRecapCard で差し込む） */
+function renderRecapCardShell() {
+  return `
+    <div class="card dashboard-card dashboard-recap-card" id="dashboard-recap-card">
+      <div class="card-title">
+        📊 かなうのまとめ
+        <span class="dashboard-recap-toggle" id="dashboard-recap-toggle">
+          <button class="btn ghost" type="button" data-recap-period="year" id="recap-btn-year">今年</button>
+          <button class="btn ghost" type="button" data-recap-period="month" id="recap-btn-month">今月</button>
+        </span>
+      </div>
+      <div id="dashboard-recap-body"></div>
+    </div>
+  `;
+}
+
+/** 期間 (year | month) に応じてリキャップを集計して HTML を返す */
+function computeRecap(streams, songs, period, today) {
+  const y = today.getFullYear();
+  const m = today.getMonth(); // 0-indexed
+
+  /** stream がその期間に含まれるか */
+  function inPeriod(stream) {
+    const d = stream.date instanceof Date ? stream.date : new Date(stream.date);
+    if (period === 'year') return d.getFullYear() === y;
+    return d.getFullYear() === y && d.getMonth() === m;
+  }
+
+  const targetStreams = streams.filter(inPeriod);
+  if (!targetStreams.length) return null;
+
+  // 配信回数
+  const streamCount = targetStreams.length;
+
+  // 総歌唱数
+  const totalSongs = targetStreams.reduce((sum, s) => sum + (s.songs?.length || 0), 0);
+
+  // distinct song key
+  const distinctKeys = new Set();
+  for (const s of targetStreams) {
+    for (const song of (s.songs || [])) {
+      if (song.key) distinctKeys.add(song.key);
+    }
+  }
+  const distinctCount = distinctKeys.size;
+
+  // 最多歌唱曲（期間内の出現回数でカウント）
+  const countMap = new Map();
+  for (const s of targetStreams) {
+    for (const song of (s.songs || [])) {
+      if (!song.key) continue;
+      const entry = countMap.get(song.key) || { title: song.title, count: 0 };
+      entry.count++;
+      countMap.set(song.key, entry);
+    }
+  }
+  let topSong = null;
+  let topCount = 0;
+  for (const [, entry] of countMap) {
+    if (entry.count > topCount) { topCount = entry.count; topSong = entry; }
+  }
+
+  // 初披露曲数（song.firstSung がその期間内）
+  let newSongCount = 0;
+  for (const song of songs) {
+    if (!song.firstSung) continue;
+    const d = song.firstSung instanceof Date ? song.firstSung : new Date(song.firstSung);
+    if (period === 'year' && d.getFullYear() === y) newSongCount++;
+    else if (period === 'month' && d.getFullYear() === y && d.getMonth() === m) newSongCount++;
+  }
+
+  return { streamCount, totalSongs, distinctCount, topSong, topCount, newSongCount };
+}
+
+function recapBodyHtml(recap, periodLabel) {
+  if (!recap) {
+    return `<div class="empty-state">この期間の記録はまだありません</div>`;
+  }
+  const topSongHtml = recap.topSong
+    ? `${escapeHtml(recap.topSong.title)} <span class="recap-sub">(${recap.topCount}回)</span>`
+    : '—';
+  return `
+    <div class="recap-period-label">${escapeHtml(periodLabel)}</div>
+    <div class="recap-tiles">
+      <div class="recap-tile">
+        <strong>${recap.streamCount}</strong>
+        <span>歌枠数</span>
+      </div>
+      <div class="recap-tile">
+        <strong>${recap.totalSongs}</strong>
+        <span>総歌唱数</span>
+      </div>
+      <div class="recap-tile">
+        <strong>${recap.distinctCount}</strong>
+        <span>曲の種類</span>
+      </div>
+      <div class="recap-tile">
+        <strong>${recap.newSongCount}</strong>
+        <span>初披露曲</span>
+      </div>
+    </div>
+    <div class="recap-top-song">
+      🏆 最多歌唱: ${topSongHtml}
+    </div>
+  `;
+}
+
+function bindRecapCard(streams, songs) {
+  const body = $('#dashboard-recap-body');
+  const yearBtn = $('#recap-btn-year');
+  const monthBtn = $('#recap-btn-month');
+  if (!body) return;
+
+  const today = getToday();
+  let currentPeriod = 'year';
+
+  function render(period) {
+    currentPeriod = period;
+    const y = today.getFullYear();
+    const m = today.getMonth();
+    const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    const label = period === 'year' ? `${y}年` : `${y}年 ${monthNames[m]}`;
+    const recap = computeRecap(streams, songs, period, today);
+    body.innerHTML = recapBodyHtml(recap, label);
+    // ボタンの active 切替
+    yearBtn?.classList.toggle('primary', period === 'year');
+    yearBtn?.classList.toggle('ghost', period !== 'year');
+    monthBtn?.classList.toggle('primary', period === 'month');
+    monthBtn?.classList.toggle('ghost', period !== 'month');
+  }
+
+  // 初期描画
+  render('year');
+
+  // トグルボタン
+  const toggle = $('#dashboard-recap-toggle');
+  if (toggle) {
+    toggle.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-recap-period]');
+      if (!btn) return;
+      render(btn.dataset.recapPeriod);
+    });
+  }
 }
 
 /* ── 続きから見る（視聴履歴） ──────────────────────────────────────────── */
