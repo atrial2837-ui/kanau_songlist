@@ -1454,10 +1454,10 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   align-items: center;
   justify-content: center;
   justify-self: center;
-  background: color-mix(in srgb, var(--primary-soft) 82%, #fff 18%);
-  color: var(--primary-strong);
-  border: 1px solid color-mix(in srgb, var(--primary) 42%, #fff 58%);
-  box-shadow: 0 2px 8px rgba(40, 151, 194, 0.18);
+  background: var(--primary-strong);
+  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--primary-strong) 78%, #07364d 22%);
+  box-shadow: 0 3px 10px rgba(21, 111, 153, 0.28);
   font-size: 11px;
   font-weight: 900;
   font-feature-settings: var(--tnum);
@@ -1516,19 +1516,26 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 26px;
+  width: 26px;
+  height: 26px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 6px;
   background: var(--surface-2);
   color: var(--primary-strong) !important;
-  padding: 3px 9px;
+  padding: 0;
   font-family: inherit;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 0;
   line-height: 1.2;
-  white-space: nowrap;
   cursor: pointer;
   transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.watch-open-link svg,
+.timeline-copy-btn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .watch-open-link:hover {
   border-color: var(--primary);
@@ -1542,34 +1549,47 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 .timeline-copy-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--primary-strong);
-  padding: 4px 10px;
-  border-radius: 999px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
   font-family: inherit;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 0;
   cursor: pointer;
-  white-space: nowrap;
-  transition: transform 0.12s ease, border-color 0.12s ease;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 .timeline-copy-btn:hover {
   border-color: var(--primary);
+  background: var(--primary-soft);
   transform: translateY(-1px);
+}
+.timeline-copy-btn.is-copied {
+  color: var(--green-text);
+  border-color: var(--green-text);
+  background: rgba(58, 165, 101, 0.12);
+}
+.timeline-copy-btn.is-error {
+  color: var(--red);
+  border-color: var(--red);
+  background: rgba(218, 84, 102, 0.1);
 }
 
 /* ☆ プレイリスト保存ボタン */
 .timeline-save-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--ink-mute);
-  padding: 4px 10px;
-  border-radius: 999px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -1589,12 +1609,6 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   background: rgba(244, 196, 74, 0.18);
 }
 
-.setlist {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
 .timeline-setlist {
   padding: 14px 60px 18px;
   border-top: 1px solid var(--border-soft);
@@ -1608,36 +1622,71 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   padding-right: 18px;
   flex-wrap: wrap;
 }
-.setlist-song {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 11.5px;
-  color: var(--ink-soft);
-  word-break: break-all;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+.setlist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-.setlist-song:hover {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--ink);
+.setlist-item {
+  display: grid;
+  grid-template-columns: 30px minmax(0, max-content) auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ink-mute);
+  font-size: 12px;
+  line-height: 1.45;
 }
-.setlist-song:active { transform: scale(0.97); }
-.setlist-song.hit {
-  background: var(--accent-soft);
-  border-color: var(--accent-strong);
+.setlist-item.hit {
   color: var(--accent-strong);
   font-weight: 700;
 }
-.setlist-song .sl-num {
-  color: var(--primary-strong);
+.setlist-num {
+  color: var(--ink-mute);
+  font-size: 11px;
   font-weight: 700;
-  margin-right: 4px;
+  font-feature-settings: var(--tnum);
+  text-align: right;
 }
-.setlist-song.hit .sl-num { color: var(--accent-strong); }
+.setlist-item.hit .setlist-num { color: var(--accent-strong); }
+.setlist-title,
+.setlist-artist {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.setlist-title {
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.setlist-artist {
+  color: var(--ink-mute);
+  font-size: 11.5px;
+}
+.setlist-title:hover,
+.setlist-artist:hover {
+  color: var(--primary-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.setlist-title:focus-visible,
+.setlist-artist:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.setlist-separator {
+  color: var(--ink-mute);
+}
 
 .timeline-controls {
   display: flex;
@@ -1695,27 +1744,23 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     padding: 10px 12px 14px;
   }
   .timeline-copy-btn {
-    width: auto;
+    width: 26px;
+    height: 26px;
     justify-content: center;
     margin-left: 0;
-    min-height: 26px;
-    padding: 2px 8px;
-    font-size: 10.5px;
+    padding: 0;
   }
-  .setlist {
-    gap: 4px;
-    margin-top: 5px;
+  .setlist-list {
+    gap: 5px;
   }
-  .setlist-song {
-    border-radius: 8px;
-    width: auto;
-    max-width: 100%;
-    padding: 3px 7px;
+  .setlist-item {
+    grid-template-columns: 26px minmax(0, max-content) auto minmax(0, 1fr);
+    gap: 5px;
     font-size: 11.5px;
-    line-height: 1.25;
   }
-  .setlist-song .sl-num {
-    margin-right: 3px;
+  .setlist-title,
+  .setlist-artist {
+    overflow-wrap: anywhere;
   }
   .chart-wrap {
     height: 230px;
