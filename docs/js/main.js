@@ -1702,14 +1702,16 @@ function _svQueueSectionHtml() {
       <div class="sv-queue-list">
         ${q.items.map((it, i) => {
           const title = it.kind === 'mv' ? (it.video?.title || '動画') : (it.stream?.title || '配信');
-          const meta = it.kind === 'mv'
-            ? `${icon('video')} 動画`
-            : `${icon('calendar')} ${fmtDate(it.stream?.date)}　第${it.stream?.index}枠`;
+          // アイコンは SVG 文字列なので escapeHtml せず、テキスト部分だけエスケープする
+          const metaIcon = it.kind === 'mv' ? icon('video') : icon('calendar');
+          const metaText = it.kind === 'mv'
+            ? '動画'
+            : `${fmtDate(it.stream?.date)}　第${it.stream?.index}枠`;
           return `<button class="sv-queue-row${i === q.idx ? ' is-current' : ''}" type="button"
             data-svq-action="jump" data-svq-idx="${i}">
             <span class="sv-queue-num">${i + 1}</span>
             <span class="sv-queue-title">${escapeHtml(title)}</span>
-            <span class="sv-queue-meta">${escapeHtml(meta)}</span>
+            <span class="sv-queue-meta">${metaIcon} ${escapeHtml(metaText)}</span>
           </button>`;
         }).join('')}
       </div>
