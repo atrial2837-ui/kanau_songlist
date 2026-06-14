@@ -1094,7 +1094,12 @@ function initSetlistDrag() {
 
   listEl.addEventListener('pointerdown', (e) => {
     if (st) return;
-    if (!e.target.closest('.setlist-drag-handle')) return;
+    if (e.button != null && e.button !== 0) return; // 左ボタンのみ
+    // タッチは縦スクロール優先でハンドル限定、マウス等は行のどこからでも開始
+    const fromHandle = !!e.target.closest('.setlist-drag-handle');
+    if (e.pointerType === 'touch' && !fromHandle) return;
+    // 操作ボタン・入力の上では開始しない
+    if (e.target.closest('button, a, input, select, textarea')) return;
     const row = e.target.closest('.setlist-item');
     if (!row) return;
     e.preventDefault();

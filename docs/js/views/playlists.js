@@ -365,7 +365,8 @@ function _renderAllStreams(streams, page) {
                 alt="" loading="lazy" referrerpolicy="no-referrer">`
             : '<div class="pl-sg-thumb-placeholder"></div>'}
           <span class="pl-sg-song-badge">${songCount}<span class="pl-sg-badge-unit">曲</span></span>
-          <span class="pl-sg-add" role="button" tabindex="0" aria-label="プレイリストに追加"
+          <span class="pl-sg-add${isStreamInAnyPlaylist(skey) ? ' is-saved' : ''}" role="button" tabindex="0"
+            aria-label="プレイリストに追加"
             data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}"
             title="プレイリストに追加">${PL_BOOKMARK_SVG}</span>
         </div>
@@ -1050,10 +1051,14 @@ function _playlistCoverUrl(pl) {
 /** プレイリスト追加モーダル。skeyOrArray は単一キーまたはキー配列（まとめて追加）。
  *  YouTube の保存先選択のように、サムネ + 曲数 + 栞アイコンで表示し、
  *  栞をタップで追加/削除トグル（登録済みは色付き）。再描画で再ポップしない。 */
-export function showAddToPlaylistModal(skeyOrArray, streamTitle) {
+export function showAddToPlaylistModal(skeyOrArray, streamTitle, opts = {}) {
   const keys = Array.isArray(skeyOrArray) ? skeyOrArray.filter(Boolean) : [skeyOrArray].filter(Boolean);
   if (!keys.length) return;
   const isBulk = keys.length > 1;
+  // 追加/削除のたびに呼ぶ。呼び出し元のボタンの保存済み表示を即時更新するため。
+  const notifyChange = () => {
+    try { opts.onChange?.(keys.some(k => isStreamInAnyPlaylist(k))); } catch (_) {}
+  };
 
   let modal = $('#pl-add-modal');
   if (!modal) {
@@ -1128,6 +1133,7 @@ export function showAddToPlaylistModal(skeyOrArray, streamTitle) {
       const empty = listEl?.querySelector('.pl-modal-empty');
       if (empty) listEl.innerHTML = '';
       if (listEl) listEl.insertAdjacentHTML('afterbegin', itemHtml(getPlaylists().find(p => p.id === pl.id)));
+      notifyChange();
     });
 
     // 行クリック＝保存トグル（その行だけ更新、モーダルは再ポップしない）
@@ -1150,6 +1156,7 @@ export function showAddToPlaylistModal(skeyOrArray, streamTitle) {
       }
       // クリックした行だけ差し替え（再描画による再ポップを避ける）
       btn.outerHTML = itemHtml(getPlaylists().find(p => p.id === plId));
+      notifyChange();
     });
   };
 

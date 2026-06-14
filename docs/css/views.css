@@ -729,7 +729,12 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
   transition: opacity 0.15s;
+  cursor: grab; /* PC: 行のどこからでもドラッグして並び替え（タッチはハンドルのみ） */
 }
+.setlist-item.is-dragging { cursor: grabbing; }
+/* 操作ボタンは通常カーソル */
+.setlist-item .setlist-move button,
+.setlist-item .setlist-copy-one { cursor: pointer; }
 .setlist-no {
   color: var(--primary-strong);
   font-size: 12px;

@@ -3236,7 +3236,7 @@ body.has-sv-fullscreen .container { z-index: auto; }
   background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
 }
 
-/* プレイリスト追加ボタン（右上・ホバーで表示。通常の見た目は変えない） */
+/* プレイリスト追加ボタン（右上・常時表示。保存済みは色付き） */
 .pl-sg-add {
   position: absolute;
   top: 6px;
@@ -3249,18 +3249,22 @@ body.has-sv-fullscreen .container { z-index: auto; }
   justify-content: center;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
-  opacity: 0;
+  opacity: 0.9;
   cursor: pointer;
   z-index: 3;
-  transition: opacity 0.15s, background 0.15s;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
 .pl-sg-add svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 .pl-sg-card:hover .pl-sg-add,
 .pl-sg-add:focus-visible { opacity: 1; }
 .pl-sg-add:hover { background: var(--primary-strong); }
-/* タッチ端末・狭い画面ではホバーが無いので常時表示 */
-@media (hover: none) { .pl-sg-add { opacity: 0.9; } }
-@media (max-width: 700px) { .pl-sg-add { opacity: 0.9; } }
+/* 保存済み: 栞を塗りつぶして色付き */
+.pl-sg-add.is-saved {
+  opacity: 1;
+  background: var(--primary-strong);
+  color: #fff;
+}
+.pl-sg-add.is-saved svg { fill: currentColor; stroke: currentColor; }
 
 /* 曲数バッジ（右下） */
 .pl-sg-song-badge {

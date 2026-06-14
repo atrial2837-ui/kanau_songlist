@@ -3143,7 +3143,13 @@ document.body.addEventListener('click', (e) => {
     e.stopPropagation();
     const skey = plAddEl.dataset.playlistAdd;
     const title = plAddEl.dataset.streamTitle || '';
-    import('./views/playlists.js').then(m => m.showAddToPlaylistModal(skey, title));
+    // 追加/削除の瞬間に呼び出し元ボタンの保存済み表示を切り替える
+    const onChange = (saved) => {
+      plAddEl.classList.toggle('is-saved', saved);
+      if (plAddEl.classList.contains('timeline-save-btn')) plAddEl.textContent = saved ? '★' : '☆';
+      plAddEl.title = saved ? 'プレイリストに保存済み' : 'プレイリストに保存';
+    };
+    import('./views/playlists.js').then(m => m.showAddToPlaylistModal(skey, title, { onChange }));
     return;
   }
 
