@@ -27,3 +27,4 @@ export {
 export { sortSongs } from '../../src/domain/search/sort.js';
 export { matchReasons } from '../../src/domain/search/match.js';
 export { parseQuery } from '../../src/domain/search/query-parser.js';
+export { collectDatasetIssues } from '../../src/domain/analytics/data-quality.js';

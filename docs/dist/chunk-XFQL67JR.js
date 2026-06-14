@@ -1,4 +1,4 @@
-import{d as S,e as $}from"./chunk-JT7WCFD3.js";import{D as R,E as Y,F as k,I as B,a as m,d as u,o as M,p as C,q as j,r as L,s as D,t as T,u as _}from"./chunk-PRFEE4R6.js";function Z(){let{songs:a,streams:e}=$.data,i=[...a].sort((h,g)=>g.count-h.count).slice(0,5),t=i[0]?.count||1,s=e.slice(0,5),r=S(),n=L(a,r),o=m("#panel-dashboard"),v=_(e,r),p=D(e).slice(-12),y=Math.max(1,...p.map(h=>h.songs)),b=`
+import{d as S,e as $}from"./chunk-JT7WCFD3.js";import{E as R,F as Y,G as k,J as B,a as m,c as u,p as M,q as C,r as j,s as L,t as D,u as T,v as _}from"./chunk-T4BEBXYH.js";function Z(){let{songs:a,streams:e}=$.data,i=[...a].sort((h,g)=>g.count-h.count).slice(0,5),t=i[0]?.count||1,s=e.slice(0,5),r=S(),n=L(a,r),o=m("#panel-dashboard"),v=_(e,r),p=D(e).slice(-12),y=Math.max(1,...p.map(h=>h.songs)),b=`
     <div class="card dashboard-card dashboard-activity-card">
       <div class="card-title">\u{1F4C8} \u4ECA\u6708\u306E\u6D3B\u52D5</div>
       <div class="dashboard-metric-list">

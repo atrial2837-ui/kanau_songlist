@@ -3,6 +3,7 @@ import { $, fmtDate, formatNumber } from './utils.js';
 import { loadAll } from './data.js';
 import { CHANNELS, DEFAULT_CHANNEL } from './config.js';
 import { state } from './store.js';
+import { collectDatasetIssues } from './domain-compat.js';
 
 initTheme();
 
@@ -41,9 +42,6 @@ function statusRow(label, value, tone = '') {
   return `<div class="admin-status-row ${tone}"><span>${label}</span><strong>${value}</strong></div>`;
 }
 
-function songKey(song) {
-  return `${song.title || ''} / ${song.artist || ''}`;
-}
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
@@ -123,53 +121,6 @@ function renderSongMeta(rows) {
   `;
 }
 
-function collectIssues(data) {
-  const issues = [];
-  const datasets = [
-    ['new', data.channels?.new],
-    ['old', data.channels?.old],
-    ['combined', data.combined],
-  ].filter(([, dataset]) => dataset);
-
-  for (const [scope, dataset] of datasets) {
-    for (const song of dataset.songs || []) {
-      if (song.count > 0 && (!song.streamRefs || !song.streamRefs.length)) {
-        issues.push({ type: '履歴未確認', place: scope, detail: songKey(song) });
-      }
-      if (!song.genre || song.genre === '未分類') {
-        issues.push({ type: 'ジャンル未分類', place: scope, detail: songKey(song) });
-      }
-      if (dataset.stats?.keyPublished && !song.displayKey) {
-        issues.push({ type: 'キー未登録', place: scope, detail: songKey(song) });
-      }
-    }
-    for (const stream of dataset.streams || []) {
-      if (stream.songCount && stream.songs && stream.songCount !== stream.songs.length) {
-        issues.push({
-          type: '曲数不一致',
-          place: `${scope} 第${stream.index}枠`,
-          detail: `${fmtDate(parseDate(stream.date))}: 表示${stream.songs.length} / 記録${stream.songCount}`,
-        });
-      }
-      const seen = new Map();
-      for (const song of stream.songs || []) {
-        const key = song.key || songKey(song);
-        seen.set(key, (seen.get(key) || 0) + 1);
-      }
-      for (const [key, count] of seen.entries()) {
-        if (count > 1) {
-          issues.push({
-            type: '同一枠内重複',
-            place: `${scope} 第${stream.index}枠`,
-            detail: `${key} x${count}`,
-          });
-        }
-      }
-    }
-  }
-  return issues;
-}
-
 function renderSync(data, elapsed) {
   const stats = data.combined?.stats || {};
   const update = parseDate(stats.updateDate);
@@ -189,7 +140,7 @@ function renderSync(data, elapsed) {
 }
 
 function renderQuality(data) {
-  const issues = collectIssues(data);
+  const issues = collectDatasetIssues(data);
   const severe = issues.filter(issue => ['履歴未確認', '曲数不一致'].includes(issue.type)).length;
   const summary = new Map();
   for (const issue of issues) summary.set(issue.type, (summary.get(issue.type) || 0) + 1);
