@@ -44,6 +44,11 @@ export function renderSongs() {
   loadSetlist();
   restoreSetlistFromUrl();
   ensureSongsTags(state.data?.songs || []);
+  const filtersOpen = state.singerMode
+    || state.songsSort !== 'count-desc'
+    || state.songsGenre !== 'all'
+    || state.songsFilter !== 'all'
+    || state.favoritesFilter;
   const panel = $('#panel-songs');
   panel.innerHTML = `
     <div class="section-header">
@@ -54,11 +59,32 @@ export function renderSongs() {
       <button class="btn ghost active" type="button" data-mobile-panel-toggle="filters">絞り込み</button>
     </div>
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
-      <div class="controls">
+      <div class="songs-search-shell">
         <div class="search-input-wrap">
-          <input id="songs-search" class="text-input" type="search" placeholder="🔍 曲名・アーティスト・雰囲気で検索（例：チルな曲 / あつい / ボカロ 定番）" value="${escapeHtml(state.songsQuery)}">
+          <span class="songs-search-icon" aria-hidden="true">⌕</span>
+          <input id="songs-search" class="text-input songs-search-input" type="search" placeholder="曲名・アーティスト・雰囲気で検索" value="${escapeHtml(state.songsQuery)}">
           <div id="search-history-dropdown" class="search-history-dropdown" hidden></div>
         </div>
+        <button class="songs-fav-toggle ${state.favoritesFilter ? 'is-active' : ''}" type="button" data-filter="favorites" aria-pressed="${state.favoritesFilter ? 'true' : 'false'}" title="お気に入りだけ表示">${state.favoritesFilter ? '♥' : '♡'}</button>
+        ${state.singerMode ? '<button class="songs-setlist-mini btn primary" id="setlist-toggle-btn" type="button" aria-controls="setlist-planner" aria-expanded="' + (state.setlistExpanded ? 'true' : 'false') + '">' + (state.setlistExpanded ? 'セトリを閉じる' : 'セトリ制作') + '</button>' : ''}
+      </div>
+      <!-- 雰囲気サジェストチップ（常時表示・8種のみ） -->
+      <div id="search-suggest" class="suggest-strip songs-suggest-strip" role="group" aria-label="雰囲気で素早く検索">
+        ${[
+          ['chill', 'チルな曲'],
+          ['あつい', 'あつい曲'],
+          ['しっとり', 'しっとり'],
+          ['エモい', 'エモい'],
+          ['かわいい', 'かわいい'],
+        ].map(([label, q]) => `<button type="button" class="suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
+      </div>
+      <details class="songs-advanced" ${filtersOpen ? 'open' : ''}>
+        <summary>
+          <span>絞り込み</span>
+          <small>並び順・ジャンル・状態</small>
+        </summary>
+        <div class="songs-advanced-body">
+          <div class="controls songs-control-grid">
         <select id="songs-sort" class="select-input">
           <option value="count-desc">回数（多）</option>
           <option value="count-asc">回数（少）</option>
@@ -70,34 +96,16 @@ export function renderSongs() {
         <select id="songs-genre" class="select-input genre-select" title="ジャンルで絞り込み">
           ${genreOptionsHtml()}
         </select>
-      </div>
-      <!-- 雰囲気サジェストチップ（常時表示・8種のみ） -->
-      <div id="search-suggest" class="suggest-strip" role="group" aria-label="雰囲気で素早く検索">
-        ${[
-          ['😌 chill', 'チルな曲'],
-          ['⚡ あつい', 'あつい曲'],
-          ['🌙 しっとり', 'しっとり'],
-          ['💫 エモい', 'エモい'],
-          ['🔥 かっこいい', 'かっこいい'],
-          ['🍂 切ない', '切ない'],
-          ['📻 懐かしい', '懐かしい'],
-          ['🌸 かわいい', 'かわいい'],
-        ].map(([label, q]) => `<button type="button" class="suggest-chip" data-suggest="${escapeHtml(q)}">${label}</button>`).join('')}
-      </div>
+          </div>
       <!-- 絞り込みボタン行 -->
-      <div class="controls" id="songs-filters">
+      <div class="controls songs-filter-row" id="songs-filters">
         <button class="btn ghost" data-filter="all">すべて</button>
         <button class="btn ghost" data-filter="fresh">🟢 最近</button>
         <button class="btn ghost" data-filter="stale">🟠 久しぶり</button>
         <button class="btn ghost" data-filter="never">⚪ 未確認</button>
-        <button class="btn ghost" data-filter="favorites">❤️ お気に入り</button>
+        <button class="btn ghost songs-favorites-filter" data-filter="favorites">❤️ お気に入り</button>
         ${state.singerMode ? '' : '<button class="btn ghost" id="recommend-btn" type="button">💡 おすすめ</button><button class="btn ghost" id="todays-song-btn" type="button">🎲 今日の一曲</button>'}
       </div>
-      <p class="search-help">
-        ${state.singerMode
-          ? '＋でセトリに追加できます。🎲ランダム追加は現在の検索・絞り込み条件から選びます。'
-          : '「チルな曲」「あつい」「ボカロ 定番」など自然語で検索できます。チップをタップで素早く絞り込み。'}
-      </p>
       ${state.singerMode ? `
         <div class="songs-tools">
           <button class="btn ghost" data-singer-preset="keyed" type="button">キー確認済み</button>
@@ -109,13 +117,14 @@ export function renderSongs() {
           <button class="btn ghost" data-singer-preset="nostalgic" type="button">ノスタルジック</button>
           <button class="btn ghost" id="compact-btn" type="button">表示: ${state.songsView === 'compact' ? 'コンパクト' : '詳細'}</button>
           <button class="btn ghost" id="todays-song-btn" type="button">🎲 今日の一曲</button>
-          <button class="btn primary" id="setlist-toggle-btn" type="button" aria-controls="setlist-planner" aria-expanded="${state.setlistExpanded ? 'true' : 'false'}">${state.setlistExpanded ? 'セトリ制作を閉じる' : 'セトリ制作を開く'}</button>
         </div>
       ` : ''}
+          <div class="genre-strip" id="songs-genre-chips">${genreChipsHtml()}</div>
+        </div>
+      </details>
     </div>
     ${state.singerMode ? '<div id="setlist-planner" class="setlist-planner mobile-panel mobile-panel-setlist"></div>' : ''}
     <div id="todays-song-box" class="todays-song-box" hidden></div>
-    <div class="genre-strip" id="songs-genre-chips">${genreChipsHtml()}</div>
     <div id="songs-list" class="song-list"></div>
     <div class="timeline-controls" id="songs-more-wrap"></div>
   `;
@@ -199,6 +208,13 @@ export function renderSongs() {
       state.songsFilter = btn.dataset.filter;
       state.favoritesFilter = false;
     }
+    state.songsLimit = 100;
+    refreshFilterButtons();
+    refresh();
+  });
+  panel.querySelector('.songs-fav-toggle')?.addEventListener('click', () => {
+    state.favoritesFilter = !state.favoritesFilter;
+    if (state.favoritesFilter) state.songsFilter = 'all';
     state.songsLimit = 100;
     refreshFilterButtons();
     refresh();
@@ -469,6 +485,12 @@ function refreshFilterButtons() {
       btn.classList.toggle('primary', btn.dataset.filter === state.songsFilter && !state.favoritesFilter);
       btn.classList.toggle('ghost', btn.dataset.filter !== state.songsFilter || state.favoritesFilter);
     }
+  }
+  const favToggle = document.querySelector('.songs-fav-toggle');
+  if (favToggle) {
+    favToggle.classList.toggle('is-active', state.favoritesFilter);
+    favToggle.setAttribute('aria-pressed', String(state.favoritesFilter));
+    favToggle.textContent = state.favoritesFilter ? '♥' : '♡';
   }
 }
 

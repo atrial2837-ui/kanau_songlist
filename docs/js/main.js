@@ -3073,6 +3073,13 @@ $$('[data-audience]').forEach(btn => {
 
 // Global click → filter timeline by song
 document.body.addEventListener('click', (e) => {
+  const timelineSong = e.target.closest('.timeline-setlist .setlist-title[data-songkey]');
+  if (timelineSong) {
+    e.preventDefault();
+    e.stopPropagation();
+    openSongDetail(timelineSong.dataset.songkey);
+    return;
+  }
   const artist = e.target.closest('[data-artist-search]');
   if (artist) {
     e.preventDefault();
