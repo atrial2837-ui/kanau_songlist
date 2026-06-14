@@ -96,6 +96,11 @@ export function initMusicPlayer() {
             <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
           </svg>
         </button>
+        <button class="mbar-mode-btn mbar-queue-btn" id="mbar-queue-btn" type="button" title="再生キュー（次に流れる曲）" aria-label="再生キュー">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>
+          </svg>
+        </button>
       </div>
       <div class="mbar-end">
         <div class="mbar-volume">
@@ -107,7 +112,6 @@ export function initMusicPlayer() {
           <span>動画で見る</span>
         </button>
         <span class="mbar-queue-info" id="mbar-queue-info"></span>
-        <button class="mbar-queue-btn" id="mbar-queue-btn" type="button" title="再生キュー" aria-label="再生キュー">📋</button>
         <button class="mbar-close-btn" id="mbar-close" type="button" aria-label="閉じる">✕</button>
       </div>
     </div>

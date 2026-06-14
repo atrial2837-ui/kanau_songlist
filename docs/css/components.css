@@ -1748,6 +1748,42 @@ mark.hl {
   background: rgba(0, 0, 0, 0.55);
   z-index: 200;
   cursor: wait;
+  /* フェードインアニメーション */
+  animation: sv-to-mini-fadein 0.3s ease-out;
+}
+
+@keyframes sv-to-mini-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ミニプレイヤー遷移時のローディングオーバーレイ */
+.sv-to-mini-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.sv-to-mini-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #4ab2dc;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.sv-to-mini-text {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 /* 全画面時: DOM を移動せず CSS だけで fullscreen 化する。
@@ -5131,18 +5167,8 @@ body.has-music-bar { padding-bottom: 72px; }
 .mbar-close-btn:hover { color: var(--ink); background: var(--surface-3); }
 
 /* ── キューボタン ── */
-.mbar-queue-btn {
-  width: 30px; height: 30px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--ink-mute);
-  cursor: pointer;
-  font-size: 14px;
-  display: flex; align-items: center; justify-content: center;
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
-}
-.mbar-queue-btn:hover { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+/* 再生キュー ボタンはコントロール群のモードボタン(.mbar-mode-btn)と統一。
+   開いている間は is-on で色付き */
 .mbar-queue-btn.is-on { color: var(--primary-strong); border-color: var(--primary); background: var(--primary-soft); }
 
 /* ── キューポップアップ ── */
@@ -6027,4 +6053,44 @@ body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
   background: var(--primary);
   border-color: var(--primary-strong);
   color: #fff;
+}
+
+/* ============================================================
+   ヒーロー圧縮 & 動画ビューワー集中表示 & 縦型プレイヤー
+   ※ モバイルはインライン再生を無効化(外部YouTube遷移)しているため、
+     これらの視聴体験まわりの変更は PC(≥768px)限定とする
+   ============================================================ */
+@media (min-width: 768px) {
+  /* ダッシュボード以外ではヒーローをスリムなタイトルバーに圧縮（統計・説明は隠す） */
+  body:not([data-active-tab="dashboard"]) #hero .hero-sub,
+  body:not([data-active-tab="dashboard"]) #hero .hero-description,
+  body:not([data-active-tab="dashboard"]) #hero .hero-updated,
+  body:not([data-active-tab="dashboard"]) #hero .stats-grid {
+    display: none;
+  }
+  body:not([data-active-tab="dashboard"]) #hero {
+    padding: 12px 20px;
+  }
+  body:not([data-active-tab="dashboard"]) #hero::after { display: none; }
+  body:not([data-active-tab="dashboard"]) #hero .hero-title {
+    font-size: 16px;
+    margin-bottom: 0;
+    justify-content: flex-start;
+  }
+  body:not([data-active-tab="dashboard"]) #hero .hero-title-icon { width: 22px; height: 22px; }
+
+  /* 動画ビューワー表示中はヒーロー/タブを隠してプレイヤーを最上部に（集中表示） */
+  body[data-active-tab="player"] #hero,
+  body[data-active-tab="player"] .tabs {
+    display: none;
+  }
+
+  /* 縦型配信/ショート: プレイヤーを縦長フレームにして左右の黒帯を抑える。
+     flex 子で margin:auto を使うと stretch が無効化され潰れるため、
+     明示 width + align-self:center で中央寄せする */
+  #stream-viewer.sv-portrait:not(.sv-fullscreen) .sv-player-wrap {
+    aspect-ratio: 9 / 16;
+    width: min(420px, 42vh);
+    align-self: center;
+  }
 }

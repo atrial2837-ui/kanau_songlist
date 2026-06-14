@@ -193,6 +193,7 @@ function syncActiveTabUi(tab) {
     b.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+  document.body.dataset.activeTab = tab; // ヒーロー圧縮・ビューワー集中表示の CSS フック
 }
 
 function getDataset(channelId) {
@@ -526,12 +527,17 @@ function _svMinify() {
   _miniPlayer = _svPlayer;
   _svPlayer = null;
 
+  // ミニプレイヤー遷移アニメーション用クラスを追加
+  viewer.classList.add('sv-to-mini');
   viewer.classList.add('sv-minified');
   document.body.classList.add('has-sv-mini');
   document.body.style.overflow = '';
 
   hidePlayerPanel();
   _svUpdateUrl();
+
+  // 遷移アニメーション完了後にクラスを削除
+  setTimeout(() => { viewer.classList.remove('sv-to-mini'); }, 600);
   // タブ切替直後のリフローやアニメーションで座標がずれるため多段同期
   _syncMiniPos();
   requestAnimationFrame(_syncMiniPos);
@@ -633,11 +639,16 @@ function _svMoveToMusicBar() {
   _svLastStream = null;
   _svFullscreen = false;
   viewer.classList.remove('sv-fullscreen', 'sv-minified');
+  // 音楽バー遷移アニメーション用クラスを追加
+  viewer.classList.add('sv-to-mini');
   viewer.classList.add('sv-music-minified');
   document.body.classList.remove('has-sv-fullscreen', 'has-sv-mini');
   document.body.classList.add('has-sv-music');
   document.body.style.overflow = '';
   viewer.hidden = false;
+
+  // 遷移アニメーション完了後にクラスを削除
+  setTimeout(() => { viewer.classList.remove('sv-to-mini'); }, 600);
   const panel = $('#yt-player-panel');
   if (panel) panel.hidden = true;
   hidePlayerPanel();
@@ -1202,6 +1213,7 @@ function showPlayerPanel() {
     b.setAttribute('aria-selected', 'false');
   });
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-player'));
+  document.body.dataset.activeTab = 'player'; // 集中表示（ヒーロー/タブを隠す）
 }
 
 /** 前のタブに戻る */
@@ -2434,6 +2446,10 @@ function openStreamViewer(stream, resumeAt = 0) {
   const viewer = $('#stream-viewer');
   viewer.classList.remove('sv-fullscreen');
   viewer.classList.toggle('sv-mv-mode', !!stream.isMv);
+  // 縦型配信/ショートはタイトル・URL から判定し、縦長プレイヤーで黒帯を抑える
+  const _vertical = /縦型|たて配信|タテ|#?shorts|ショート|vertical/i.test(stream.title || '')
+    || /\/shorts\//.test(stream.url || '');
+  viewer.classList.toggle('sv-portrait', _vertical);
   viewer._currentStream = stream;
   const gen = ++_svGen;
 
@@ -2477,6 +2493,8 @@ function openStreamViewer(stream, resumeAt = 0) {
   viewer.hidden = false;
   document.body.style.overflow = ''; // 埋め込みモードではスクロールロックしない
   _svUpdateUrl();
+  // 集中表示: ヒーロー/タブは CSS で隠れるので、プレイヤーを画面上部に出す
+  window.scrollTo({ top: 0, behavior: 'auto' });
   // フォーカス先: 埋め込み時はスクロールを引き起こさないよう遅延
   setTimeout(() => { $('#sv-close')?.focus({ preventScroll: true }); }, 50);
 

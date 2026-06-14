@@ -241,6 +241,17 @@ export function renderPlaylists() {
       return;
     }
 
+    // ── サムネクリック → 動画ビューワーで再生（左クリックのみ。Ctrl/中クリックは
+    //    href の YouTube 新規タブを優先）。モバイルは __openStreamViewer 側で外部遷移 ──
+    const watchThumb = e.target.closest('[data-mv-watch]');
+    if (watchThumb && _musicVideos?.length) {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+      e.preventDefault();
+      const v = _musicVideos[Number(watchThumb.dataset.mvWatch)];
+      if (v?.url) window.__openStreamViewer?.({ url: v.url, title: v.title, isMv: true });
+      return;
+    }
+
     if (_activeSubTab === 'my-playlists') {
       _handleMyPlaylistsClick(e, allStreams);
     }
@@ -624,10 +635,12 @@ function _musicCard(video, globalIdx) {
   }
   return `
     <div class="mv-card">
-      <a class="mv-card-thumb-btn" href="${escapeHtml(video.url || '#')}" target="_blank" rel="noopener" aria-label="YouTubeで開く">
+      <a class="mv-card-thumb-btn" href="${escapeHtml(video.url || '#')}" target="_blank" rel="noopener"
+        data-mv-watch="${globalIdx}" aria-label="動画ビューワーで見る">
         ${thumb
           ? `<img class="mv-card-thumb" src="${escapeHtml(thumb)}" data-fallback="${escapeHtml(thumbFb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
           : '<div class="mv-card-thumb mv-card-thumb-placeholder"></div>'}
+        <span class="mv-card-play-icon">▶</span>
         <span class="mv-type-badge ${badgeClass}">${badge}</span>
       </a>
       <button class="pl-sg-add mv-add-btn mv-add-btn--overlay${saved ? ' is-saved' : ''}" type="button"
