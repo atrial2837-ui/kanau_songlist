@@ -365,6 +365,9 @@ function _renderAllStreams(streams, page) {
                 alt="" loading="lazy" referrerpolicy="no-referrer">`
             : '<div class="pl-sg-thumb-placeholder"></div>'}
           <span class="pl-sg-song-badge">${songCount}<span class="pl-sg-badge-unit">曲</span></span>
+          <span class="pl-sg-add" role="button" tabindex="0" aria-label="プレイリストに追加"
+            data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}"
+            title="プレイリストに追加">${PL_BOOKMARK_SVG}</span>
         </div>
         <div class="pl-sg-info">
           <span class="pl-sg-title">${escapeHtml(s.title || '配信')}</span>

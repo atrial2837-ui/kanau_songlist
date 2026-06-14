@@ -1028,102 +1028,98 @@ function initSetlistSearch() {
 // セトリ ドラッグ＆ドロップ並び替え（Pointer Events API）
 // ──────────────────────────────────────────────────────────────────────────────
 
+// セトリの並び替え（マイリストと同じ transform 追従方式）。
+// ドラッグ中の行はポインタに追従し、他の行は CSS トランジションでシフト、
+// 確定時に配列を並び替えて保存・再描画する。
 function initSetlistDrag() {
   if (_dragCleanup) { _dragCleanup(); _dragCleanup = null; }
 
   const listEl = document.querySelector('.setlist-items');
   if (!listEl) return;
 
-  let src = null;
-  let srcIndex = -1;
-  let ghost = null;
-  let offsetY = 0;
-  let lastOver = null;
+  let st = null;
+
+  const cleanup = () => {
+    if (!st) return;
+    st.rows.forEach(r => { r.style.transform = ''; });
+    st.row.classList.remove('is-dragging');
+    listEl.classList.remove('is-drag-active');
+    st.row.removeEventListener('pointermove', onMove);
+    st.row.removeEventListener('pointerup', onEnd);
+    st.row.removeEventListener('pointercancel', onCancel);
+    st = null;
+  };
 
   function onMove(e) {
-    if (!src) return;
-    const srcRect = src.getBoundingClientRect();
-    ghost.style.top  = `${e.clientY - offsetY}px`;
-    ghost.style.left = `${srcRect.left}px`;
-    ghost.style.width = `${srcRect.width}px`;
+    if (!st) return;
+    e.preventDefault();
+    const dy = e.clientY - st.startY;
+    if (!st.moved && Math.abs(dy) < 3) return; // 微小移動はクリック扱い
+    st.moved = true;
+    st.row.style.transform = `translateY(${dy}px)`;
 
-    // ゴーストを一時的に非表示にして下の要素を取得
-    ghost.style.visibility = 'hidden';
-    const elUnder = document.elementFromPoint(e.clientX, e.clientY);
-    ghost.style.visibility = '';
-
-    const target = elUnder?.closest('.setlist-item:not(.is-dragging)');
-    if (lastOver !== target) {
-      lastOver?.classList.remove('drag-over');
-      target?.classList.add('drag-over');
-      lastOver = target;
+    const centerY = st.mids[st.startIdx] + dy;
+    let target = 0;
+    for (let i = 0; i < st.mids.length; i++) {
+      if (i === st.startIdx) continue;
+      if (centerY > st.mids[i]) target++;
+    }
+    if (target !== st.targetIdx) {
+      st.targetIdx = target;
+      st.rows.forEach((r, i) => {
+        if (i === st.startIdx) return;
+        let shift = 0;
+        if (st.startIdx < target && i > st.startIdx && i <= target) shift = -st.rowH;
+        else if (st.startIdx > target && i >= target && i < st.startIdx) shift = st.rowH;
+        r.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
     }
   }
 
-  function finalize(e) {
-    document.removeEventListener('pointermove', onMove);
-    document.removeEventListener('pointerup', finalize);
-    document.removeEventListener('pointercancel', cancel);
-
-    const destIndex = lastOver ? Number(lastOver.dataset.index) : -1;
-    ghost?.remove(); ghost = null;
-    src?.classList.remove('is-dragging');
-    lastOver?.classList.remove('drag-over');
-
-    const savedSrc = srcIndex;
-    src = null; srcIndex = -1; lastOver = null;
-
-    if (destIndex !== -1 && destIndex !== savedSrc) {
-      const items = state.setlist.items;
-      const [moved] = items.splice(savedSrc, 1);
-      const adj = destIndex > savedSrc ? destIndex - 1 : destIndex;
-      items.splice(adj, 0, moved);
+  function onEnd() {
+    if (!st) return;
+    const { startIdx, targetIdx, moved } = st;
+    cleanup();
+    if (!moved || targetIdx === startIdx) return;
+    const items = state.setlist.items;
+    if (startIdx < items.length) {
+      const [moved2] = items.splice(startIdx, 1);
+      items.splice(targetIdx, 0, moved2);
       saveSetlist();
       renderSetlistPlanner();
     }
   }
 
-  function cancel() {
-    document.removeEventListener('pointermove', onMove);
-    document.removeEventListener('pointerup', finalize);
-    document.removeEventListener('pointercancel', cancel);
-    ghost?.remove(); ghost = null;
-    src?.classList.remove('is-dragging');
-    lastOver?.classList.remove('drag-over');
-    src = null; srcIndex = -1; lastOver = null;
-  }
+  function onCancel() { cleanup(); }
 
   listEl.addEventListener('pointerdown', (e) => {
+    if (st) return;
     if (!e.target.closest('.setlist-drag-handle')) return;
-    const item = e.target.closest('.setlist-item');
-    if (!item) return;
+    const row = e.target.closest('.setlist-item');
+    if (!row) return;
     e.preventDefault();
 
-    src = item;
-    srcIndex = Number(item.dataset.index);
-    const rect = item.getBoundingClientRect();
-    offsetY = e.clientY - rect.top;
+    const rows = Array.from(listEl.querySelectorAll('.setlist-item'));
+    const startIdx = rows.indexOf(row);
+    if (startIdx < 0) return;
+    const mids = rows.map(r => { const rc = r.getBoundingClientRect(); return rc.top + rc.height / 2; });
+    const rect = row.getBoundingClientRect();
 
-    // ゴースト生成
-    ghost = item.cloneNode(true);
-    ghost.className = ghost.className + ' setlist-drag-ghost';
-    Object.assign(ghost.style, {
-      position: 'fixed',
-      top:  `${rect.top}px`,
-      left: `${rect.left}px`,
-      width: `${rect.width}px`,
-      pointerEvents: 'none',
-      zIndex: '9999',
-    });
-    document.body.appendChild(ghost);
-    item.classList.add('is-dragging');
-
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', finalize);
-    document.addEventListener('pointercancel', cancel);
+    st = {
+      rows, mids, startIdx, targetIdx: startIdx,
+      startY: e.clientY,
+      rowH: rect.height + (parseFloat(getComputedStyle(listEl).rowGap || getComputedStyle(listEl).gap) || 0),
+      row, moved: false,
+    };
+    row.classList.add('is-dragging');
+    listEl.classList.add('is-drag-active');
+    try { row.setPointerCapture(e.pointerId); } catch (_) {}
+    row.addEventListener('pointermove', onMove, { passive: false });
+    row.addEventListener('pointerup', onEnd);
+    row.addEventListener('pointercancel', onCancel);
   });
 
-  _dragCleanup = cancel;
+  _dragCleanup = cleanup;
 }
 
 function formatSetlistText() {

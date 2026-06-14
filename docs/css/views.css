@@ -633,21 +633,18 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 }
 .setlist-drag-handle:hover { opacity: 1; color: var(--ink-soft); }
 .setlist-drag-handle:active { cursor: grabbing; }
-.setlist-item.is-dragging { opacity: 0.3; }
-.setlist-item.drag-over {
-  outline: 2px solid var(--primary);
-  outline-offset: -1px;
-  background: var(--primary-soft, color-mix(in srgb, var(--primary) 10%, var(--surface-2)));
-}
-.setlist-drag-ghost {
-  opacity: 0.92;
-  box-shadow: 0 10px 32px rgba(0,0,0,0.22);
-  border-radius: var(--radius-sm);
-  border: 2px solid var(--primary);
+
+/* 並び替え（マイリストと同じ transform 追従方式） */
+.setlist-items.is-drag-active { user-select: none; }
+.setlist-items.is-drag-active .setlist-item { transition: transform 0.15s ease; }
+.setlist-item.is-dragging {
+  transition: none !important; /* ドラッグ中の行はポインタへ即時追従 */
+  position: relative;
+  z-index: 10;
   background: var(--surface);
-  pointer-events: none;
-  position: fixed;
-  z-index: 9999;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--primary);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
 }
 
 .setlist-custom-add {
