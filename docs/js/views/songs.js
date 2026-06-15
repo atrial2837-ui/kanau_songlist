@@ -3,7 +3,7 @@ import { ensureSongsTags } from '../tagging.js';
 import { $, escapeHtml, fmtDate, daysClass, debounce, highlightText } from '../utils.js';
 import { search, matchReasons, getSearchHistory, addSearchHistory, removeSearchHistory, clearSearchHistory } from '../search.js';
 import { writeUrlState } from '../url-state.js';
-import { applyGenreFilter, applyTagFilter, applySingerMode, sortSongs } from '../domain-compat.js';
+import { applyGenreFilter, applyTagFilter, applySingerMode, sortSongs, setlistBalance } from '../domain-compat.js';
 import { icon } from '../icons.js';
 
 let searchInputEl, sortSelectEl, genreSelectEl, filterButtonsEl, genreChipsEl, listEl, countEl, moreBtnWrap;
@@ -795,25 +795,6 @@ function addRandomToSetlist() {
 
 function setlistItems() {
   return state.setlist.items.map(hydrateSetlistItem);
-}
-
-function setlistBalance(items) {
-  const topCounts = (fn) => {
-    const map = new Map();
-    for (const item of items) {
-      for (const value of fn(item)) {
-        if (!value) continue;
-        map.set(value, (map.get(value) || 0) + 1);
-      }
-    }
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
-  };
-  return {
-    genres: topCounts(item => [item.genre || '未分類']),
-    moods: topCounts(item => item.moodTags || []),
-    keys: items.filter(item => item.displayKey).length,
-    stale: items.filter(item => item.daysSinceLast >= 180).length,
-  };
 }
 
 function renderSetlistPlanner(message = '') {

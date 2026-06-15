@@ -1,4 +1,4 @@
-import{d as w,e as y}from"./chunk-JT7WCFD3.js";import{E as Y,F as B,G as x,J as P,P as p,a as g,c as u,p as k,q as j,r as L,s as D,t as T,u as _,v as R}from"./chunk-XREH2M7C.js";function ta(){let{songs:a,streams:e}=y.data,d=[...a].sort((m,b)=>b.count-m.count).slice(0,5),t=d[0]?.count||1,s=e.slice(0,5),r=w(),n=D(a,r),o=g("#panel-dashboard"),v=R(e,r),h=T(e).slice(-12),S=Math.max(1,...h.map(m=>m.songs)),$=`
+import{d as w,e as y}from"./chunk-JT7WCFD3.js";import{F as Y,G as B,H as x,K as P,Q as p,a as g,c as u,p as k,q as j,r as L,s as D,t as T,u as _,v as R}from"./chunk-I26RRBMD.js";function ta(){let{songs:a,streams:e}=y.data,d=[...a].sort((m,b)=>b.count-m.count).slice(0,5),t=d[0]?.count||1,s=e.slice(0,5),r=w(),n=D(a,r),o=g("#panel-dashboard"),v=R(e,r),h=T(e).slice(-12),S=Math.max(1,...h.map(m=>m.songs)),$=`
     <div class="card dashboard-card dashboard-activity-card">
       <div class="card-title">${p("analytics")} \u4ECA\u6708\u306E\u6D3B\u52D5</div>
       <div class="dashboard-metric-list">
