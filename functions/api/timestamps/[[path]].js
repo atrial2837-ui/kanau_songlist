@@ -44,6 +44,12 @@ export async function onRequest({ request, env }) {
     // CORS ヘッダーをすべてのレスポンスに付与
     const headers = new Headers(response.headers);
     for (const [k, v] of Object.entries(CORS_HEADERS)) headers.set(k, v);
+    // 公開タイムスタンプ取得(GET 200)はブラウザ/エッジで短時間キャッシュ可能。
+    // 承認は手動・低頻度なので 60s + SWR で再オープンを高速化しつつ反映遅延を最小化。
+    // 投稿(POST)等の変更系には付けない。
+    if (request.method === 'GET' && response.status === 200 && !headers.has('Cache-Control')) {
+      headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+    }
     return new Response(response.body, {
       status:  response.status,
       headers,

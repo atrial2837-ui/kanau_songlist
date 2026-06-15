@@ -24,6 +24,12 @@
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <link rel="preload" href="assets/site-icon.svg" as="image" fetchpriority="high">
 <link rel="preload" href="assets/fonts/noto-sans-jp-kanau-400.woff2" as="font" type="font/woff2" crossorigin>
+<!-- YouTube サムネ(i.ytimg.com)は全タブで多用、プレイヤー(youtube.com)はビュアーで使用。
+     接続(DNS+TLS)を事前に温めてサムネ表示・ビュアー起動を速める。 -->
+<link rel="preconnect" href="https://i.ytimg.com">
+<link rel="preconnect" href="https://www.youtube.com">
+<link rel="dns-prefetch" href="https://i.ytimg.com">
+<link rel="dns-prefetch" href="https://www.youtube.com">
 <!-- Chart.js は dashboard/analytics で遅延ロードする外部CDN。接続を事前に温め、
      データ取得と並行して低優先で先読みしてチャート初描画を早める。
      charts.js は crossorigin 無しの <script> 注入なので preload も無しで一致させ二重取得を防ぐ。 -->
