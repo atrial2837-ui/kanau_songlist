@@ -321,6 +321,7 @@ function initMobileTabNav() {
   const setOpen = (open) => {
     panel.hidden = !open;
     nav.classList.toggle('is-open', open);
+    document.body.classList.toggle('has-mobile-tab-open', open);
     toggle.setAttribute('aria-expanded', String(open));
   };
 

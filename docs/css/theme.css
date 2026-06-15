@@ -630,6 +630,11 @@ kbd {
     z-index: 72;
     width: 118px;
   }
+  body.has-mobile-tab-open .page-top-toast {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+  }
   .container {
     width: 100%;
     padding: 0 clamp(12px, 3vw, 20px);
