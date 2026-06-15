@@ -2,16 +2,22 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
-  grid-template-areas:
-    "main side"
-    "list1 list2"
-    "list3 list4"
-    "recent recent";
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 12px;
   align-items: start;
 }
 .dashboard-grid > .card {
+  min-width: 0;
+}
+.dashboard-overview-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.82fr) minmax(260px, 1fr) minmax(420px, 1.5fr);
+  grid-template-areas:
+    "activity top genre"
+    "monthly monthly heatmap";
+  gap: 12px;
+  align-items: stretch;
   min-width: 0;
 }
 .dashboard-main-stack {
@@ -29,6 +35,10 @@
   height: auto;
   padding: 16px;
   border-radius: 12px;
+}
+.dashboard-overview-grid > .dashboard-card {
+  min-width: 0;
+  height: 100%;
 }
 .dashboard-lead {
   grid-area: lead;
@@ -82,15 +92,20 @@
   padding-top: 14px;
   border-top: 1px dashed var(--border);
 }
+.dashboard-activity-card { grid-area: activity; }
+.dashboard-top-card { grid-area: top; }
+.dashboard-genre-card { grid-area: genre; }
+.dashboard-heatmap-card { grid-area: heatmap; }
 .dashboard-monthly-card { grid-area: monthly; }
 .dashboard-monthly-card {
   padding-bottom: 14px;
 }
-.dashboard-list-month { grid-area: list1; }
-.dashboard-list-year { grid-area: list2; }
-.dashboard-list-stale { grid-area: list3; }
-.dashboard-list-recent { grid-area: list4; }
-.dashboard-recent-card { grid-area: recent; }
+.dashboard-list-card { grid-column: span 6; }
+.dashboard-list-month,
+.dashboard-list-year,
+.dashboard-list-stale,
+.dashboard-list-recent { grid-column: span 6; }
+.dashboard-recent-card { grid-column: 1 / -1; }
 @media (min-width: 760px) {
   .col-12 { grid-column: 1 / -1 !important; }
   .col-6 { grid-column: span 6 !important; }
@@ -111,20 +126,41 @@
 @media (max-width: 980px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+  .dashboard-overview-grid {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
-      "main"
-      "side"
-      "list1"
-      "list2"
-      "list3"
-      "list4"
-      "recent";
+      "activity top"
+      "genre genre"
+      "heatmap heatmap"
+      "monthly monthly";
+  }
+  .dashboard-list-card,
+  .dashboard-list-month,
+  .dashboard-list-year,
+  .dashboard-list-stale,
+  .dashboard-list-recent,
+  .dashboard-recent-card {
+    grid-column: 1 / -1;
   }
   .analytics-grid {
     grid-template-columns: 1fr;
   }
   .analytics-grid > .card {
     grid-column: 1 / -1 !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-overview-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "activity"
+      "top"
+      "genre"
+      "heatmap"
+      "monthly";
   }
 }
 
@@ -147,7 +183,7 @@
 }
 .genre-breakdown {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
   gap: 6px 12px;
 }
 .genre-row {
