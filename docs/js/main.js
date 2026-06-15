@@ -3,7 +3,7 @@ import { ensureSongTags, loadAll, loadInitial } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange, cycleTheme } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
-import { $, $$, escapeHtml, fmtDate, daysSince, isLink, formatNumber, streamKey } from './utils.js';
+import { $, $$, escapeHtml, fmtDate, daysSince, isLink, formatNumber, streamKey, youtubeVideoId, youtubeThumb, youtubeThumbFallback } from './utils.js';
 import { DEFAULT_CHANNEL } from './config.js';
 import { readUrlState, writeUrlState } from './url-state.js';
 import { initSearchPalette, openSearchPalette, closeSearchPalette, isSearchPaletteOpen } from './views/search-palette.js';
@@ -391,22 +391,6 @@ function findSong(key) {
   return (state.data?.songs || []).find(song => song.key === key) || null;
 }
 
-function youtubeVideoId(url) {
-  const text = String(url || '');
-  const patterns = [
-    /youtu\.be\/([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/watch\?[^#]*v=([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/live\/([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
-  ];
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) return match[1];
-  }
-  return '';
-}
-
 function _isResponsivePlaybackDisabled() {
   return window.matchMedia('(max-width: 700px)').matches;
 }
@@ -417,16 +401,6 @@ function _youtubeExternalUrl(url, startAt = 0) {
   if (!id) return raw;
   const t = Math.max(0, Math.floor(Number(startAt) || 0));
   return `https://www.youtube.com/watch?v=${id}${t > 0 ? `&t=${t}s` : ''}`;
-}
-
-function youtubeThumb(url) {
-  const id = youtubeVideoId(url);
-  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
-}
-
-function youtubeThumbFallback(url) {
-  const id = youtubeVideoId(url);
-  return id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : '';
 }
 
 function youtubeThumbTiny(url) {
