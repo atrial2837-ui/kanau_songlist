@@ -8,3 +8,4 @@ node_modules/
 
 # Local-only design / handoff notes (kept out of the public repo)
 /SoT/
+tmp/
