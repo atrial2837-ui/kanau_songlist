@@ -9,7 +9,8 @@
     "build:main": "node build.mjs main",
     "build:admin": "node build.mjs admin",
     "smoke": "node scripts/smoke.mjs",
-    "arch": "node scripts/arch-lint.mjs"
+    "arch": "node scripts/arch-lint.mjs",
+    "typecheck": "tsc -p jsconfig.json --noEmit"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"
