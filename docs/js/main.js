@@ -193,6 +193,14 @@ function syncActiveTabUi(tab) {
     b.classList.toggle('active', isActive);
     b.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
+  $$('.mobile-tab-item').forEach(b => {
+    const isActive = b.dataset.mobileTab === tab;
+    b.classList.toggle('is-active', isActive);
+    b.setAttribute('aria-current', isActive ? 'page' : 'false');
+  });
+  const current = $('#mobile-tab-current');
+  const activeLabel = $(`.tab-btn[data-tab="${tab}"] span:last-child`)?.textContent?.trim();
+  if (current && activeLabel) current.textContent = activeLabel;
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
   document.body.dataset.activeTab = tab; // ヒーロー圧縮・ビューワー集中表示の CSS フック
 }
@@ -302,6 +310,45 @@ function initMobileMenu() {
     event.stopPropagation();
   });
   updateMobileMenuLabel();
+}
+
+function initMobileTabNav() {
+  const nav = $('#mobile-tab-nav');
+  const toggle = $('#mobile-tab-toggle');
+  const panel = $('#mobile-tab-panel');
+  if (!nav || !toggle || !panel) return;
+
+  const setOpen = (open) => {
+    panel.hidden = !open;
+    nav.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+  };
+
+  toggle.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setOpen(panel.hidden);
+  });
+
+  panel.addEventListener('click', (event) => {
+    const item = event.target.closest('[data-mobile-tab]');
+    if (!item) return;
+    const tab = item.dataset.mobileTab;
+    setOpen(false);
+    activateTab(tab);
+    document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  document.addEventListener('click', (event) => {
+    if (panel.hidden) return;
+    if (event.target.closest('#mobile-tab-nav')) return;
+    setOpen(false);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setOpen(false);
+  });
+
+  syncActiveTabUi(state.activeTab || 'dashboard');
 }
 
 function initPageTopToast() {
@@ -1923,6 +1970,11 @@ function _svRenderSideRelated(related) {
 }
 
 /** プレイヤー下のナビカードHTMLを返す */
+function _svIsVerticalStream(stream) {
+  return /縦型|たて配信|タテ|#?shorts|ショート|vertical/i.test(stream?.title || '')
+    || /\/shorts\//.test(stream?.url || '');
+}
+
 function _svNavCard(s, dir) {
   if (!s) {
     const label = dir === 'newer' ? '最新配信' : '最初の配信';
@@ -1930,7 +1982,8 @@ function _svNavCard(s, dir) {
   }
   const thumb = youtubeThumb(s.url);
   const label = dir === 'newer' ? '新しい配信 →' : '← 古い配信';
-  return `<button class="sv-bp-nav-card" type="button" data-bp-action="open-stream" data-bp-channel="${escapeHtml(s.channel)}" data-bp-index="${s.index}">
+  const layoutClass = _svIsVerticalStream(s) ? 'sv-bp-nav-card--portrait' : 'sv-bp-nav-card--landscape';
+  return `<button class="sv-bp-nav-card ${layoutClass}" type="button" data-bp-action="open-stream" data-bp-channel="${escapeHtml(s.channel)}" data-bp-index="${s.index}">
     <div class="sv-bp-nav-dir">${escapeHtml(label)}</div>
     ${thumb ? `<img class="sv-bp-nav-thumb" src="${escapeHtml(thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="sv-bp-nav-thumb sv-bp-nav-thumb--empty"></div>'}
     <div class="sv-bp-nav-info">
@@ -2577,8 +2630,7 @@ function openStreamViewer(stream, resumeAt = 0) {
   viewer.classList.remove('sv-fullscreen');
   viewer.classList.toggle('sv-mv-mode', !!stream.isMv);
   // 縦型配信/ショートはタイトル・URL から判定し、縦長プレイヤーで黒帯を抑える
-  const _vertical = /縦型|たて配信|タテ|#?shorts|ショート|vertical/i.test(stream.title || '')
-    || /\/shorts\//.test(stream.url || '');
+  const _vertical = _svIsVerticalStream(stream);
   viewer.classList.toggle('sv-portrait', _vertical);
   viewer._currentStream = stream;
   _svApplySetlistCollapsed();
@@ -3291,6 +3343,7 @@ initYouTubePlayer();
 initStreamViewer();
 initSongModal();
 initMobileMenu();
+initMobileTabNav();
 initPageTopToast();
 initWelcomeTip();
 import('./music-player.js').then(m => { m.setApiLoader(_loadYtApi); m.initMusicPlayer(); }).catch(() => {});

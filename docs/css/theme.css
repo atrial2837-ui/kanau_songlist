@@ -624,6 +624,12 @@ kbd {
   body {
     overflow-x: hidden;
   }
+  .page-top-toast {
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(env(safe-area-inset-bottom) + 86px);
+    z-index: 72;
+    width: 118px;
+  }
   .container {
     width: 100%;
     padding: 0 clamp(12px, 3vw, 20px);
