@@ -56,8 +56,6 @@ export function renderDashboard() {
 
   panel.innerHTML = `
     <div class="dashboard-grid" id="dashboard-grid">
-      ${renderResumeSection()}
-      ${renderRecapCardShell()}
       <div class="dashboard-overview-grid">
         ${activityHtml}
         ${top5Html}
@@ -74,6 +72,8 @@ export function renderDashboard() {
           ${renderMonthlyBars(monthly, monthlyMax)}
         </div>
       </div>
+      ${renderResumeSection()}
+      ${renderRecapCardShell()}
       ${deferredDashboardHtml(streams, songs, recent)}
     </div>
   `;
@@ -383,6 +383,10 @@ function renderGenreChart(songs) {
   const rows = Array.from(genreCounts.entries()).sort((a, b) => b[1] - a[1]);
   const total = rows.reduce((sum, [, count]) => sum + count, 0);
   if (!rows.length) return '<div class="empty-state">ジャンルデータなし</div>';
+  const totalSongs = songs.length || 0;
+  const unclassified = Math.max(0, totalSongs - total);
+  const topGenre = rows[0];
+  const topShare = totalSongs ? Math.round((topGenre[1] / totalSongs) * 100) : 0;
   return `
     <div class="genre-meter" aria-label="ジャンル分布">
       <div class="genre-meter-track">
@@ -398,6 +402,24 @@ function renderGenreChart(songs) {
             <strong>${count}</strong>
           </div>
         `).join('')}
+      </div>
+      <div class="genre-insights" aria-label="ジャンル集計">
+        <div class="genre-insight">
+          <span>分類済み</span>
+          <strong>${total}<small>曲</small></strong>
+        </div>
+        <div class="genre-insight">
+          <span>未分類</span>
+          <strong>${unclassified}<small>曲</small></strong>
+        </div>
+        <div class="genre-insight">
+          <span>ジャンル数</span>
+          <strong>${rows.length}<small>種</small></strong>
+        </div>
+        <div class="genre-insight">
+          <span>${escapeHtml(topGenre[0])}</span>
+          <strong>${topShare}<small>%</small></strong>
+        </div>
       </div>
     </div>
   `;

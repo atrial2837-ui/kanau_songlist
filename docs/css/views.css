@@ -186,6 +186,43 @@
   grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
   gap: 6px 12px;
 }
+.genre-insights {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+.genre-insight {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-2) 84%, var(--primary-soft));
+}
+.genre-insight span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-mute);
+  font-size: 10px;
+  line-height: 1.2;
+}
+.genre-insight strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--primary-strong);
+  font-size: 18px;
+  line-height: 1;
+  font-feature-settings: var(--tnum);
+}
+.genre-insight small {
+  margin-left: 2px;
+  color: var(--ink-mute);
+  font-size: 10px;
+  font-weight: 700;
+}
 .genre-row {
   display: grid;
   grid-template-columns: 10px minmax(0, 1fr) auto;
@@ -1234,6 +1271,9 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   }
   .genre-breakdown {
     grid-template-columns: 1fr;
+  }
+  .genre-insights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .monthly-bars {
     grid-template-columns: repeat(6, minmax(0, 1fr));
