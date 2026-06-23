@@ -608,6 +608,155 @@ function initMusicVideos() {
   });
 }
 
+/* ─── 歌枠・セトリ編集 ────────────────────────────────────────────────────── */
+
+let _editStreamId = null;
+
+function _streamListRow(stream) {
+  const label = stream.title || `第${stream.source_index ?? stream.id}枠`;
+  return `
+    <tr data-stream-id="${stream.id}" style="cursor:pointer" class="stream-list-row">
+      <td>${escapeHtml(stream.streamed_on)}</td>
+      <td>${escapeHtml(label)}</td>
+      <td>${stream.song_count}</td>
+      <td><button class="btn ghost" data-edit-stream="${stream.id}" type="button" style="padding:4px 10px;font-size:12px">編集</button></td>
+    </tr>`;
+}
+
+function _renderStreamList(streams) {
+  const wrap = $('#stream-list-wrap');
+  if (!streams.length) {
+    wrap.innerHTML = '<p class="admin-note">歌枠がありません</p>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>配信日</th><th>タイトル</th><th>曲数</th><th></th></tr></thead>
+        <tbody>${streams.map(_streamListRow).join('')}</tbody>
+      </table>
+    </div>`;
+
+  wrap.querySelectorAll('[data-edit-stream]').forEach((btn) => {
+    btn.addEventListener('click', () => _loadStreamForEdit(Number(btn.dataset.editStream)));
+  });
+}
+
+async function _loadStreamForEdit(streamId) {
+  $('#stream-edit-status').textContent = '読み込み中…';
+  try {
+    const data = await adminApi(`streams/${streamId}/songs`);
+    const s = data.stream;
+    _editStreamId = streamId;
+
+    $('#edit-streamed-on').value = s.streamed_on || '';
+    $('#edit-source-index').value = s.source_index != null ? s.source_index : '';
+    $('#edit-stream-title').value = s.title || '';
+    $('#edit-stream-url').value = s.url || '';
+    $('#edit-songs-text').value = data.songsText || '';
+    $('#edit-preview-box').innerHTML = '';
+    $('#stream-info-status').textContent = '';
+    $('#setlist-status').textContent = '';
+    $('#stream-edit-heading').textContent = `歌枠情報 — ${s.streamed_on} ${s.title || ''}`;
+    $('#stream-edit-form').style.display = '';
+    $('#stream-edit-badge').textContent = `編集中: #${streamId}`;
+    $('#stream-edit-status').textContent = '';
+    $('#stream-edit-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    $('#stream-edit-status').textContent = `エラー: ${err.message || err}`;
+  }
+}
+
+function initStreamEdit() {
+  const editChannel = $('#edit-channel');
+  const channels = Object.values(CHANNELS);
+  editChannel.innerHTML = channels.map((ch) =>
+    `<option value="${escapeHtml(ch.id)}">${escapeHtml(ch.label)}</option>`
+  ).join('');
+  editChannel.value = CHANNELS[DEFAULT_CHANNEL] ? DEFAULT_CHANNEL : channels[0]?.id || '';
+
+  $('#load-streams-btn')?.addEventListener('click', async () => {
+    $('#stream-edit-status').textContent = '読み込み中…';
+    $('#stream-list-wrap').innerHTML = '';
+    $('#stream-edit-form').style.display = 'none';
+    _editStreamId = null;
+    $('#stream-edit-badge').textContent = '選択中なし';
+    try {
+      const data = await adminApi(`streams?channelCode=${encodeURIComponent(editChannel.value)}`);
+      _renderStreamList(data.streams || []);
+      $('#stream-edit-status').textContent = `${(data.streams || []).length}件`;
+    } catch (err) {
+      $('#stream-edit-status').textContent = `エラー: ${err.message || err}`;
+    }
+  });
+
+  $('#save-stream-info-btn')?.addEventListener('click', async () => {
+    if (!_editStreamId) return;
+    if (!confirm('歌枠情報を更新します。よろしいですか？')) return;
+    $('#stream-info-status').textContent = '保存中…';
+    try {
+      await adminApi(`streams/${_editStreamId}`, {
+        title: $('#edit-stream-title').value,
+        url: $('#edit-stream-url').value,
+        streamedOn: $('#edit-streamed-on').value,
+        sourceIndex: $('#edit-source-index').value || null,
+      });
+      $('#stream-info-status').textContent = '歌枠情報を保存しました。必要なら静的データ生成を実行してください。';
+    } catch (err) {
+      $('#stream-info-status').textContent = `エラー: ${err.message || err}`;
+    }
+  });
+
+  $('#preview-edit-stream-btn')?.addEventListener('click', async () => {
+    $('#setlist-status').textContent = 'プレビュー中…';
+    try {
+      const channelCode = $('#edit-channel').value;
+      const data = await adminApi('preview-stream', {
+        channelCode,
+        streamedOn: $('#edit-streamed-on').value,
+        title: $('#edit-stream-title').value,
+        url: $('#edit-stream-url').value,
+        songsText: $('#edit-songs-text').value,
+      });
+      $('#edit-preview-box').innerHTML = `
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>#</th><th>曲</th><th>歌手</th><th>キー</th><th>ジャンル</th><th>判定</th></tr></thead>
+            <tbody>
+              ${data.songs.map((row) => `
+                <tr>
+                  <td>${row.position}</td>
+                  <td>${escapeHtml(row.title)}</td>
+                  <td>${escapeHtml(row.artist || '')}</td>
+                  <td>${escapeHtml(row.displayKey || '')}</td>
+                  <td>${escapeHtml(row.genre || '')}</td>
+                  <td>${escapeHtml(row.match)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      $('#setlist-status').textContent = `${data.songs.length}曲を確認しました。`;
+    } catch (err) {
+      $('#setlist-status').textContent = `エラー: ${err.message || err}`;
+    }
+  });
+
+  $('#save-setlist-btn')?.addEventListener('click', async () => {
+    if (!_editStreamId) return;
+    if (!confirm('このセトリに完全に置き換えます。よろしいですか？')) return;
+    $('#setlist-status').textContent = '保存中…';
+    try {
+      const data = await adminApi(`streams/${_editStreamId}/setlist`, {
+        songsText: $('#edit-songs-text').value,
+      });
+      $('#setlist-status').textContent = `セトリを保存しました: ${data.count}曲。必要なら静的データ生成を実行してください。`;
+    } catch (err) {
+      $('#setlist-status').textContent = `エラー: ${err.message || err}`;
+    }
+  });
+}
+
 /* ─── 起動 ───────────────────────────────────────────────────────────────── */
 
 $('#refresh-status').addEventListener('click', loadStatus);
@@ -615,3 +764,4 @@ initManagement();
 loadStatus();
 initTimestamps();
 initMusicVideos();
+initStreamEdit();

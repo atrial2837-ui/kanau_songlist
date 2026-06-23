@@ -13,6 +13,8 @@ import { readJsonBody } from './read-json-body.js';
 
 import { previewStream } from '../../usecase/preview-stream.js';
 import { addStream } from '../../usecase/add-stream.js';
+import { updateStreamInfo } from '../../usecase/update-stream-info.js';
+import { replaceSetlist } from '../../usecase/replace-setlist.js';
 import { searchSongs } from '../../usecase/search-songs.js';
 import { saveSongMetadata } from '../../usecase/save-song-metadata.js';
 import { syncKeyReferenceCsv } from '../../usecase/sync-key-reference-csv.js';
@@ -93,6 +95,51 @@ export function buildAdminRouter(options) {
   router.post(p('/streams'), auth(async (ctx) => {
     const body = (await readJsonBody(ctx.request)) || {};
     const result = await addStream(getDeps(ctx), body);
+    return jsonResponse(result);
+  }));
+
+  // ─── 歌枠・セトリ編集 ────────────────────────────────────────────────────
+
+  /** チャンネル別歌枠一覧 */
+  router.get(p('/streams'), auth(async (ctx) => {
+    const deps = getDeps(ctx);
+    const channelCode = ctx.query.get('channelCode') || '';
+    const channel = channelCode ? await deps.channels.findByCode(channelCode) : null;
+    const streams = channel
+      ? await deps.streams.findAllByChannel(channel.id)
+      : await deps.streams.findAll();
+    return jsonResponse({ streams });
+  }));
+
+  /** 歌枠セトリ取得 (raw_text を改行結合したテキストで返す) */
+  router.get(/^(?:.*\/)?streams\/(\d+)\/songs$/, auth(async (ctx) => {
+    const deps = getDeps(ctx);
+    const m = new URL(ctx.request.url).pathname.match(/\/streams\/(\d+)\/songs$/);
+    const streamId = Number(m[1]);
+    const stream = await deps.streams.findById(streamId);
+    if (!stream) return new Response(JSON.stringify({ error: 'Not Found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+    const songs = await deps.streamSongs.findByStreamId(streamId);
+    const songsText = songs
+      .map((s) => s.raw_text || [s.title_snapshot, s.artist_snapshot].filter(Boolean).join(' / '))
+      .join('\n');
+    return jsonResponse({ stream, songsText, songs });
+  }));
+
+  /** 歌枠メタ情報更新 (title / url / streamed_on / source_index のみ) */
+  router.post(/^(?:.*\/)?streams\/(\d+)$/, auth(async (ctx) => {
+    const deps = getDeps(ctx);
+    const m = new URL(ctx.request.url).pathname.match(/\/streams\/(\d+)$/);
+    const body = (await readJsonBody(ctx.request)) || {};
+    const result = await updateStreamInfo(deps, { streamId: Number(m[1]), ...body });
+    return jsonResponse(result);
+  }));
+
+  /** セトリ全置換 */
+  router.post(/^(?:.*\/)?streams\/(\d+)\/setlist$/, auth(async (ctx) => {
+    const deps = getDeps(ctx);
+    const m = new URL(ctx.request.url).pathname.match(/\/streams\/(\d+)\/setlist$/);
+    const body = (await readJsonBody(ctx.request)) || {};
+    const result = await replaceSetlist(deps, { streamId: Number(m[1]), ...body });
     return jsonResponse(result);
   }));
 

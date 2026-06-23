@@ -62,6 +62,46 @@
     <div id="preview-box"></div>
   </section>
 
+  <section class="admin-panel" id="stream-edit-section">
+    <div class="section-header">
+      <h2>歌枠・セトリ編集</h2>
+      <span class="badge" id="stream-edit-badge">選択中なし</span>
+    </div>
+    <div class="admin-form-grid">
+      <label>チャンネル<select id="edit-channel"></select></label>
+    </div>
+    <div class="admin-actions">
+      <button class="btn ghost" id="load-streams-btn" type="button">歌枠を読み込む</button>
+    </div>
+    <p class="admin-note" id="stream-edit-status"></p>
+    <div id="stream-list-wrap"></div>
+
+    <div id="stream-edit-form" style="display:none">
+      <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+      <h3 style="margin:0 0 12px;font-size:15px" id="stream-edit-heading">歌枠情報</h3>
+      <div class="admin-form-grid">
+        <label>配信日<input id="edit-streamed-on" type="date"></label>
+        <label>枠番号<input id="edit-source-index" type="number" min="1"></label>
+        <label>配信タイトル<input id="edit-stream-title" type="text"></label>
+        <label>URL<input id="edit-stream-url" type="url"></label>
+      </div>
+      <div class="admin-actions">
+        <button class="btn ghost" id="save-stream-info-btn" type="button">情報を保存</button>
+      </div>
+      <p class="admin-note" id="stream-info-status"></p>
+
+      <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+      <h3 style="margin:0 0 12px;font-size:15px">セトリ編集</h3>
+      <label class="admin-field-full">曲リスト<textarea id="edit-songs-text" rows="12" placeholder="曲名 / アーティスト&#10;曲名 / アーティスト | +2 | アニソン"></textarea></label>
+      <div class="admin-actions">
+        <button class="btn ghost" id="preview-edit-stream-btn" type="button">プレビュー</button>
+        <button class="btn primary" id="save-setlist-btn" type="button">セトリを保存</button>
+      </div>
+      <p class="admin-note" id="setlist-status"></p>
+      <div id="edit-preview-box"></div>
+    </div>
+  </section>
+
   <section class="admin-panel">
     <div class="section-header">
       <h2>キー・ジャンル管理</h2>

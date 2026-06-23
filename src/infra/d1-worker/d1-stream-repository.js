@@ -119,6 +119,39 @@ export class D1StreamRepository {
   }
 
   /**
+   * ID で 1 件取得 (なければ null)。
+   *
+   * @param {number} id
+   * @returns {Promise<Stream|null>}
+   */
+  async findById(id) {
+    return this.client.queryFirst(
+      `SELECT id, channel_id, source_index, streamed_on, title, url, url_key, song_count, created_at
+       FROM streams WHERE id = ?`,
+      id,
+    );
+  }
+
+  /**
+   * 歌枠のメタ情報 (title / url / streamed_on / source_index) を直接更新。
+   * song_count は変更しない。
+   *
+   * @param {number} id
+   * @param {{ title: string|null, url: string|null, streamed_on: string, source_index: number|null }} patch
+   * @returns {Promise<void>}
+   */
+  async updateInfo(id, patch) {
+    await this.client.run(
+      `UPDATE streams SET source_index = ?, streamed_on = ?, title = ?, url = ? WHERE id = ?`,
+      patch.source_index ?? null,
+      patch.streamed_on,
+      patch.title ?? null,
+      patch.url ?? null,
+      id,
+    );
+  }
+
+  /**
    * 次の source_index を採番する (MAX + 1)。
    * 根拠: admin:252-254 `SELECT COALESCE(MAX(source_index), 0) + 1 AS next_index FROM streams WHERE channel_id = ?`.
    *
