@@ -18,6 +18,7 @@ const VIEW_LOADERS = {
   songs:     () => import('./views/songs.js').then(m => m.renderSongs),
   timeline:  () => import('./views/timeline.js').then(m => m.renderTimeline),
   analytics: () => import('./views/analytics.js').then(m => m.renderAnalytics),
+  requests:  () => import('./views/requests.js').then(m => m.renderRequests),
   playlists: () => import('./views/playlists.js').then(m => m.renderPlaylists),
 };
 const rendererCache = new Map();
@@ -110,13 +111,12 @@ async function ensureFullData() {
 }
 
 async function renderTab(tab = state.activeTab, options = {}) {
-  // playlists は localStorage のみで動作するため state.data 不要
-  if (tab !== 'playlists' && (!state.data || !isValidTab(tab))) return;
   if (!isValidTab(tab)) return;
+  // playlists / requests はアプリ本体データ待ち不要
+  if (!['playlists', 'requests'].includes(tab) && !state.data) return;
   const hasPartial = state.channelData?.partialLoaded || state.channelData?.fullLoaded;
   const hasFull    = state.channelData?.fullLoaded;
-  // playlists は常にすぐ描画（データ待ち不要）
-  const waitNeeded = tab === 'playlists' ? false : (needsStreams(tab) ? !hasFull : !hasPartial);
+  const waitNeeded = ['playlists', 'requests'].includes(tab) ? false : (needsStreams(tab) ? !hasFull : !hasPartial);
 
   if (waitNeeded) {
     if (options.autoLoad) {
@@ -203,6 +203,72 @@ function syncActiveTabUi(tab) {
   if (current && activeLabel) current.textContent = activeLabel;
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
   document.body.dataset.activeTab = tab; // ヒーロー圧縮・ビューワー集中表示の CSS フック
+
+  // プレイリストタブはサイドバーを非表示にして全幅使用
+  _setSidebarHidden(tab === 'playlists');
+}
+
+/** サイドバーの表示・非表示を切り替え、body padding と topbar left を同期する */
+function _setSidebarHidden(hidden) {
+  const sidebar = $('nav.tabs');
+  const topbar  = $('.topbar');
+  if (!sidebar) return;
+  if (hidden) {
+    sidebar.style.display = 'none';
+    document.body.style.paddingLeft = '0';
+    if (topbar) { topbar.style.left = '0'; topbar.style.width = '100%'; }
+  } else {
+    sidebar.style.display = '';
+    document.body.style.paddingLeft = '';
+    if (topbar) { topbar.style.left = ''; topbar.style.width = ''; }
+  }
+}
+
+function initSidebarNav() {
+  const sidebarToggle = $('#db-sidebar-toggle');
+  const storageKey = 'kanau-sidebar-collapsed';
+  const setCollapsed = (collapsed) => {
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    sidebarToggle?.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
+    const label = collapsed ? 'メニューを展開' : 'メニューを折り畳む';
+    sidebarToggle?.setAttribute('title', label);
+    sidebarToggle?.setAttribute('aria-label', label);
+    try { localStorage.setItem(storageKey, collapsed ? '1' : '0'); } catch (_) {}
+  };
+
+  try {
+    setCollapsed(localStorage.getItem(storageKey) === '1');
+  } catch (_) {
+    setCollapsed(false);
+  }
+
+  sidebarToggle?.addEventListener('click', () => {
+    setCollapsed(!document.body.classList.contains('sidebar-collapsed'));
+  });
+
+  const profileButton = $('#db-profile-button');
+  const profileMenu = $('#db-profile-menu');
+  const setProfileOpen = (open) => {
+    if (!profileMenu || !profileButton) return;
+    profileMenu.hidden = !open;
+    profileButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+
+  profileButton?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setProfileOpen(profileMenu?.hidden ?? true);
+  });
+  profileMenu?.querySelector('[data-ch-modal]')?.addEventListener('click', () => {
+    setProfileOpen(false);
+  });
+  document.addEventListener('click', (event) => {
+    if (!profileMenu || profileMenu.hidden) return;
+    if (event.target.closest?.('#db-profile-menu, #db-profile-button')) return;
+    setProfileOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setProfileOpen(false);
+  });
 }
 
 function getDataset(channelId) {
@@ -707,6 +773,7 @@ function _svDiscardMini() {
   const panel = $('#yt-player-panel');
   if (panel) panel.hidden = true;
   _svLastStream = null;
+  _setSidebarHidden(document.body.dataset.activeTab === 'playlists');
   _svUpdateUrl();
   return true;
 }
@@ -2450,6 +2517,14 @@ function initStreamViewer() {
   el.hidden = true;
   el.setAttribute('aria-label', '配信プレイヤー');
   el.innerHTML = `
+    <nav class="sv-topnav" aria-label="ページナビゲーション">
+      <button class="sv-topnav-btn" type="button" data-bc-tab="dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h5v7H4z"/><path d="M10 4h5v16h-5z"/><path d="M16 9h4v11h-4z"/></svg>ダッシュボード</button>
+      <button class="sv-topnav-btn" type="button" data-bc-tab="ranking"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3a4 4 0 0 1-8 0z"/><path d="M6 5H3v2a4 4 0 0 0 4 4"/><path d="M18 5h3v2a4 4 0 0 1-4 4"/><path d="M12 11v5"/><path d="M8 20h8"/><path d="M9 16h6v4H9z"/></svg>ランキング</button>
+      <button class="sv-topnav-btn" type="button" data-bc-tab="songs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>全曲リスト</button>
+      <button class="sv-topnav-btn" type="button" data-bc-tab="timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4"/><path d="M17 3v4"/><path d="M4 8h16"/><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 13h3"/><path d="M13 13h3"/><path d="M8 17h3"/></svg>タイムライン</button>
+      <button class="sv-topnav-btn" type="button" data-bc-tab="analytics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l3-4 4 2 5-7"/><circle cx="7" cy="15" r="1"/><circle cx="10" cy="11" r="1"/><circle cx="14" cy="13" r="1"/><circle cx="19" cy="6" r="1"/></svg>アナリティクス</button>
+      <button class="sv-topnav-btn" type="button" data-bc-tab="playlists"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h10"/><path d="M5 11h10"/><path d="M5 16h7"/><path d="M18 8v10l3-2 3 2V8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1z"/></svg>プレイリスト</button>
+    </nav>
     <div class="sv-container">
       <div class="sv-header">
         <button class="sv-close-btn" id="sv-close" type="button" title="ミニプレイヤーで再生を続けながら戻ります（Esc）">
@@ -2748,6 +2823,7 @@ function openStreamViewer(stream, resumeAt = 0) {
   }
 
   viewer.hidden = false;
+  _setSidebarHidden(true); // ビューワー表示中はサイドバーを隠して全幅使用
   document.body.style.overflow = ''; // 埋め込みモードではスクロールロックしない
   _svUpdateUrl();
   // 集中表示: ヒーロー/タブは CSS で隠れるので、プレイヤーを画面上部に出す
@@ -2860,6 +2936,8 @@ function closeStreamViewer() {
   const wrap = $('#sv-player-wrap');
   if (wrap) wrap.innerHTML = '';
   document.body.style.overflow = '';
+  // ビューワーを閉じたらサイドバーを復元（プレイリストタブ中は引き続き非表示）
+  _setSidebarHidden(document.body.dataset.activeTab === 'playlists');
   hidePlayerPanel();
   _svUpdateUrl();
 }
@@ -3414,6 +3492,7 @@ initChannelModal();
 initYouTubePlayer();
 initStreamViewer();
 initSongModal();
+initSidebarNav();
 initMobileMenu();
 initMobileTabNav();
 initPageTopToast();

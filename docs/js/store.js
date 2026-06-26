@@ -14,7 +14,7 @@
 
 // ─── URL直列化可能な状態 (SSoT = URL) ────────────────────────────────────────
 
-const VALID_TABS = new Set(['dashboard', 'ranking', 'songs', 'timeline', 'analytics', 'playlists']);
+const VALID_TABS = new Set(['dashboard', 'ranking', 'songs', 'timeline', 'analytics', 'requests', 'playlists']);
 const FAVORITES_KEY = 'kanau-favorites-v1';
 const VALID_CHANNELS = new Set(['new', 'old', 'all']);
 const VIDEO_ID_RE = /^[\w-]{11}$/;

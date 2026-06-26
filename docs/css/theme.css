@@ -126,6 +126,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
+  --db-sidebar-collapsed: 80px;
+  --db-sidebar-expanded: 248px;
+  --db-sidebar-current: var(--db-sidebar-expanded);
   font-family: "Kanau Noto Sans JP", "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Yu Gothic", "Meiryo", system-ui, sans-serif;
   background:
     radial-gradient(circle at 15% 5%, var(--bg-radial-1) 0%, transparent 38%),
@@ -137,6 +140,10 @@ body {
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   transition: background 0.3s ease, color 0.2s ease;
+}
+
+body.sidebar-collapsed {
+  --db-sidebar-current: var(--db-sidebar-collapsed);
 }
 
 a { color: var(--primary-strong); text-decoration: none; }
@@ -186,6 +193,41 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 
 main.container { padding-top: 28px; padding-bottom: 80px; }
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: none;
+    width: 100%;
+    padding-inline: clamp(16px, 1.6vw, 32px);
+  }
+}
+
+@media (min-width: 1021px) {
+  body {
+    padding-left: var(--db-sidebar-current);
+    transition: padding-left 0.18s ease;
+  }
+
+  .topbar {
+    left: var(--db-sidebar-current);
+    width: auto;
+    transition: left 0.18s ease;
+  }
+
+  .topbar-inner.container,
+  main.container {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: none;
+    width: 100%;
+    padding-left: clamp(16px, 1.6vw, 32px);
+    padding-right: clamp(16px, 1.6vw, 32px);
+  }
+
+  main.container {
+    padding-top: 28px;
+  }
+}
 
 /* === Topbar === */
 
@@ -853,3 +895,6 @@ kbd {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 0.25; }
 }
+
+/* ダッシュボード以外ではヒーロー非表示 */
+body:not([data-active-tab='dashboard']) #hero { display: none; }
