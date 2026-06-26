@@ -14,9 +14,10 @@
 
 // ─── URL直列化可能な状態 (SSoT = URL) ────────────────────────────────────────
 
-const VALID_TABS = new Set(['dashboard', 'ranking', 'songs', 'timeline', 'analytics']);
+const VALID_TABS = new Set(['dashboard', 'ranking', 'songs', 'timeline', 'analytics', 'requests', 'playlists']);
 const FAVORITES_KEY = 'kanau-favorites-v1';
 const VALID_CHANNELS = new Set(['new', 'old', 'all']);
+const VIDEO_ID_RE = /^[\w-]{11}$/;
 
 /**
  * @typedef {object} UrlState
@@ -67,10 +68,13 @@ export function readUrlState() {
   const params = new URLSearchParams(window.location.search);
   const rawTab = params.get('tab');
   const rawChannel = params.get('ch');
+  const rawV = params.get('v') || '';
   return {
     tab: VALID_TABS.has(rawTab) ? rawTab : 'dashboard',
     channel: VALID_CHANNELS.has(rawChannel) ? rawChannel : 'new',
     q: params.get('q') || '',
+    v: VIDEO_ID_RE.test(rawV) ? rawV : '',
+    t: Math.max(0, parseInt(params.get('t') || '0', 10) || 0),
   };
 }
 
@@ -80,6 +84,10 @@ export function writeUrlState(next = {}, options = {}) {
   if (merged.tab !== 'dashboard') params.set('tab', merged.tab);
   if (merged.channel !== 'new') params.set('ch', merged.channel);
   if (merged.q) params.set('q', merged.q);
+  if (merged.v) {
+    params.set('v', merged.v);
+    if (merged.t > 0) params.set('t', String(Math.floor(merged.t)));
+  }
   const search = params.toString();
   const url = search ? `${window.location.pathname}?${search}` : window.location.pathname;
   const method = options.replace ? 'replaceState' : 'pushState';
@@ -89,7 +97,13 @@ export function writeUrlState(next = {}, options = {}) {
 
 // ─── デフォルト値 ────────────────────────────────────────────────────────────
 
+const _initialUrl = readUrlState();
+
 const DEFAULT_IN_MEMORY = {
+  // URL由来の状態。set() のガード (!(key in memState)) を通すため
+  // 必ず初期キーを定義しておく（未定義だと set('activeTab') が無視される）
+  activeTab: _initialUrl.tab,
+  channel: _initialUrl.channel,
   audience: 'listener',
   timelineLimit: 12,
   timelineFilter: null,
@@ -107,8 +121,12 @@ const DEFAULT_IN_MEMORY = {
   setlist: { theme: '', copyFormat: 'simple', items: [] },
   setlistExpanded: false,
   rankingLimit: 50,
+  rankingPeriod: 'all',
+  rankingMonth: '',
+  rankingCompareMonth: '', // 期間ランキングの比較先（'' = 直前の期間と自動比較）
   favorites: loadFavorites(),
   favoritesFilter: false,
+  fullLoaded: false,
   channelData: null,
   data: null,
 };
@@ -140,59 +158,13 @@ function syncMemToUrl(fields) {
 }
 
 export function get(key) {
-  if (key === 'activeTab') return memState.activeTab;
-  if (key === 'channel') return memState.channel;
-  if (key === 'songsQuery') return memState.songsQuery;
-  if (key === 'channelData') return memState.channelData;
-  if (key === 'data') return memState.data;
-  if (key === 'audience') return memState.audience;
-  if (key === 'singerMode') return memState.singerMode;
-  if (key === 'singerPreset') return memState.singerPreset;
-  if (key === 'timelineLimit') return memState.timelineLimit;
-  if (key === 'timelineFilter') return memState.timelineFilter;
-  if (key === 'timelineFocus') return memState.timelineFocus;
-  if (key === 'timelineSort') return memState.timelineSort;
-  if (key === 'songsSort') return memState.songsSort;
-  if (key === 'songsLimit') return memState.songsLimit;
-  if (key === 'songsFilter') return memState.songsFilter;
-  if (key === 'songsGenre') return memState.songsGenre;
-  if (key === 'songsSeason') return memState.songsSeason;
-  if (key === 'songsView') return memState.songsView;
-  if (key === 'setlist') return memState.setlist;
-  if (key === 'setlistExpanded') return memState.setlistExpanded;
-  if (key === 'rankingLimit') return memState.rankingLimit;
-  if (key === 'favorites') return memState.favorites;
-  if (key === 'favoritesFilter') return memState.favoritesFilter;
-  if (key === 'fullLoaded') return memState.fullLoaded;
-  return undefined;
+  return memState[key];
 }
 
 export function set(key, value, options = {}) {
+  if (!(key in memState)) return;
   const prev = get(key);
-  if (key === 'activeTab') memState.activeTab = value;
-  else if (key === 'channel') memState.channel = value;
-  else if (key === 'songsQuery') memState.songsQuery = value;
-  else if (key === 'channelData') memState.channelData = value;
-  else if (key === 'data') memState.data = value;
-  else if (key === 'audience') memState.audience = value;
-  else if (key === 'singerMode') memState.singerMode = value;
-  else if (key === 'singerPreset') memState.singerPreset = value;
-  else if (key === 'timelineLimit') memState.timelineLimit = value;
-  else if (key === 'timelineFilter') memState.timelineFilter = value;
-  else if (key === 'timelineFocus') memState.timelineFocus = value;
-  else if (key === 'timelineSort') memState.timelineSort = value;
-  else if (key === 'songsSort') memState.songsSort = value;
-  else if (key === 'songsLimit') memState.songsLimit = value;
-  else if (key === 'songsFilter') memState.songsFilter = value;
-  else if (key === 'songsGenre') memState.songsGenre = value;
-  else if (key === 'songsSeason') memState.songsSeason = value;
-  else if (key === 'songsView') memState.songsView = value;
-  else if (key === 'setlist') memState.setlist = value;
-  else if (key === 'setlistExpanded') memState.setlistExpanded = value;
-  else if (key === 'rankingLimit') memState.rankingLimit = value;
-  else if (key === 'fullLoaded') memState.fullLoaded = value;
-  else if (key === 'favoritesFilter') memState.favoritesFilter = value;
-  else return;
+  memState[key] = value;
 
   if (prev !== value) {
     emit({ key, prev, next: value });
@@ -220,7 +192,11 @@ export function loadFavorites() {
 }
 
 export function saveFavorites(favorites) {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
+  } catch (e) {
+    console.warn('Failed to save favorites:', e);
+  }
 }
 
 export function toggleFavorite(key) {
@@ -320,6 +296,15 @@ export const state = {
 
   get rankingLimit() { return get('rankingLimit'); },
   set rankingLimit(v) { set('rankingLimit', v); },
+
+  get rankingPeriod() { return get('rankingPeriod'); },
+  set rankingPeriod(v) { set('rankingPeriod', v); },
+
+  get rankingMonth() { return get('rankingMonth'); },
+  set rankingMonth(v) { set('rankingMonth', v); },
+
+  get rankingCompareMonth() { return get('rankingCompareMonth'); },
+  set rankingCompareMonth(v) { set('rankingCompareMonth', v); },
 
   get fullLoaded() { return get('fullLoaded'); },
   set fullLoaded(v) { set('fullLoaded', v); },

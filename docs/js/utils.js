@@ -1,6 +1,5 @@
 import { $, $$ } from './utils-dom.js';
-import { normalize, escapeHtml, escapeRegExp, parseDateIso, formatDateRaw, formatMonth, monthKey, daysSince as domainDaysSince, daysClass } from '../../src/domain/index.js';
-import { buildSongKey } from '../../src/domain/song/song-key.js';
+import { normalize, escapeHtml, escapeRegExp, parseDateIso, formatDateRaw, formatMonth, monthKey, daysSince as domainDaysSince, daysClass, buildSongKey } from './domain-compat.js';
 
 export { $, $$, normalize, escapeHtml, escapeRegExp, parseDateIso, formatDateRaw, formatMonth, monthKey, daysClass };
 
@@ -16,7 +15,25 @@ export const fmtDate = formatDateRaw;
 
 export const fmtMonth = formatMonth;
 
-export const streamKey = (stream) => `${stream?.channelCode || stream?.channel || ''}:${stream?.dateText || stream?.streamedOn || stream?.dateRaw || ''}:${stream?.url || stream?.title || ''}`;
+export const streamKey = (stream) => `${stream?.channelCode || stream?.channel || ''}:${stream?.dateText || stream?.streamedOn || stream?.date || ''}:${stream?.url || stream?.title || ''}`;
+
+export function youtubeVideoId(url) {
+  const text = String(url || '');
+  const patterns = [
+    /youtu\.be\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/watch\?[^#]*v=([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/live\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
+  ];
+  for (const pattern of patterns) {
+    const m = text.match(pattern);
+    if (m) return m[1];
+  }
+  return '';
+}
+export const youtubeThumb         = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`  : ''; };
+export const youtubeThumbFallback = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg`  : ''; };
 
 export const debounce = (fn, ms = 150) => {
   let t;

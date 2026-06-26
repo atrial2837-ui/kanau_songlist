@@ -1,0 +1,369 @@
+{
+  "videos": [
+    {
+      "id": "mv_4tQcByOPu6Y",
+      "title": "MV⌇いつか恋をした/夢川かなう 2nd Single",
+      "type": "original",
+      "url": "https://www.youtube.com/watch?v=4tQcByOPu6Y",
+      "publishedAt": "2024-01-08"
+    },
+    {
+      "id": "mv__BpH3yjeqG8",
+      "title": "MV⌇アイリス/夢川かなう 1st Single",
+      "type": "original",
+      "url": "https://www.youtube.com/watch?v=_BpH3yjeqG8",
+      "publishedAt": "2021-05-21"
+    },
+    {
+      "id": "mv_QMtUaNvfxYE",
+      "title": "MV⌇Jelly-selfish / 夢川かなう 3rd Single",
+      "type": "original",
+      "url": "https://www.youtube.com/watch?v=QMtUaNvfxYE",
+      "publishedAt": "2024-05-14"
+    },
+    {
+      "id": "mv_MWaT9EzeOFY",
+      "title": "推色サイリウム／恋城ゆのか Solo Version【推色-オシイロ-テーマソング】",
+      "type": "character",
+      "character": "恋城ゆのか / 推色-オシイロ-テーマソング",
+      "url": "https://www.youtube.com/watch?v=MWaT9EzeOFY",
+      "publishedAt": "2022-10-22"
+    },
+    {
+      "id": "mv_TN_HuNZgNaA",
+      "title": "もっと！/Re:AcT二期生 Offical Music Video",
+      "type": "office",
+      "url": "https://youtu.be/TN_HuNZgNaA",
+      "publishedAt": "2024-06-02"
+    },
+    {
+      "id": "mv_kILLgQpoX5k",
+      "title": "【オリジナル曲】ホーンテッド・パーティーナイト-獅子神レオナ・花鋏キョウ・水瓶ミア・夢川かなう-【MV】",
+      "type": "office",
+      "url": "https://www.youtube.com/watch?v=kILLgQpoX5k",
+      "publishedAt": "2021-10-31"
+    },
+    {
+      "id": "mv_YL5seAenTN4",
+      "title": "【オリジナル楽曲】Re:A projecT 『ケセラセラ』【Re:AcT】",
+      "type": "office",
+      "url": "https://www.youtube.com/watch?v=YL5seAenTN4",
+      "publishedAt": "2019-04-30"
+    },
+    {
+      "id": "mv_8xfeej2eC2U",
+      "title": "【オリジナル楽曲】Re:A projecT『Since-Re:ly ～シンシアリー～』【Re:AcT】",
+      "type": "office",
+      "url": "https://www.youtube.com/watch?v=8xfeej2eC2U",
+      "publishedAt": "2019-04-13"
+    },
+    {
+      "id": "mv_lz31BQ5B8-I",
+      "title": "【オリジナル楽曲】Ride on！せれぶれーしょん / Re:AcT",
+      "type": "office",
+      "url": "https://www.youtube.com/watch?v=lz31BQ5B8-I",
+      "publishedAt": "2023-05-06"
+    },
+    {
+      "id": "mv_zvjyK2yvsVI",
+      "title": "【オリジナル楽曲】サマ☆ハピ / Re:AcT【MV】",
+      "type": "office",
+      "url": "https://www.youtube.com/watch?v=zvjyK2yvsVI",
+      "publishedAt": "2023-08-13"
+    },
+    {
+      "id": "mv_H6Led3PV6RQ",
+      "title": "【オリジナル楽曲】Pastel Color Days / Parfait【MV】",
+      "type": "office",
+      "url": "https://www.youtube.com/watch?v=H6Led3PV6RQ",
+      "publishedAt": "2022-04-25"
+    },
+    {
+      "id": "mv_yCSUGzSKrKg",
+      "title": "【オリジナル楽曲】Re:StarT/Re:AcT【MV】",
+      "type": "office",
+      "url": "https://www.youtube.com/watch?v=yCSUGzSKrKg",
+      "publishedAt": "2020-11-28"
+    },
+    {
+      "id": "mv_bcsx3UKsUWg",
+      "title": "cover⌇twinkle night / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "nyankobrq & yaca",
+      "url": "https://www.youtube.com/watch?v=bcsx3UKsUWg",
+      "publishedAt": "2024-10-22"
+    },
+    {
+      "id": "mv_DUt5vZxY0U0",
+      "title": "cover⌇ピチカートドロップス - とあ / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "とあ",
+      "url": "https://www.youtube.com/watch?v=DUt5vZxY0U0",
+      "publishedAt": "2024-10-06"
+    },
+    {
+      "id": "mv_9Ji-Ls_2_aE",
+      "title": "cover⌇Legend of Mermaid - ぴちぴちピッチ / 月紫アリア × 稀羽すう × 夢川かなう",
+      "type": "cover",
+      "originalArtist": "ぴちぴちピッチ",
+      "url": "https://www.youtube.com/watch?v=9Ji-Ls_2_aE",
+      "publishedAt": "2024-08-28"
+    },
+    {
+      "id": "mv_gXy8lHB9Mx8",
+      "title": "cover⌇トワイライトライト - とあ / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "とあ",
+      "url": "https://www.youtube.com/watch?v=gXy8lHB9Mx8",
+      "publishedAt": "2024-07-21"
+    },
+    {
+      "id": "mv_WPKEfK5XTnA",
+      "title": "cover⌇翡翠のまち remixed by こんにちは谷田さん /  夢川かなう",
+      "type": "cover",
+      "originalArtist": "こんにちは谷田さん",
+      "url": "https://www.youtube.com/watch?v=WPKEfK5XTnA",
+      "publishedAt": "2024-06-23"
+    },
+    {
+      "id": "mv_jcyffPZy5yk",
+      "title": "cover⌇蜜月アン・ドゥ・トロワ - DATEKEN / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "DATEKEN",
+      "url": "https://www.youtube.com/watch?v=jcyffPZy5yk",
+      "publishedAt": "2024-05-19"
+    },
+    {
+      "id": "mv_8PbnlQyfxiw",
+      "title": "cover⌇深海のリトルクライ‐sasakure.UK / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "sasakure.UK",
+      "url": "https://www.youtube.com/watch?v=8PbnlQyfxiw",
+      "publishedAt": "2024-04-15"
+    },
+    {
+      "id": "mv_8QemzvRq2Fw",
+      "title": "cover⌇カノン - 柊マグネタイト / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "柊マグネタイト",
+      "url": "https://www.youtube.com/watch?v=8QemzvRq2Fw",
+      "publishedAt": "2024-08-11"
+    },
+    {
+      "id": "mv_YX-1nF4jdzo",
+      "title": "cover⌇アイディスマイル - とあ / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "とあ",
+      "url": "https://www.youtube.com/watch?v=YX-1nF4jdzo",
+      "publishedAt": "2024-08-25"
+    },
+    {
+      "id": "mv_Q_wacsh4jfs",
+      "title": "【歌ってみた】失敗作少女/夢川かなう【Re:AcT/リアクト】",
+      "type": "cover",
+      "originalArtist": "かいりきベア",
+      "url": "https://www.youtube.com/watch?v=Q_wacsh4jfs",
+      "publishedAt": "2022-02-21"
+    },
+    {
+      "id": "mv_onDwrKTFngo",
+      "title": "【歌ってみた】月光／キタニタツヤ×はるまきごはん -Covered by 花鋏キョウ×夢川かなう【リアクト/Vtuber】",
+      "type": "cover",
+      "originalArtist": "キタニタツヤ×はるまきごはん",
+      "url": "https://www.youtube.com/watch?v=onDwrKTFngo",
+      "publishedAt": "2022-10-18"
+    },
+    {
+      "id": "mv_5u_lx2U8ojM",
+      "title": "【歌ってみた】虚ろを扇ぐ/Covered by 花鋏キョウ×夢川かなう",
+      "type": "cover",
+      "originalArtist": "獅子志司",
+      "url": "https://www.youtube.com/watch?v=5u_lx2U8ojM",
+      "publishedAt": "2023-08-04"
+    },
+    {
+      "id": "mv_KiPxzf8hq08",
+      "title": "【歌ってみた】フォニイ / phony - Covered by 獅子神レオナ×夢川かなう【ツミキ】",
+      "type": "cover",
+      "originalArtist": "ツミキ",
+      "url": "https://www.youtube.com/watch?v=KiPxzf8hq08",
+      "publishedAt": "2021-09-11"
+    },
+    {
+      "id": "mv_JkWFBvPhIik",
+      "title": "【歌ってみた】毒林檎 - Covered by 獅子神レオナ×夢川かなう【DECO*27】",
+      "type": "cover",
+      "originalArtist": "DECO*27",
+      "url": "https://www.youtube.com/watch?v=JkWFBvPhIik",
+      "publishedAt": "2023-04-20"
+    },
+    {
+      "id": "mv_ZC3b7Ig4hqc",
+      "title": "【歌ってみた】おじゃま虫Ⅱ - Covered by 獅子神レオナ×夢川かなう【DECO*27】",
+      "type": "cover",
+      "originalArtist": "DECO*27",
+      "url": "https://www.youtube.com/watch?v=ZC3b7Ig4hqc",
+      "publishedAt": "2021-10-01"
+    },
+    {
+      "id": "mv_Tjh5_2qRx9c",
+      "title": "【歌ってみた】アイデンティティ/ 夢川かなう×月紫アリア【リアクト/Vtuber】",
+      "type": "cover",
+      "originalArtist": "とあ",
+      "url": "https://www.youtube.com/watch?v=Tjh5_2qRx9c",
+      "publishedAt": "2022-04-09"
+    },
+    {
+      "id": "mv_RP3GpmR9uAA",
+      "title": "💊 INTERNET OVERDOSE（『NEEDY GIRL OVERDOSE』主題歌）⌇covered by 夢川かなう×月紫アリア【歌ってみた/Vtuber】",
+      "type": "cover",
+      "originalArtist": "Aiobahn",
+      "url": "https://www.youtube.com/watch?v=RP3GpmR9uAA",
+      "publishedAt": "2022-05-05"
+    },
+    {
+      "id": "mv_AyIWPaL7Scs",
+      "title": "【歌ってみた】にっこり^^調査隊のテーマ / 獅子神レオナ&花鋏キョウ&水瓶ミア&夢川かなう【Re:AcT二期生 5th Anniversary】",
+      "type": "cover",
+      "originalArtist": "じーざすP",
+      "url": "https://www.youtube.com/watch?v=AyIWPaL7Scs",
+      "publishedAt": "2023-09-14"
+    },
+    {
+      "id": "mv_i6X4SuqvGoQ",
+      "title": "【歌ってみた】オーダーメイド / 獅子神レオナ&花鋏キョウ&水瓶ミア &夢川かなう【Re:AcT二期生 4th Anniversary】",
+      "type": "cover",
+      "originalArtist": "傘村トータ",
+      "url": "https://www.youtube.com/watch?v=i6X4SuqvGoQ",
+      "publishedAt": "2022-08-31"
+    },
+    {
+      "id": "mv_xssOsAsZko4",
+      "title": "【歌ってみた】一分一秒君と僕の / 獅子神レオナ&花鋏キョウ&水瓶ミア &夢川かなう【Re:AcT二期生 2nd Anniversary】",
+      "type": "cover",
+      "originalArtist": "HoneyWorks meets スフィア",
+      "url": "https://www.youtube.com/watch?v=xssOsAsZko4",
+      "publishedAt": "2020-10-10"
+    },
+    {
+      "id": "mv_oY0_GYsIv4I",
+      "title": "『 Snow halation 』ver.Parfait(天川はの×夢川かなう×月紫アリア)",
+      "type": "cover",
+      "originalArtist": "μ's",
+      "url": "https://www.youtube.com/watch?v=oY0_GYsIv4I",
+      "publishedAt": "2021-12-24"
+    },
+    {
+      "id": "mv_ffDQenqfpKs",
+      "title": "【歌ってみた】可愛くなりたい/Parfait【Re:AcT/VTuber】",
+      "type": "cover",
+      "originalArtist": "HoneyWorks",
+      "url": "https://www.youtube.com/watch?v=ffDQenqfpKs",
+      "publishedAt": "2021-11-07"
+    },
+    {
+      "id": "mv_fi3yCKvJHgk",
+      "title": "💘 気まぐれロマンティック ⌇covered by 夢川かなう×天川はの×碧那アイル×月紫アリア【歌ってみた/Vtuber】",
+      "type": "cover",
+      "originalArtist": "いきものがかり",
+      "url": "https://www.youtube.com/watch?v=fi3yCKvJHgk",
+      "publishedAt": "2021-12-19"
+    },
+    {
+      "id": "mv_2m5U6YC9wtM",
+      "title": "「クノイチでも恋がしたい」を歌ってみた【かなてぃあ】",
+      "type": "cover",
+      "originalArtist": "みきとP",
+      "url": "https://www.youtube.com/watch?v=2m5U6YC9wtM",
+      "publishedAt": "2019-01-18"
+    },
+    {
+      "id": "mv_KeRBpDQuaTc",
+      "title": "cover⌇ヒステリックナイトガール / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "PSYQUI",
+      "url": "https://www.youtube.com/watch?v=KeRBpDQuaTc",
+      "publishedAt": "2025-01-30"
+    },
+    {
+      "id": "mv_zONImNo-VAA",
+      "title": "cover⌇インドア系ならトラックメイカー - Yunomi / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "Yunomi",
+      "url": "https://www.youtube.com/watch?v=zONImNo-VAA",
+      "publishedAt": "2025-03-30"
+    },
+    {
+      "id": "mv_0sF4ZHR2ATE",
+      "title": "cover⌇Morning grace / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "岡崎律子",
+      "url": "https://www.youtube.com/watch?v=0sF4ZHR2ATE",
+      "publishedAt": "2025-04-14"
+    },
+    {
+      "id": "mv__8w8grd_JdM",
+      "title": "cover⌇わたしの一番かわいいところ / 月紫アリア×夢川かなう",
+      "type": "cover",
+      "originalArtist": "FRUITS ZIPPER",
+      "url": "https://www.youtube.com/watch?v=_8w8grd_JdM",
+      "publishedAt": "2025-11-22"
+    },
+    {
+      "id": "mv_raeXwLbIXUo",
+      "title": "cover⌇トウキョウ・シャンディ・ランデヴ feat. 花譜,ツミキ MAISONdes / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "花譜,ツミキ MAISONdes",
+      "url": "https://www.youtube.com/watch?v=raeXwLbIXUo",
+      "publishedAt": "2025-12-07"
+    },
+    {
+      "id": "mv_900OyNy13B4",
+      "title": "🎀 可愛くてごめん / HoneyWorks⌇covered by 月紫アリア×夢川かなう【歌ってみた/Vtuber】",
+      "type": "cover",
+      "originalArtist": "HoneyWorks",
+      "url": "https://www.youtube.com/watch?v=900OyNy13B4",
+      "publishedAt": "2025-12-31"
+    },
+    {
+      "id": "mv_beOuaoLMmcU",
+      "title": "cover⌇鏡面の波 - YURiKA / 夢川かなう",
+      "type": "cover",
+      "originalArtist": "YURiKA",
+      "url": "https://www.youtube.com/watch?v=beOuaoLMmcU",
+      "publishedAt": "2026-04-14"
+    },
+    {
+      "id": "mv_zH8FPjLAyyw",
+      "title": "【歌ってみた】プロミスザスター / Re:AcT(Cover) 【BiSH】",
+      "type": "cover",
+      "originalArtist": "BiSH",
+      "url": "https://www.youtube.com/watch?v=zH8FPjLAyyw",
+      "publishedAt": "2023-04-29"
+    },
+    {
+      "id": "mv_DExNboeu1iM",
+      "title": "【歌ってみた】Mrs.pumpkinの滑稽な夢 【Re:AcT/VTuber】",
+      "type": "cover",
+      "originalArtist": "ハチ",
+      "url": "https://www.youtube.com/watch?v=DExNboeu1iM",
+      "publishedAt": "2022-10-30"
+    },
+    {
+      "id": "mv_K_pDrnPytfw",
+      "title": "【歌ってみた】光るなら / Re:AcT (cover)【Goose house】",
+      "type": "cover",
+      "originalArtist": "Goose house",
+      "url": "https://www.youtube.com/watch?v=K_pDrnPytfw",
+      "publishedAt": "2022-01-26"
+    },
+    {
+      "id": "mv_pVs0kGpquNY",
+      "title": "【夢川かなう】神のまにまに【歌ってみたのじゃ】",
+      "type": "cover",
+      "originalArtist": "れるりり",
+      "url": "https://www.youtube.com/watch?v=pVs0kGpquNY",
+      "publishedAt": "2018-09-15"
+    }
+  ]
+}

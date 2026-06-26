@@ -16,8 +16,8 @@
   --border-soft: #e2f1f9;
   --border-strong: #9bdcf7;
   --ink: #1f4861;
-  --ink-soft: #3f6f87;
-  --ink-mute: #4f748b;
+  --ink-soft: #2f5d75;
+  --ink-mute: #3d6273;
   --primary: #4ab2dc;
   --primary-strong: #1f789f;
   --primary-soft: #dff5ff;
@@ -126,6 +126,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
+  --db-sidebar-collapsed: 80px;
+  --db-sidebar-expanded: 248px;
+  --db-sidebar-current: var(--db-sidebar-expanded);
   font-family: "Kanau Noto Sans JP", "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Yu Gothic", "Meiryo", system-ui, sans-serif;
   background:
     radial-gradient(circle at 15% 5%, var(--bg-radial-1) 0%, transparent 38%),
@@ -137,6 +140,10 @@ body {
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   transition: background 0.3s ease, color 0.2s ease;
+}
+
+body.sidebar-collapsed {
+  --db-sidebar-current: var(--db-sidebar-collapsed);
 }
 
 a { color: var(--primary-strong); text-decoration: none; }
@@ -186,6 +193,41 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 
 main.container { padding-top: 28px; padding-bottom: 80px; }
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: none;
+    width: 100%;
+    padding-inline: clamp(16px, 1.6vw, 32px);
+  }
+}
+
+@media (min-width: 1021px) {
+  body {
+    padding-left: var(--db-sidebar-current);
+    transition: padding-left 0.18s ease;
+  }
+
+  .topbar {
+    left: var(--db-sidebar-current);
+    width: auto;
+    transition: left 0.18s ease;
+  }
+
+  .topbar-inner.container,
+  main.container {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: none;
+    width: 100%;
+    padding-left: clamp(16px, 1.6vw, 32px);
+    padding-right: clamp(16px, 1.6vw, 32px);
+  }
+
+  main.container {
+    padding-top: 28px;
+  }
+}
 
 /* === Topbar === */
 
@@ -369,9 +411,23 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 .guide-section ul {
   margin: 0;
   padding-left: 18px;
-  color: var(--ink-soft);
+  color: var(--ink);
   font-size: 12.5px;
   line-height: 1.75;
+}
+kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.6;
+  vertical-align: baseline;
 }
 .help-item {
   display: grid;
@@ -437,14 +493,14 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 .song-detail-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
   width: min(100%, 360px);
 }
 .song-detail-stats div {
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
-  padding: 10px;
+  padding: 12px 10px;
   text-align: center;
 }
 .song-detail-stats strong {
@@ -460,8 +516,8 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 .song-detail-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 18px 0;
+  gap: 10px;
+  margin: 22px 0 18px;
 }
 .song-detail-history h3 {
   color: var(--ink);
@@ -470,19 +526,27 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 }
 .song-detail-stream {
   display: grid;
-  grid-template-columns: 58px 1fr;
-  gap: 10px;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
   align-items: center;
-  padding: 9px 0;
+  padding: 11px 0;
   border-top: 1px dashed var(--border);
   color: var(--ink);
 }
 .song-detail-thumb-link {
+  position: relative;
   display: block;
+  cursor: pointer;
   border-radius: 6px;
+  text-decoration: none;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.song-detail-thumb-link:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 .song-detail-thumb {
-  width: 58px;
+  width: 72px;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: 6px;
@@ -601,6 +665,17 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   html,
   body {
     overflow-x: hidden;
+  }
+  .page-top-toast {
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(env(safe-area-inset-bottom) + 86px);
+    z-index: 72;
+    width: 118px;
+  }
+  body.has-mobile-tab-open .page-top-toast {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
   }
   .container {
     width: 100%;
@@ -820,3 +895,6 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   0%, 100% { opacity: 0.4; }
   50% { opacity: 0.25; }
 }
+
+/* ダッシュボード以外ではヒーロー非表示 */
+body:not([data-active-tab='dashboard']) #hero { display: none; }

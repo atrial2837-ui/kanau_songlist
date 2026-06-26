@@ -1,6 +1,11 @@
 import { state } from '../store.js';
 import { TIMELINE_INITIAL, TIMELINE_STEP } from '../config.js';
 import { $, $$, escapeHtml, fmtDate, streamKey } from '../utils.js';
+import { isStreamInAnyPlaylist } from './playlists.js';
+import { icon } from '../icons.js';
+
+const TIMELINE_COPY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/></svg>';
+const TIMELINE_PLAY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><polygon points="6 4 19 12 6 20 6 4"/></svg>';
 
 export function renderTimeline() {
   const { streams } = state.data;
@@ -13,7 +18,7 @@ export function renderTimeline() {
   const panel = $('#panel-timeline');
   panel.innerHTML = `
     <div class="section-header">
-      <h2>📅 配信タイムライン</h2>
+      <h2>${icon('calendar')} 配信タイムライン</h2>
       <span class="count-pill">${visible.length}枠</span>
     </div>
     <div class="timeline-tools">
@@ -47,13 +52,13 @@ export function renderTimeline() {
       (n, s) => n + s.songs.filter(sg => sg.key === filter.key).length, 0);
     banner.innerHTML = `
       <div class="filter-banner">
-        <span class="filter-icon">🔎</span>
+        <span class="filter-icon">${icon('search')}</span>
         <div class="filter-text">
           <strong>${escapeHtml(filter.title)}</strong>
           <span style="color:var(--ink-mute);"> / ${escapeHtml(filter.artist)}</span>
           <span class="meta">この曲を歌った配信のみ表示中（${visible.length}枠 / ${totalCount}回歌唱）</span>
         </div>
-        <button class="clear-btn" id="clear-filter">✕ 絞り込みを解除</button>
+        <button class="clear-btn" id="clear-filter">${icon('close')} 絞り込みを解除</button>
       </div>
     `;
     $('#clear-filter').addEventListener('click', () => {
@@ -80,30 +85,31 @@ export function renderTimeline() {
   $('#timeline').onclick = async (event) => {
     const btn = event.target.closest('[data-copy-stream]');
     if (!btn) return;
+    event.preventDefault();
     event.stopPropagation();
     const stream = limited[Number(btn.dataset.copyStream)];
     if (!stream) return;
     try {
       await navigator.clipboard.writeText(formatStreamSetlist(stream));
-      btn.textContent = 'コピー済み';
-      setTimeout(() => { btn.textContent = 'セトリコピー'; }, 1200);
+      btn.classList.add('is-copied');
+      btn.setAttribute('aria-label', 'コピー済み');
+      btn.title = 'コピー済み';
+      setTimeout(() => {
+        btn.classList.remove('is-copied');
+        btn.setAttribute('aria-label', 'セトリをコピー');
+        btn.title = 'セトリをコピー';
+      }, 1200);
     } catch (_) {
-      btn.textContent = '失敗';
-      setTimeout(() => { btn.textContent = 'セトリコピー'; }, 1200);
+      btn.classList.add('is-error');
+      btn.setAttribute('aria-label', 'コピーに失敗');
+      btn.title = 'コピーに失敗';
+      setTimeout(() => {
+        btn.classList.remove('is-error');
+        btn.setAttribute('aria-label', 'セトリをコピー');
+        btn.title = 'セトリをコピー';
+      }, 1200);
     }
   };
-
-  // Handle inline YouTube playback
-  $('#timeline').addEventListener('click', (event) => {
-    const ytBtn = event.target.closest('[data-inline-youtube]');
-    if (!ytBtn) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const fn = window.playYouTubeInline || (typeof playYouTubeInline === 'function' ? playYouTubeInline : null);
-    if (fn) {
-      fn(ytBtn.dataset.inlineYoutube);
-    }
-  });
 
   const ctrl = $('#timeline-controls');
   if (state.timelineLimit < visible.length) {
@@ -119,31 +125,51 @@ function renderItem(s, idx, filter) {
   const recentClass = !filter && state.timelineSort === 'date-desc' && idx < 3 ? 'recent' : '';
   const setlistHtml = s.songs.map((song, i) => {
     const hit = filter && song.key === filter.key ? ' hit' : '';
-    const title = hit ? 'クリックで絞り込み解除' : 'クリックで絞り込み';
-    return `<span class="setlist-song${hit}" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="${title}"><span class="sl-num">${i + 1}</span>${escapeHtml(song.title)}<span style="color:var(--ink-mute);"> / ${escapeHtml(song.artist)}</span></span>`;
+    return `
+      <li class="setlist-item${hit}">
+        <span class="setlist-num">${i + 1}.</span>
+        <button class="setlist-title" type="button"
+          data-songkey="${escapeHtml(song.key)}"
+          data-songtitle="${escapeHtml(song.title)}"
+          data-songartist="${escapeHtml(song.artist)}"
+          title="曲詳細を表示">${escapeHtml(song.title)}</button>
+        <span class="setlist-separator">/</span>
+        <button class="setlist-artist" type="button"
+          data-artist-search="${escapeHtml(song.artist)}"
+          title="全曲リストで絞り込み">${escapeHtml(song.artist)}</button>
+      </li>`;
   }).join('');
   const titleHtml = s.url
     ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || '配信')}</a>`
     : escapeHtml(s.title || '配信');
   const watchHtml = s.url
-    ? `<span class="watch-link" data-inline-youtube="${escapeHtml(s.url)}" role="button" tabindex="0">▶ YouTube</span>`
+    ? `<span class="watch-actions"><a class="watch-open-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener" aria-label="YouTubeで開く" title="YouTubeで開く">${TIMELINE_PLAY_ICON}</a></span>`
     : '';
-  const copyHtml = state.singerMode
-    ? `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}">セトリコピー</button>`
-    : '';
+  const skey = streamKey(s);
+  const saved = isStreamInAnyPlaylist(skey);
+  const saveHtml = `<button class="timeline-save-btn${saved ? ' is-saved' : ''}" type="button" data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}" title="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${icon('bookmark')}</button>`;
+  const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}" aria-label="セトリをコピー" title="セトリをコピー">${TIMELINE_COPY_ICON}</button>`;
+  const open = filter ? ' open' : '';
   return `
-    <article class="timeline-item ${recentClass}">
+    <details class="timeline-item ${recentClass}"${open}>
       <span class="stream-anchor" data-streamkey="${escapeHtml(streamKey(s))}"></span>
-      <header class="timeline-head">
-        <span class="timeline-date">${fmtDate(s.date)}</span>
-        <span class="timeline-stream-no">第${s.index}枠</span>
-        <span class="timeline-songcount">🎤 ${s.songs.length}曲</span>
-        ${copyHtml}
-        ${watchHtml}
-      </header>
-      <div class="timeline-title">${titleHtml}</div>
-      <div class="setlist">${setlistHtml}</div>
-    </article>
+      <summary class="timeline-summary">
+        <span class="timeline-date-badge">${fmtDate(s.date).replace(/^\d{4}\//, '')}</span>
+        <span class="timeline-summary-main">
+          <span class="timeline-head">
+            <span class="timeline-stream-no">第${s.index}枠</span>
+            <span class="timeline-songcount">${icon('check')} ${s.songs.length}曲</span>
+          </span>
+          <span class="timeline-title">${titleHtml}</span>
+        </span>
+        <span class="timeline-actions">
+          ${saveHtml}
+          ${copyHtml}
+          ${watchHtml}
+        </span>
+      </summary>
+      <div class="timeline-setlist"><ol class="setlist-list">${setlistHtml}</ol></div>
+    </details>
   `;
 }
 
