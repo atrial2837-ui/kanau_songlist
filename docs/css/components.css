@@ -7129,25 +7129,55 @@ body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
   opacity: 0.75;
 }
 
-/* モバイル: アイコンのみ表示、常に可視 */
+/* モバイル: ブランド行の検索バーは非表示 → メニュー内で表示 */
 @media (max-width: 700px) {
   .topbar-search {
-    flex: 0 0 36px;
-    min-width: 36px;
-    max-width: 36px;
-    padding: 0;
-    justify-content: center;
-    background: transparent;
-    border-color: transparent;
-    align-self: center;
-  }
-  .topbar-search:hover,
-  .topbar-search:focus-visible {
-    background: var(--surface-2);
-    border-color: var(--border);
-  }
-  .topbar-search-text,
-  .topbar-search-kbd {
     display: none;
+  }
+}
+
+/* メニュー内検索ボタン（モバイルのみ） */
+.topbar-search-in-menu {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .topbar-search-in-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    grid-column: 1 / -1;
+    height: 36px;
+    padding: 0 14px 0 12px;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    color: var(--ink-mute);
+    font-family: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-align: left;
+  }
+  .topbar-search-in-menu:hover,
+  .topbar-search-in-menu:focus-visible {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    outline: none;
+  }
+  .topbar-search-in-menu span {
+    flex: 1 1 auto;
+    color: var(--ink-mute);
+  }
+  .topbar-search-in-menu kbd {
+    flex: 0 0 auto;
+    font-size: 10px;
+    padding: 1px 5px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-3);
+    font-family: inherit;
+    opacity: 0.75;
   }
 }
