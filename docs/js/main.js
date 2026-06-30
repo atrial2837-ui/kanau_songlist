@@ -3499,6 +3499,8 @@ initPageTopToast();
 initWelcomeTip();
 import('./music-player.js').then(m => { m.setApiLoader(_loadYtApi); m.initMusicPlayer(); }).catch(() => {});
 
+$('#topbar-search-btn')?.addEventListener('click', openSearchPalette);
+
 // グローバル検索パレット初期化
 initSearchPalette((result) => {
   if (result.type === 'song') {

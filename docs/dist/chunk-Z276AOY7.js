@@ -1,4 +1,4 @@
-import{d as w,e as y}from"./chunk-JT7WCFD3.js";import{F as Y,G as B,H as x,K as P,Q as u,a as g,c as p,p as k,q as j,r as L,s as D,t as T,u as _,v as R}from"./chunk-I26RRBMD.js";function ta(){let{songs:a,streams:t}=y.data,i=[...a].sort((m,b)=>b.count-m.count).slice(0,5),r=i[0]?.count||1,d=t.slice(0,5),l=w(),s=D(a,l),e=g("#panel-dashboard"),o=R(t,l),h=T(t).slice(-12),S=Math.max(1,...h.map(m=>m.songs)),$=`
+import{d as w,e as y}from"./chunk-33BPFLKT.js";import{a as u}from"./chunk-3Q4FI4S7.js";import{F as Y,G as B,H as x,K as P,a as g,c as p,p as k,q as j,r as L,s as D,t as T,u as _,v as R}from"./chunk-C3AAXPYP.js";function ta(){let{songs:a,streams:t}=y.data,i=[...a].sort((m,b)=>b.count-m.count).slice(0,5),r=i[0]?.count||1,d=t.slice(0,5),l=w(),s=D(a,l),e=g("#panel-dashboard"),o=R(t,l),h=T(t).slice(-12),S=Math.max(1,...h.map(m=>m.songs)),$=`
     <div class="card dashboard-card dashboard-activity-card">
       <div class="card-title">${u("analytics")} \u4ECA\u6708\u306E\u6D3B\u52D5</div>
       <div class="dashboard-metric-list">
