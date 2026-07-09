@@ -100,6 +100,113 @@
   padding: 7px 9px !important;
 }
 
+/* ── キーピッカーウィジェット ───────────────────────── */
+.key-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 120px;
+  position: relative;
+}
+
+.key-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 8px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.key-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--ink-mute);
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+}
+
+.key-chip-remove:hover {
+  background: var(--border);
+  color: var(--ink);
+}
+
+.key-add-btn {
+  background: var(--surface-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+  cursor: pointer;
+  color: var(--ink-mute);
+  white-space: nowrap;
+}
+
+.key-add-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border-style: solid;
+  border-color: var(--primary);
+}
+
+.key-add-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.key-add-menu.is-open {
+  display: flex;
+}
+
+.key-add-menu button {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.key-add-menu button:hover {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border-color: var(--primary);
+}
+
+.key-add-menu button.is-selected {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary-strong);
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;

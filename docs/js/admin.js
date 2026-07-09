@@ -100,6 +100,28 @@ function renderPreview(rows) {
   `;
 }
 
+const KEY_PRESETS = ['原キー', '-4', '-3', '-2', '-1', '+1', '+2', '+3', '+4'];
+
+function renderKeyPicker(displayKey) {
+  const keys = String(displayKey || '').split(',').map(k => k.trim()).filter(Boolean);
+  const chips = keys.map(k => `
+    <span class="key-chip">
+      ${escapeHtml(k)}<button type="button" class="key-chip-remove" data-remove-key="${escapeHtml(k)}" aria-label="${escapeHtml(k)}を削除">×</button>
+    </span>
+  `).join('');
+  const menuItems = KEY_PRESETS.map(k => `
+    <button type="button" data-add-key="${escapeHtml(k)}" class="${keys.includes(k) ? 'is-selected' : ''}">${escapeHtml(k)}</button>
+  `).join('');
+  return `
+    <div class="key-picker">
+      <input type="hidden" data-field="displayKey" value="${escapeHtml(keys.join(','))}">
+      ${chips}
+      <button type="button" class="key-add-btn" data-key-add-btn>＋ キー</button>
+      <div class="key-add-menu">${menuItems}</div>
+    </div>
+  `;
+}
+
 function renderSongMeta(rows) {
   $('#song-meta-box').innerHTML = `
     <div class="admin-table-wrap">
@@ -110,7 +132,7 @@ function renderSongMeta(rows) {
             <tr data-song-id="${row.id}">
               <td><input class="admin-compact-input" data-field="title" value="${escapeHtml(row.title || '')}"></td>
               <td><input class="admin-compact-input" data-field="artist" value="${escapeHtml(row.artist || '')}"></td>
-              <td><input class="admin-compact-input" data-field="displayKey" value="${escapeHtml(row.display_key || '')}" title="キー（複数ある場合はカンマ区切り: 原キー,+2）" placeholder="例: 原キー"></td>
+              <td>${renderKeyPicker(row.display_key || '')}</td>
               <td><input class="admin-compact-input" data-field="genre" value="${escapeHtml(row.genre || '')}"></td>
               <td><button class="btn ghost" type="button" data-save-meta>保存</button></td>
             </tr>
@@ -265,6 +287,58 @@ function initManagement() {
   });
 
   $('#song-meta-box')?.addEventListener('click', async (event) => {
+    // ── キーピッカー: ＋キーボタン → ドロップダウン開閉 ──────────────────
+    const addBtn = event.target.closest('[data-key-add-btn]');
+    if (addBtn) {
+      const menu = addBtn.nextElementSibling;
+      const isOpen = menu.classList.contains('is-open');
+      document.querySelectorAll('.key-add-menu').forEach(m => m.classList.remove('is-open'));
+      if (!isOpen) menu.classList.add('is-open');
+      return;
+    }
+
+    // ── キーピッカー: プリセットキーをトグル ────────────────────────────
+    const addKeyBtn = event.target.closest('[data-add-key]');
+    if (addKeyBtn) {
+      const picker = addKeyBtn.closest('.key-picker');
+      const hiddenInput = picker.querySelector('[data-field="displayKey"]');
+      const key = addKeyBtn.dataset.addKey;
+      let keys = hiddenInput.value.split(',').map(k => k.trim()).filter(Boolean);
+      if (keys.includes(key)) {
+        keys = keys.filter(k => k !== key);
+        addKeyBtn.classList.remove('is-selected');
+      } else {
+        keys.push(key);
+        addKeyBtn.classList.add('is-selected');
+      }
+      hiddenInput.value = keys.join(',');
+      // チップを再描画
+      picker.querySelectorAll('.key-chip').forEach(c => c.remove());
+      keys.forEach(k => {
+        const chip = document.createElement('span');
+        chip.className = 'key-chip';
+        chip.innerHTML = `${escapeHtml(k)}<button type="button" class="key-chip-remove" data-remove-key="${escapeHtml(k)}" aria-label="${escapeHtml(k)}を削除">×</button>`;
+        picker.insertBefore(chip, picker.querySelector('[data-key-add-btn]'));
+      });
+      return;
+    }
+
+    // ── キーピッカー: チップのxで削除 ───────────────────────────────────
+    const removeBtn = event.target.closest('[data-remove-key]');
+    if (removeBtn) {
+      const picker = removeBtn.closest('.key-picker');
+      const hiddenInput = picker.querySelector('[data-field="displayKey"]');
+      const key = removeBtn.dataset.removeKey;
+      let keys = hiddenInput.value.split(',').map(k => k.trim()).filter(Boolean);
+      keys = keys.filter(k => k !== key);
+      hiddenInput.value = keys.join(',');
+      removeBtn.closest('.key-chip').remove();
+      // メニューの selected 状態を更新
+      picker.querySelectorAll(`[data-add-key="${CSS.escape(key)}"]`).forEach(b => b.classList.remove('is-selected'));
+      return;
+    }
+
+    // ── 保存ボタン ────────────────────────────────────────────────────────
     const button = event.target.closest('[data-save-meta]');
     if (!button) return;
     const row = button.closest('[data-song-id]');
@@ -280,6 +354,13 @@ function initManagement() {
       $('#meta-status').textContent = '保存しました。必要なら静的データ生成を開始してください。';
     } catch (error) {
       $('#meta-status').textContent = error.message || String(error);
+    }
+  });
+
+  // ドロップダウン外クリックで閉じる
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.key-picker')) {
+      document.querySelectorAll('.key-add-menu').forEach(m => m.classList.remove('is-open'));
     }
   });
 
