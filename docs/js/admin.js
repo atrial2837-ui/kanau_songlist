@@ -110,7 +110,7 @@ function renderSongMeta(rows) {
             <tr data-song-id="${row.id}">
               <td><input class="admin-compact-input" data-field="title" value="${escapeHtml(row.title || '')}"></td>
               <td><input class="admin-compact-input" data-field="artist" value="${escapeHtml(row.artist || '')}"></td>
-              <td><input class="admin-compact-input" data-field="displayKey" value="${escapeHtml(row.display_key || '')}"></td>
+              <td><input class="admin-compact-input" data-field="displayKey" value="${escapeHtml(row.display_key || '')}" title="キー（複数ある場合はカンマ区切り: 原キー,+2）" placeholder="例: 原キー"></td>
               <td><input class="admin-compact-input" data-field="genre" value="${escapeHtml(row.genre || '')}"></td>
               <td><button class="btn ghost" type="button" data-save-meta>保存</button></td>
             </tr>

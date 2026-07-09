@@ -2991,7 +2991,7 @@ function openSongDetail(key) {
       </div>
       <div class="song-detail-stats">
         <div><strong>${song.count}</strong><span>歌唱回数</span></div>
-        <div><strong>${song.displayKey || '—'}</strong><span>キー</span></div>
+        <div><strong>${String(song.displayKey || '').split(',').map(k => k.trim()).filter(Boolean).join(' / ') || '—'}</strong><span>キー</span></div>
         <div><strong>${song.daysSinceLast ?? '—'}</strong><span>日前</span></div>
         <div><strong>${fmtDate(song.firstSung) || '—'}</strong><span>初披露</span></div>
       </div>

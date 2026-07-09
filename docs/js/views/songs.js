@@ -573,9 +573,8 @@ function renderTodaysSongCard(song) {
   const lastHtml = song.lastSung
     ? `${fmtDate(song.lastSung)} · ${song.daysSinceLast}日前`
     : '履歴未確認';
-  const keyHtml = song.displayKey
-    ? `<span class="todays-song-key">キー ${escapeHtml(song.displayKey)}</span>`
-    : '';
+  const keyHtml = String(song.displayKey || '').split(',').map(k => k.trim()).filter(Boolean)
+    .map(k => `<span class="todays-song-key">キー ${escapeHtml(k)}</span>`).join('');
   const addButton = state.singerMode
     ? `<button class="btn primary" type="button" data-setlist-action="todays-song-add" data-songkey="${escapeHtml(song.key)}">${icon('plus')} セトリに追加</button>`
     : '';
@@ -632,7 +631,7 @@ function showRecommendation() {
       <div class="recommend-meta">
         <span>${pick.count}回</span>
         <span>${pick.daysSinceLast ?? '—'}日前</span>
-        ${pick.displayKey ? `<span>キー ${escapeHtml(pick.displayKey)}</span>` : ''}
+        ${String(pick.displayKey || '').split(',').map(k => k.trim()).filter(Boolean).map(k => `<span>キー ${escapeHtml(k)}</span>`).join('')}
       </div>
       <button class="recommend-dismiss" type="button" data-recommend-dismiss aria-label="おすすめ選曲を閉じる">×</button>
     </div>
@@ -1228,16 +1227,10 @@ function keyHtml(song) {
   if (!state.data?.stats?.keyPublished) {
     return `<div class="song-key-line song-key-actions">${addButton}</div>`;
   }
-  const key = String(song.displayKey || '').trim();
-  if (!key) {
+  const keys = String(song.displayKey || '').split(',').map(k => k.trim()).filter(Boolean);
+  if (!keys.length) {
     return `<div class="song-key-line song-key-actions"><span class="song-key-empty">キー未登録</span>${addButton}</div>`;
   }
-  return `
-    <div class="song-key-line song-key-actions">
-      <button type="button" class="song-key-badge" title="統合集計 T/U列のキー">
-        <span>キー</span><strong>${escapeHtml(key)}</strong>
-      </button>
-      ${addButton}
-    </div>
-  `;
+  const badges = keys.map(k => `<button type="button" class="song-key-badge" title="統合集計 T/U列のキー"><span>キー</span><strong>${escapeHtml(k)}</strong></button>`).join('');
+  return `<div class="song-key-line song-key-actions">${badges}${addButton}</div>`;
 }

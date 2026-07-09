@@ -9,7 +9,7 @@
  * @副作用 なし (Repository への書き込みのみ)
  */
 
-import { parseDisplayKey } from '../domain/song/display-key.js';
+import { parseDisplayKeys, formatDisplayKeys } from '../domain/song/display-key.js';
 import { parseGenre } from '../domain/song/genre.js';
 import { buildSongKey, UNKNOWN_ARTIST_NAME } from '../domain/song/song-key.js';
 import { normalize, normalizedKey } from '../domain/shared/text.js';
@@ -58,7 +58,7 @@ export async function saveSongMetadata(deps, input) {
 
   const displayKey = input.displayKey === undefined
     ? (song.display_key ?? song.displayKey ?? '')
-    : parseDisplayKey(input.displayKey);
+    : formatDisplayKeys(parseDisplayKeys(input.displayKey));
   const genre = input.genre === undefined
     ? (song.genre ?? '')
     : parseGenre(input.genre);
