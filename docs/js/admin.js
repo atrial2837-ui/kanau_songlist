@@ -293,7 +293,12 @@ function initManagement() {
       const menu = addBtn.nextElementSibling;
       const isOpen = menu.classList.contains('is-open');
       document.querySelectorAll('.key-add-menu').forEach(m => m.classList.remove('is-open'));
-      if (!isOpen) menu.classList.add('is-open');
+      if (!isOpen) {
+        const rect = addBtn.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 4) + 'px';
+        menu.style.left = rect.left + 'px';
+        menu.classList.add('is-open');
+      }
       return;
     }
 

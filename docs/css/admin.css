@@ -107,7 +107,6 @@
   align-items: center;
   gap: 4px;
   min-width: 120px;
-  position: relative;
 }
 
 .key-chip {
@@ -165,9 +164,7 @@
 
 .key-add-menu {
   display: none;
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  position: fixed;
   z-index: 200;
   background: var(--surface);
   border: 1px solid var(--border);
