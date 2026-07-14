@@ -1829,7 +1829,7 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 
 /* ── 月グループアコーディオン ── */
 .timeline-month-group {
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
   background: var(--surface);
@@ -1842,18 +1842,20 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
+  padding-left: 16px;
   cursor: pointer;
   list-style: none;
   font-weight: 800;
   font-size: 13px;
-  color: var(--ink-soft);
-  background: var(--surface-2);
+  color: var(--ink);
+  background: var(--surface-3);
   border-bottom: 1px solid transparent;
+  border-left: 3px solid var(--primary-strong);
   user-select: none;
 }
 .timeline-month-summary::-webkit-details-marker { display: none; }
 .timeline-month-group[open] > .timeline-month-summary {
-  border-bottom-color: var(--border-soft);
+  border-bottom-color: var(--border);
 }
 .timeline-month-label {
   flex: 1;
