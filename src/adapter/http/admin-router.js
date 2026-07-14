@@ -22,6 +22,8 @@ import { syncKeyReferenceUrl } from '../../usecase/sync-key-reference-url.js';
 import { loadAdminStatus } from '../../usecase/load-admin-status.js';
 import { listTimestampSubmissions } from '../../usecase/timestamp/list-timestamp-submissions.js';
 import { reviewTimestamp } from '../../usecase/timestamp/review-timestamp.js';
+import { ValidationError } from '../../domain/error/validation-error.js';
+import { NotFoundError } from '../../domain/error/not-found-error.js';
 
 /**
  * @typedef {import('./router.js').RouteContext} RouteContext
@@ -207,6 +209,40 @@ export function buildAdminRouter(options) {
     return jsonResponse({ ok: true });
   }));
 
+  // ─── 楽曲リクエスト管理（認証必須） ──────────────────────────────────────
+
+  const SONG_REQ_STATUS = new Set(['singable', 'practicing', 'unregistered']);
+  const SONG_REQ_RE = /^(?:.*\/)?song-requests\/(\d+)$/;
+
+  /** ステータス / 内容更新 */
+  router.post(SONG_REQ_RE, auth(async (ctx) => {
+    const m = new URL(ctx.request.url).pathname.match(SONG_REQ_RE);
+    const id = Number(m[1]);
+    const body = (await readJsonBody(ctx.request)) || {};
+    const patch = {};
+    if ('title' in body) patch.title = cleanReq(body.title);
+    if ('artist' in body) patch.artist = cleanReq(body.artist);
+    if ('url' in body) patch.url = cleanReq(body.url) || null;
+    if ('requesterName' in body) patch.requesterName = cleanReq(body.requesterName) || null;
+    if ('status' in body) {
+      const status = cleanReq(body.status);
+      if (!SONG_REQ_STATUS.has(status)) throw new ValidationError('status が不正です');
+      patch.status = status;
+    }
+    if ('title' in patch && !patch.title) throw new ValidationError('曲名を入力してください');
+    const item = await getDeps(ctx).songRequests.update(id, patch);
+    if (!item) throw new NotFoundError('リクエストが見つかりません');
+    return jsonResponse({ ok: true, item: songReqToJson(item) });
+  }));
+
+  /** 削除 */
+  router.delete(SONG_REQ_RE, auth(async (ctx) => {
+    const m = new URL(ctx.request.url).pathname.match(SONG_REQ_RE);
+    const ok = await getDeps(ctx).songRequests.delete(Number(m[1]));
+    if (!ok) throw new NotFoundError('リクエストが見つかりません');
+    return jsonResponse({ ok: true });
+  }));
+
   if (includeIndexPage && renderIndexPage) {
     router.get('/', async () =>
       new Response(renderIndexPage(), {
@@ -225,6 +261,23 @@ export function buildAdminRouter(options) {
 /**
  * @param {import('../../domain/timestamp/timestamp-submission.js').TimestampSubmission} ts
  */
+function songReqToJson(item) {
+  return {
+    id:            item.id,
+    title:         item.title,
+    artist:        item.artist,
+    url:           item.url,
+    requesterName: item.requesterName,
+    status:        item.status,
+    voteCount:     item.voteCount,
+    createdAt:     item.createdAt,
+  };
+}
+
+function cleanReq(value) {
+  return String(value ?? '').normalize('NFKC').replace(/\s+/g, ' ').trim();
+}
+
 function tsToJson(ts) {
   return {
     id:            ts.id,
