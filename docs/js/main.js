@@ -3486,7 +3486,6 @@ document.body.addEventListener('click', (e) => {
 });
 
 $('#retry-btn').addEventListener('click', init);
-$('#reload-btn').addEventListener('click', init);
 initHelpModal();
 initChannelModal();
 initYouTubePlayer();
