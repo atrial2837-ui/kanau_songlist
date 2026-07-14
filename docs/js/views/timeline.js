@@ -1,10 +1,10 @@
 import { state } from '../store.js';
 import { TIMELINE_INITIAL, TIMELINE_STEP } from '../config.js';
-import { $, $$, escapeHtml, fmtDate, streamKey } from '../utils.js';
+import { $, escapeHtml, fmtDate, streamKey } from '../utils.js';
 import { isStreamInAnyPlaylist } from './playlists.js';
 import { icon } from '../icons.js';
 
-const TIMELINE_COPY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/></svg>';
+const TIMELINE_COPY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/></svg>';
 const TIMELINE_PLAY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><polygon points="6 4 19 12 6 20 6 4"/></svg>';
 
 export function renderTimeline() {
@@ -13,13 +13,14 @@ export function renderTimeline() {
   const filtered = filter
     ? streams.filter(s => s.songs.some(sg => sg.key === filter.key))
     : streams;
-  const visible = sortTimelineStreams(filtered, state.timelineSort);
+  const sorted = sortTimelineStreams(filtered, state.timelineSort);
+  const isDateSort = state.timelineSort === 'date-desc' || state.timelineSort === 'date-asc';
 
   const panel = $('#panel-timeline');
   panel.innerHTML = `
     <div class="section-header">
       <h2>${icon('calendar')} 配信タイムライン</h2>
-      <span class="count-pill">${visible.length}枠</span>
+      <span class="count-pill">${sorted.length}枠</span>
     </div>
     <div class="timeline-tools">
       <label class="timeline-sort-field" for="timeline-sort">
@@ -36,6 +37,7 @@ export function renderTimeline() {
       </label>
     </div>
     <div id="timeline-filter-banner"></div>
+    <div id="timeline-month-nav" class="timeline-month-nav"></div>
     <div id="timeline" class="timeline"></div>
     <div class="timeline-controls" id="timeline-controls"></div>
   `;
@@ -48,7 +50,7 @@ export function renderTimeline() {
 
   const banner = $('#timeline-filter-banner');
   if (filter) {
-    const totalCount = visible.reduce(
+    const totalCount = sorted.reduce(
       (n, s) => n + s.songs.filter(sg => sg.key === filter.key).length, 0);
     banner.innerHTML = `
       <div class="filter-banner">
@@ -56,7 +58,7 @@ export function renderTimeline() {
         <div class="filter-text">
           <strong>${escapeHtml(filter.title)}</strong>
           <span style="color:var(--ink-mute);"> / ${escapeHtml(filter.artist)}</span>
-          <span class="meta">この曲を歌った配信のみ表示中（${visible.length}枠 / ${totalCount}回歌唱）</span>
+          <span class="meta">この曲を歌った配信のみ表示中（${sorted.length}枠 / ${totalCount}回歌唱）</span>
         </div>
         <button class="clear-btn" id="clear-filter">${icon('close')} 絞り込みを解除</button>
       </div>
@@ -68,13 +70,72 @@ export function renderTimeline() {
     });
   }
 
-  if (!visible.length) {
+  if (!sorted.length) {
     $('#timeline').innerHTML = `<div class="empty-state">該当する配信がありません 🐠</div>`;
     return;
   }
 
-  const limited = visible.slice(0, state.timelineLimit);
+  if (isDateSort) {
+    renderGrouped(sorted, filter);
+  } else {
+    renderFlat(sorted, filter);
+  }
+}
+
+// ── 月グループ表示 ─────────────────────────────────────────────────────────
+
+function renderGrouped(streams, filter) {
+  const groups = groupByYearMonth(streams);
+
+  // 月ジャンプナビ
+  const nav = $('#timeline-month-nav');
+  nav.innerHTML = groups.map(g =>
+    `<button class="month-jump-btn" type="button" data-month-jump="${escapeHtml(g.key)}">${escapeHtml(g.label)}</button>`
+  ).join('');
+  nav.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-month-jump]');
+    if (!btn) return;
+    const el = document.getElementById(`tl-month-${btn.dataset.monthJump}`);
+    if (!el) return;
+    el.open = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // 月グループ
+  $('#timeline').innerHTML = groups.map((g, gi) => {
+    const items = g.streams.map((s, i) => renderItem(s, i, filter)).join('');
+    return `
+      <details class="timeline-month-group" id="tl-month-${escapeHtml(g.key)}"${gi === 0 ? ' open' : ''}>
+        <summary class="timeline-month-summary">
+          <span class="timeline-month-label">${escapeHtml(g.label)}</span>
+          <span class="count-pill">${g.streams.length}枠</span>
+        </summary>
+        <div class="timeline-month-items">${items}</div>
+      </details>
+    `;
+  }).join('');
+
+  // フォーカス（他パネルから飛んできた場合）
+  if (state.timelineFocus) {
+    const focus = document.querySelector(`[data-streamkey="${CSS.escape(state.timelineFocus)}"]`);
+    const item = focus?.closest('.timeline-item');
+    if (item) {
+      item.closest('.timeline-month-group')?.setAttribute('open', '');
+      item.classList.add('focus');
+      item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    state.timelineFocus = null;
+  }
+
+  setupClickHandlers(streams);
+}
+
+// ── フラット表示（日付以外のソート） ───────────────────────────────────────
+
+function renderFlat(streams, filter) {
+  const limited = streams.slice(0, state.timelineLimit);
   $('#timeline').innerHTML = limited.map((s, idx) => renderItem(s, idx, filter)).join('');
+
   if (state.timelineFocus) {
     const focus = document.querySelector(`[data-streamkey="${CSS.escape(state.timelineFocus)}"]`);
     const item = focus?.closest('.timeline-item');
@@ -82,12 +143,29 @@ export function renderTimeline() {
     item?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     state.timelineFocus = null;
   }
+
+  const ctrl = $('#timeline-controls');
+  if (state.timelineLimit < streams.length) {
+    ctrl.innerHTML = `<button class="load-more-btn" id="load-more">▼ もっと見る (残り${streams.length - state.timelineLimit}枠)</button>`;
+    $('#load-more').addEventListener('click', () => {
+      state.timelineLimit += TIMELINE_STEP;
+      renderTimeline();
+    });
+  }
+
+  setupClickHandlers(limited);
+}
+
+// ── コピーハンドラ ─────────────────────────────────────────────────────────
+
+function setupClickHandlers(streams) {
   $('#timeline').onclick = async (event) => {
-    const btn = event.target.closest('[data-copy-stream]');
+    const btn = event.target.closest('[data-copy-key]');
     if (!btn) return;
     event.preventDefault();
     event.stopPropagation();
-    const stream = limited[Number(btn.dataset.copyStream)];
+    const key = btn.dataset.copyKey;
+    const stream = streams.find(s => streamKey(s) === key);
     if (!stream) return;
     try {
       await navigator.clipboard.writeText(formatStreamSetlist(stream));
@@ -110,16 +188,9 @@ export function renderTimeline() {
       }, 1200);
     }
   };
-
-  const ctrl = $('#timeline-controls');
-  if (state.timelineLimit < visible.length) {
-    ctrl.innerHTML = `<button class="load-more-btn" id="load-more">▼ もっと見る (残り${visible.length - state.timelineLimit}枠)</button>`;
-    $('#load-more').addEventListener('click', () => {
-      state.timelineLimit += TIMELINE_STEP;
-      renderTimeline();
-    });
-  }
 }
+
+// ── カードレンダリング ──────────────────────────────────────────────────────
 
 function renderItem(s, idx, filter) {
   const recentClass = !filter && state.timelineSort === 'date-desc' && idx < 3 ? 'recent' : '';
@@ -148,7 +219,7 @@ function renderItem(s, idx, filter) {
   const skey = streamKey(s);
   const saved = isStreamInAnyPlaylist(skey);
   const saveHtml = `<button class="timeline-save-btn${saved ? ' is-saved' : ''}" type="button" data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}" title="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${icon('bookmark')}</button>`;
-  const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-stream="${idx}" aria-label="セトリをコピー" title="セトリをコピー">${TIMELINE_COPY_ICON}</button>`;
+  const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-key="${escapeHtml(skey)}" aria-label="セトリをコピー" title="セトリをコピー">${TIMELINE_COPY_ICON}</button>`;
   const open = filter ? ' open' : '';
   return `
     <details class="timeline-item ${recentClass}"${open}>
@@ -173,13 +244,25 @@ function renderItem(s, idx, filter) {
   `;
 }
 
+// ── ユーティリティ ─────────────────────────────────────────────────────────
+
+function groupByYearMonth(streams) {
+  const groups = new Map();
+  for (const s of streams) {
+    const d = s.date instanceof Date ? s.date : new Date(s.date || 0);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = `${d.getFullYear()}年${d.getMonth() + 1}月`;
+    if (!groups.has(key)) groups.set(key, { key, label, streams: [] });
+    groups.get(key).streams.push(s);
+  }
+  return [...groups.values()];
+}
+
 function sortTimelineStreams(streams, sort) {
   const list = [...streams];
-  const dateTime = (stream) => stream.date instanceof Date
-    ? stream.date.getTime()
-    : new Date(stream.date || 0).getTime();
-  const streamIndex = (stream) => Number(stream.index) || 0;
-  const songCount = (stream) => stream.songs?.length || 0;
+  const dateTime = (s) => s.date instanceof Date ? s.date.getTime() : new Date(s.date || 0).getTime();
+  const streamIndex = (s) => Number(s.index) || 0;
+  const songCount = (s) => s.songs?.length || 0;
   const byDateDesc = (a, b) => dateTime(b) - dateTime(a) || streamIndex(b) - streamIndex(a);
 
   switch (sort) {

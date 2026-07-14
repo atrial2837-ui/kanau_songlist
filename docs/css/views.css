@@ -1563,11 +1563,11 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 }
 .timeline-summary {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
-  min-height: 86px;
-  padding: 18px 20px;
+  gap: 10px;
+  min-height: 68px;
+  padding: 12px 14px;
   cursor: pointer;
   list-style: none;
   background: var(--surface);
@@ -1576,18 +1576,18 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 .timeline-summary::after {
   content: "⌄";
   position: absolute;
-  right: 12px;
-  top: 14px;
+  right: 10px;
+  top: 10px;
   color: var(--ink-mute);
-  font-size: 15px;
+  font-size: 14px;
   transition: transform 0.14s;
 }
 .timeline-item[open] .timeline-summary::after {
   transform: rotate(180deg);
 }
 .timeline-date-badge {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -1597,14 +1597,14 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   color: #fff;
   border: 1px solid color-mix(in srgb, var(--primary-strong) 78%, #07364d 22%);
   box-shadow: 0 3px 10px rgba(21, 111, 153, 0.28);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   font-feature-settings: var(--tnum);
 }
 .timeline-summary-main {
   min-width: 0;
   display: grid;
-  gap: 8px;
+  gap: 4px;
 }
 .stream-anchor {
   position: absolute;
@@ -1827,6 +1827,80 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   color: var(--ink-mute);
 }
 
+/* ── 月ジャンプナビ ── */
+.timeline-month-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+  min-height: 0;
+}
+.timeline-month-nav:empty { display: none; }
+.month-jump-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.month-jump-btn:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
+/* ── 月グループアコーディオン ── */
+.timeline-month-group {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.timeline-month-group + .timeline-month-group {
+  margin-top: 10px;
+}
+.timeline-month-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: var(--surface-2);
+  border-bottom: 1px solid transparent;
+  user-select: none;
+}
+.timeline-month-summary::-webkit-details-marker { display: none; }
+.timeline-month-group[open] > .timeline-month-summary {
+  border-bottom-color: var(--border-soft);
+}
+.timeline-month-label {
+  flex: 1;
+}
+.timeline-month-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px;
+  background: var(--surface-2);
+}
+.timeline-month-items .timeline-item {
+  border-radius: 8px;
+}
+.timeline-month-items .timeline-item:hover {
+  transform: none;
+  border-color: var(--primary);
+}
+
 .timeline-controls {
   display: flex;
   justify-content: center;
@@ -1854,22 +1928,26 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     border-radius: 12px;
   }
   .timeline-summary {
-    grid-template-columns: 42px minmax(0, 1fr);
-    min-height: 76px;
-    padding: 13px 12px;
-    gap: 9px;
+    grid-template-columns: 36px minmax(0, 1fr);
+    min-height: 60px;
+    padding: 10px 12px;
+    gap: 8px;
   }
   .timeline-actions {
     grid-column: 2 / -1;
     justify-content: flex-start;
     padding-right: 0;
   }
-  .timeline-date-badge { width: 32px; height: 32px; font-size: 10px; }
+  .timeline-date-badge { width: 30px; height: 30px; font-size: 9px; }
   .timeline-head {
     align-items: center;
     gap: 5px 6px;
-    margin-bottom: 3px;
+    margin-bottom: 0;
   }
+  .timeline-month-nav { gap: 5px; margin-bottom: 10px; }
+  .month-jump-btn { padding: 3px 10px; font-size: 11px; }
+  .timeline-month-summary { padding: 8px 12px; font-size: 12px; }
+  .timeline-month-items { padding: 4px; }
   .timeline-stream-no,
   .timeline-songcount {
     font-size: 10.5px;
