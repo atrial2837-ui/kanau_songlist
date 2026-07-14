@@ -100,7 +100,7 @@ function renderPreview(rows) {
   `;
 }
 
-const KEY_PRESETS = ['原キー', '-4', '-3', '-2', '-1', '+1', '+2', '+3', '+4'];
+const KEY_PRESETS = ['原キー', '-9', '-8', '-7', '-6', '-5', '-4', '-3', '-2', '-1', '+1', '+2', '+3', '+4', '+5', '+6', '+7', '+8', '+9'];
 
 function renderKeyPicker(displayKey) {
   const keys = String(displayKey || '').split(',').map(k => k.trim()).filter(Boolean);

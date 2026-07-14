@@ -1827,34 +1827,6 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   color: var(--ink-mute);
 }
 
-/* ── 月ジャンプナビ ── */
-.timeline-month-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 14px;
-  min-height: 0;
-}
-.timeline-month-nav:empty { display: none; }
-.month-jump-btn {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-soft);
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
-  white-space: nowrap;
-}
-.month-jump-btn:hover {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--primary-strong);
-}
-
 /* ── 月グループアコーディオン ── */
 .timeline-month-group {
   border: 1px solid var(--border-soft);
@@ -1863,7 +1835,7 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   background: var(--surface);
 }
 .timeline-month-group + .timeline-month-group {
-  margin-top: 10px;
+  margin-top: 4px;
 }
 .timeline-month-summary {
   display: flex;
@@ -1944,8 +1916,6 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     gap: 5px 6px;
     margin-bottom: 0;
   }
-  .timeline-month-nav { gap: 5px; margin-bottom: 10px; }
-  .month-jump-btn { padding: 3px 10px; font-size: 11px; }
   .timeline-month-summary { padding: 8px 12px; font-size: 12px; }
   .timeline-month-items { padding: 4px; }
   .timeline-stream-no,

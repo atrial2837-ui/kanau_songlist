@@ -35,9 +35,14 @@ export function renderTimeline() {
           <option value="title"${state.timelineSort === 'title' ? ' selected' : ''}>タイトル順</option>
         </select>
       </label>
+      ${isDateSort ? `<label class="timeline-sort-field" for="timeline-month-jump">
+        <span>月へ移動</span>
+        <select id="timeline-month-jump" class="select-input">
+          <option value="">選択…</option>
+        </select>
+      </label>` : ''}
     </div>
     <div id="timeline-filter-banner"></div>
-    <div id="timeline-month-nav" class="timeline-month-nav"></div>
     <div id="timeline" class="timeline"></div>
     <div class="timeline-controls" id="timeline-controls"></div>
   `;
@@ -87,19 +92,21 @@ export function renderTimeline() {
 function renderGrouped(streams, filter) {
   const groups = groupByYearMonth(streams);
 
-  // 月ジャンプナビ
-  const nav = $('#timeline-month-nav');
-  nav.innerHTML = groups.map(g =>
-    `<button class="month-jump-btn" type="button" data-month-jump="${escapeHtml(g.key)}">${escapeHtml(g.label)}</button>`
-  ).join('');
-  nav.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-month-jump]');
-    if (!btn) return;
-    const el = document.getElementById(`tl-month-${btn.dataset.monthJump}`);
-    if (!el) return;
-    el.open = true;
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  // 月ジャンプ（プルダウン）
+  const jumpSel = $('#timeline-month-jump');
+  if (jumpSel) {
+    jumpSel.innerHTML = '<option value="">選択…</option>' +
+      groups.map(g => `<option value="${escapeHtml(g.key)}">${escapeHtml(g.label)}（${g.streams.length}枠）</option>`).join('');
+    jumpSel.addEventListener('change', () => {
+      const key = jumpSel.value;
+      if (!key) return;
+      const el = document.getElementById(`tl-month-${key}`);
+      if (!el) return;
+      el.open = true;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      jumpSel.value = '';
+    });
+  }
 
   // 月グループ
   $('#timeline').innerHTML = groups.map((g, gi) => {

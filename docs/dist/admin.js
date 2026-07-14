@@ -21,7 +21,7 @@ var X={analytics:'<path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l3-4 4 2 
         </tbody>
       </table>
     </div>
-  `}var Jt=["\u539F\u30AD\u30FC","-4","-3","-2","-1","+1","+2","+3","+4"];function Qt(t){let e=String(t||"").split(",").map(r=>r.trim()).filter(Boolean),n=e.map(r=>`
+  `}var Jt=["\u539F\u30AD\u30FC","-9","-8","-7","-6","-5","-4","-3","-2","-1","+1","+2","+3","+4","+5","+6","+7","+8","+9"];function Qt(t){let e=String(t||"").split(",").map(r=>r.trim()).filter(Boolean),n=e.map(r=>`
     <span class="key-chip">
       ${p(r)}<button type="button" class="key-chip-remove" data-remove-key="${p(r)}" aria-label="${p(r)}\u3092\u524A\u9664">\xD7</button>
     </span>
