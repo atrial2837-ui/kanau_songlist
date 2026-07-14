@@ -1848,9 +1848,9 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   font-weight: 800;
   font-size: 13px;
   color: var(--ink);
-  background: var(--surface-3);
+  background: var(--surface-2);
   border-bottom: 1px solid transparent;
-  border-left: 3px solid var(--primary-strong);
+  border-left: 3px solid var(--primary);
   user-select: none;
 }
 .timeline-month-summary::-webkit-details-marker { display: none; }
