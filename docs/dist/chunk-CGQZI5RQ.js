@@ -1,4 +1,4 @@
-import{G as q,a as r,c as n}from"./chunk-C3AAXPYP.js";var d="/api/song-requests";function y(){let t=r("#panel-requests");t&&(t.innerHTML=`
+import{G as q,a as r,c as n}from"./chunk-LYEKSJR3.js";var d="/api/song-requests";function y(){let t=r("#panel-requests");t&&(t.innerHTML=`
     <div class="req-layout">
       <div class="card req-form-card">
         <div class="req-form-head">

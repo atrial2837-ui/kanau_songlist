@@ -3,7 +3,7 @@ import { ensureSongTags, loadAll, loadInitial } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange, cycleTheme } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
-import { $, $$, escapeHtml, fmtDate, isLink, streamKey, youtubeVideoId, youtubeThumb, youtubeThumbFallback } from './utils.js';
+import { $, $$, escapeHtml, fmtDate, isLink, streamKey, youtubeVideoId, youtubeThumb, youtubeThumbFallback, youtubeThumbTiny } from './utils.js';
 import { DEFAULT_CHANNEL } from './config.js';
 import { readUrlState, writeUrlState } from './url-state.js';
 import { initSearchPalette, openSearchPalette, closeSearchPalette, isSearchPaletteOpen } from './views/search-palette.js';
@@ -175,8 +175,8 @@ function activateTab(tab, options = {}) {
   const streamViewer = $('#stream-viewer');
   if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen
       && !_svIsDocked(streamViewer)) {
-    _epPrevTab = tab;
-    _pendingTabOptions = options;
+    _epSetPrevTab(tab);
+    _epSetPendingTabOptions(options);
     closeStreamViewer();
     return;
   }
@@ -508,6 +508,15 @@ function findSong(key) {
   return (state.data?.songs || []).find(song => song.key === key) || null;
 }
 
+// ─── プレイヤー→シェル依存の注入点 ──────────────────────────────────────────
+// P3 でプレイヤーをモジュール分離する際に player 側から main.js を import しない
+// ための境界。シェル機能は起動時に initPlayerShell() で注入される。
+let _shellDeps = null;
+function initPlayerShell(deps) { _shellDeps = deps; }
+// シェル側からプレイヤー内部変数(_epPrevTab / _pendingTabOptions)へ書き込むための setter
+function _epSetPrevTab(tab) { _epPrevTab = tab; }
+function _epSetPendingTabOptions(options) { _pendingTabOptions = options; }
+
 function _isResponsivePlaybackDisabled() {
   return window.matchMedia('(max-width: 700px)').matches;
 }
@@ -518,11 +527,6 @@ function _youtubeExternalUrl(url, startAt = 0) {
   if (!id) return raw;
   const t = Math.max(0, Math.floor(Number(startAt) || 0));
   return `https://www.youtube.com/watch?v=${id}${t > 0 ? `&t=${t}s` : ''}`;
-}
-
-function youtubeThumbTiny(url) {
-  const id = youtubeVideoId(url);
-  return id ? `https://i.ytimg.com/vi/${id}/default.jpg` : '';
 }
 
 // ─── ミニプレイヤー 進捗バー ──────────────────────────────────────────────────
@@ -776,7 +780,7 @@ function _svDiscardMini() {
   const panel = $('#yt-player-panel');
   if (panel) panel.hidden = true;
   _svLastStream = null;
-  _setSidebarHidden(document.body.dataset.activeTab === 'playlists');
+  _shellDeps.setSidebarHidden(document.body.dataset.activeTab === 'playlists');
   _svUpdateUrl();
   return true;
 }
@@ -1018,7 +1022,7 @@ async function _maybeImportSharedPlaylist() {
     const pl = m.createPlaylist(name);
     for (const k of items) m.addStreamToPlaylist(pl.id, k);
     writeUrlState({ tab: 'playlists' }, { replace: true });
-    activateTab('playlists', { updateUrl: false });
+    _shellDeps.activateTab('playlists', { updateUrl: false });
   } catch (_) {}
 }
 
@@ -1308,7 +1312,7 @@ function showPlayerPanel() {
 function hidePlayerPanel() {
   const opts = _pendingTabOptions;
   _pendingTabOptions = {};
-  activateTab(_epPrevTab || 'timeline', opts);
+  _shellDeps.activateTab(_epPrevTab || 'timeline', opts);
 }
 
 /** 埋め込み → 全画面に切り替え
@@ -2373,7 +2377,7 @@ async function _svRenderBelowPlayerMv(stream) {
     } else if (action === 'open-mv') {
       openStreamViewer({ url: btn.dataset.mvUrl, title: btn.dataset.mvTitle, isMv: true });
     } else if (action === 'all-videos') {
-      activateTab('playlists');
+      _shellDeps.activateTab('playlists');
     } else if (action === 'toggle-play') {
       _svTogglePlayback();
     } else if (action === 'mv-prev') {
@@ -2713,7 +2717,7 @@ function openStreamViewer(stream, resumeAt = 0) {
   }
 
   viewer.hidden = false;
-  _setSidebarHidden(true); // ビューワー表示中はサイドバーを隠して全幅使用
+  _shellDeps.setSidebarHidden(true); // ビューワー表示中はサイドバーを隠して全幅使用
   document.body.style.overflow = ''; // 埋め込みモードではスクロールロックしない
   _svUpdateUrl();
   // 集中表示: ヒーロー/タブは CSS で隠れるので、プレイヤーを画面上部に出す
@@ -2827,7 +2831,7 @@ function closeStreamViewer() {
   if (wrap) wrap.innerHTML = '';
   document.body.style.overflow = '';
   // ビューワーを閉じたらサイドバーを復元（プレイリストタブ中は引き続き非表示）
-  _setSidebarHidden(document.body.dataset.activeTab === 'playlists');
+  _shellDeps.setSidebarHidden(document.body.dataset.activeTab === 'playlists');
   hidePlayerPanel();
   _svUpdateUrl();
 }
@@ -3063,7 +3067,7 @@ $$('.tab-btn').forEach(btn => {
     // 埋め込みモード（非全画面）でストリームが再生中 → ミニプレイヤーへ引き継ぐ
     if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen
         && !_svIsDocked(streamViewer)) {
-      _epPrevTab = tab; // closeStreamViewer 内の hidePlayerPanel がこのタブへ遷移する
+      _epSetPrevTab(tab); // closeStreamViewer 内の hidePlayerPanel がこのタブへ遷移する
       closeStreamViewer();
       return;
     }
@@ -3138,6 +3142,7 @@ document.body.addEventListener('click', (e) => {
 });
 
 $('#retry-btn').addEventListener('click', init);
+initPlayerShell({ activateTab, setSidebarHidden: _setSidebarHidden });
 initHelpModal();
 initChannelModal();
 initYouTubePlayer();
