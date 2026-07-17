@@ -450,7 +450,7 @@ function _renderMusicViewBar(videos) {
   return `
     <div class="pl-music-viewbar">
       <label class="pl-music-search-wrap">
-        <span class="pl-music-search-icon" aria-hidden="true">⌕</span>
+        <span class="pl-music-search-icon" aria-hidden="true">${icon('search')}</span>
         <input id="pl-music-search" class="pl-music-search" type="search"
           value="${escapeHtml(query)}"
           placeholder="曲名 / アーティストで検索"
@@ -461,7 +461,7 @@ function _renderMusicViewBar(videos) {
         <button class="pl-music-view-btn${_musicView === 'grid'     ? ' active' : ''}" data-music-view="grid"     type="button">グリッド</button>
         <button class="pl-music-view-btn${_musicView === 'list'     ? ' active' : ''}" data-music-view="list"     type="button">リスト</button>
         <button class="pl-music-view-btn${_musicView === 'category' ? ' active' : ''}" data-music-view="category" type="button">カテゴリ</button>
-        <button class="pl-music-view-btn pl-music-select-toggle${_musicSelectMode ? ' active' : ''}" data-music-select-toggle="1" type="button" ${shown ? '' : 'disabled'} data-tooltip="複数選択してまとめて追加">☑ 選択</button>
+        <button class="pl-music-view-btn pl-music-select-toggle${_musicSelectMode ? ' active' : ''}" data-music-select-toggle="1" type="button" ${shown ? '' : 'disabled'} data-tooltip="複数選択してまとめて追加">${icon('checkbox')} 選択</button>
       </div>
     </div>
     ${_musicSelectMode ? _renderMusicSelectBar() : ''}`;
@@ -834,7 +834,7 @@ function _renderPlaylistCard(pl, allStreams) {
   const totalItems = entries.length;
   const items = entries.map(({ skey, isMv, mv, stream }) => {
     const moveKey = escapeHtml(pl.id + '|:|' + skey);
-    const dragHandle = `<span class="pl-drag-handle" aria-hidden="true" title="ドラッグして並び替え">⠿</span>`;
+    const dragHandle = `<span class="pl-drag-handle" aria-hidden="true" title="ドラッグして並び替え">${icon('drag')}</span>`;
     const rmBtn = `<button class="pl-rm-btn" data-pl-rm-stream="${moveKey}" type="button" title="削除">${icon('close')}</button>`;
 
     if (isMv) {
@@ -1074,7 +1074,7 @@ export function showAddToPlaylistModal(skeyOrArray, streamTitle, opts = {}) {
         <span class="pl-modal-item-cover">
           ${thumb
             ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
-            : '<span class="pl-modal-item-cover--empty">♪</span>'}
+            : `<span class="pl-modal-item-cover--empty">${icon('music')}</span>`}
         </span>
         <span class="pl-modal-item-info">
           <span class="pl-modal-item-name">${escapeHtml(pl.name)}</span>

@@ -57,7 +57,7 @@ export function renderSongs() {
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="songs-search-shell">
         <div class="search-input-wrap">
-          <span class="songs-search-icon" aria-hidden="true">⌕</span>
+          <span class="songs-search-icon" aria-hidden="true">${icon('search')}</span>
           <input id="songs-search" class="text-input songs-search-input" type="search" placeholder="曲名・アーティスト・雰囲気で検索" value="${escapeHtml(state.songsQuery)}">
           <div id="search-history-dropdown" class="search-history-dropdown" hidden></div>
         </div>
@@ -874,7 +874,7 @@ function setlistItemHtml(item, index) {
   return `
     <div class="setlist-item" data-index="${index}">
       <div class="setlist-no">${index + 1}</div>
-      <div class="setlist-drag-handle" title="ドラッグして並び替え" aria-label="ドラッグハンドル">⠿</div>
+      <div class="setlist-drag-handle" title="ドラッグして並び替え" aria-label="ドラッグハンドル">${icon('drag')}</div>
       <div class="setlist-info">
         <strong>${escapeHtml(item.title)}</strong>
         <span>${item.artist ? escapeHtml(item.artist) : 'アーティスト未入力'}${item.displayKey ? ` · key ${escapeHtml(item.displayKey)}` : ''}${item.custom ? ' · 新規' : ''}</span>

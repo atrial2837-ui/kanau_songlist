@@ -4,8 +4,8 @@ import { $, escapeHtml, fmtDate, streamKey } from '../utils.js';
 import { isStreamInAnyPlaylist } from './playlists.js';
 import { icon } from '../icons.js';
 
-const TIMELINE_COPY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/></svg>';
-const TIMELINE_PLAY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><polygon points="6 4 19 12 6 20 6 4"/></svg>';
+const TIMELINE_COPY_ICON = icon('copy');
+const TIMELINE_PLAY_ICON = icon('play');
 
 export function renderTimeline() {
   const { streams } = state.data;
@@ -153,7 +153,7 @@ function renderFlat(streams, filter) {
 
   const ctrl = $('#timeline-controls');
   if (state.timelineLimit < streams.length) {
-    ctrl.innerHTML = `<button class="load-more-btn" id="load-more">▼ もっと見る (残り${streams.length - state.timelineLimit}枠)</button>`;
+    ctrl.innerHTML = `<button class="load-more-btn" id="load-more">${icon('chevronDown')} もっと見る (残り${streams.length - state.timelineLimit}枠)</button>`;
     $('#load-more').addEventListener('click', () => {
       state.timelineLimit += TIMELINE_STEP;
       renderTimeline();

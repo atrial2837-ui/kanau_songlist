@@ -613,7 +613,7 @@ function _svMinify() {
   const titleEl = $('#yt-mini-title');
   if (titleEl) titleEl.textContent = stream.title || '';
   const hintEl = $('#yt-mini-hint');
-  if (hintEl) hintEl.textContent = '▲ タップして配信ビューワーへ戻る';
+  if (hintEl) hintEl.innerHTML = `${icon('chevronUp')} タップして配信ビューワーへ戻る`;
   panel.classList.add('has-stream');
   panel.hidden = false;
 
@@ -886,7 +886,7 @@ function _svInitShareModal() {
         <span></span><span></span><span></span>
       </div>
       <div class="sv-share-video">
-        <span class="sv-share-video-icon">♪</span>
+        <span class="sv-share-video-icon">${icon('music')}</span>
         <span class="sv-share-video-title" id="sv-share-video-title"></span>
       </div>
       <label class="sv-share-ts" id="sv-share-ts-row">
@@ -1099,7 +1099,7 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
   const titleEl = $('#yt-mini-title');
   if (titleEl) titleEl.textContent = streamTitle || 'インライン再生';
   const hintEl = $('#yt-mini-hint');
-  if (hintEl) hintEl.textContent = _svLastStream ? '▲ タップして配信ビューワーへ戻る' : '';
+  if (hintEl) hintEl.innerHTML = _svLastStream ? `${icon('chevronUp')} タップして配信ビューワーへ戻る` : '';
   panel.classList.toggle('has-stream', !!_svLastStream);
   panel.hidden = false;
 
@@ -2533,7 +2533,7 @@ function initStreamViewer() {
     <div class="sv-container">
       <div class="sv-header">
         <button class="sv-close-btn" id="sv-close" type="button" data-tooltip="ミニプレイヤーで再生を続けながら戻ります（Esc）">
-          ← <span class="sv-close-label">戻る</span><span class="sv-esc-hint">Esc</span>
+          ${icon('arrowLeft')} <span class="sv-close-label">戻る</span><span class="sv-esc-hint">Esc</span>
         </button>
         <div class="sv-title-area">
           <nav class="sv-breadcrumb" aria-label="現在地">

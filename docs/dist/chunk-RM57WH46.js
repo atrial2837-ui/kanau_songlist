@@ -1,4 +1,4 @@
-import{c as F,d as I,g as N}from"./chunk-6BNCHPTO.js";import{d as S,e as y}from"./chunk-33BPFLKT.js";import{a as h}from"./chunk-3Q4FI4S7.js";import{F as _,G as Y,H as P,K as B,a as g,c as p,p as k,q as H,r as D,s as L,t as R,u as j,v as T}from"./chunk-C3AAXPYP.js";function ra(){let{songs:a,streams:t}=y.data,e=[...a].sort((m,b)=>b.count-m.count).slice(0,5),i=e[0]?.count||1,d=t.slice(0,5),l=S(),s=L(a,l),n=g("#panel-dashboard"),o=T(t,l),u=R(t).slice(-12),M=Math.max(1,...u.map(m=>m.songs)),$=`
+import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"./chunk-33BPFLKT.js";import{F as _,G as Y,H as P,K as B,Q as h,a as g,c as p,p as k,q as H,r as D,s as L,t as R,u as j,v as T}from"./chunk-UU6CTPWE.js";function ra(){let{songs:a,streams:t}=y.data,e=[...a].sort((m,b)=>b.count-m.count).slice(0,5),i=e[0]?.count||1,d=t.slice(0,5),l=S(),s=L(a,l),n=g("#panel-dashboard"),o=T(t,l),u=R(t).slice(-12),M=Math.max(1,...u.map(m=>m.songs)),$=`
     <div class="card dashboard-card dashboard-activity-card">
       <div class="card-title">${h("analytics")} \u4ECA\u6708\u306E\u6D3B\u52D5</div>
       <div class="dashboard-metric-list">

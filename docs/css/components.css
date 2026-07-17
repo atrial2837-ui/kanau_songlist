@@ -1032,18 +1032,9 @@ button.official-link {
     color: #fff;
   }
   .mobile-tab-toggle-icon {
-    width: 16px;
-    height: 14px;
     display: inline-flex;
-    flex-direction: column;
-    justify-content: space-between;
+    align-items: center;
     flex: 0 0 16px;
-  }
-  .mobile-tab-toggle-icon span {
-    display: block;
-    height: 2px;
-    border-radius: 999px;
-    background: currentColor;
   }
   .mobile-tab-current {
     max-width: 96px;

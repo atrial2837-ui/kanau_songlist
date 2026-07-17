@@ -74,7 +74,7 @@ export function initMusicPlayer() {
         <span class="mbar-type-badge" id="mbar-type-badge"></span>
       </div>
       <div class="mbar-controls">
-        <button class="mbar-mode-btn is-on" id="mbar-continuous" type="button" aria-pressed="true" data-tooltip="連続再生" data-tooltip-pos="top">∞</button>
+        <button class="mbar-mode-btn is-on" id="mbar-continuous" type="button" aria-pressed="true" data-tooltip="連続再生" data-tooltip-pos="top">${icon('infinity')}</button>
         <button class="mbar-ctrl-btn" id="mbar-prev" type="button" aria-label="前の曲" data-tooltip="前の曲" data-tooltip-pos="top">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
@@ -86,7 +86,7 @@ export function initMusicPlayer() {
             <path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>
           </svg>
         </button>
-        <button class="mbar-mode-btn" id="mbar-repeat" type="button" aria-pressed="false" data-tooltip="1曲リピート" data-tooltip-pos="top">↻</button>
+        <button class="mbar-mode-btn" id="mbar-repeat" type="button" aria-pressed="false" data-tooltip="1曲リピート" data-tooltip-pos="top">${icon('repeatOne')}</button>
         <button class="mbar-mode-btn${_shuffle ? ' is-on' : ''}" id="mbar-shuffle" type="button" aria-pressed="${_shuffle ? 'true' : 'false'}" data-tooltip="シャッフル再生" data-tooltip-pos="top">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>

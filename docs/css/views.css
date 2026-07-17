@@ -1618,6 +1618,8 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 }
 .watch-open-link svg,
 .timeline-copy-btn svg {
+  width: 13px;
+  height: 13px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
