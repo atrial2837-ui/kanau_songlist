@@ -13,6 +13,7 @@
 import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbFallback, youtubeVideoId } from '../utils.js';
 import { icon } from '../icons.js';
+import { openStreamViewer, playMyListInViewer } from '../player/stream-player.js';
 
 const STORAGE_KEY = 'kanau-playlists';
 const MUSIC_CACHE_KEY = 'kanau-music-videos-cache-v2';
@@ -263,7 +264,7 @@ export function renderPlaylists() {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
       e.preventDefault();
       const v = _musicVideos[Number(watchThumb.dataset.mvWatch)];
-      if (v?.url) window.__openStreamViewer?.({ url: v.url, title: v.title, isMv: true });
+      if (v?.url) openStreamViewer({ url: v.url, title: v.title, isMv: true });
       return;
     }
 
@@ -978,7 +979,7 @@ function _handleMyPlaylistsClick(e, allStreams) {
     if (row && _playMyListFromRow(row, allStreams)) return;
     const skey = playBtn.dataset.plPlayStream;
     const found = allStreams.find(s => streamKey(s) === skey);
-    if (found?.url) window.__openStreamViewer?.(found);
+    if (found?.url) openStreamViewer(found);
     return;
   }
   // 再生（プレイリスト内の音楽動画）→ 同上
@@ -1178,7 +1179,7 @@ function _showToast(msg) {
  *  解決できた項目（配信 + 動画）だけをキューに積み、クリック行から開始する。 */
 function _playMyListFromRow(row, allStreams) {
   const pl = getPlaylists().find(p => p.id === row.dataset.plId);
-  if (!pl || !window.__playMyListInViewer) return false;
+  if (!pl) return false;
   const items = [];
   for (const k of pl.streams) {
     if (k.startsWith('mv:')) {
@@ -1192,7 +1193,7 @@ function _playMyListFromRow(row, allStreams) {
   if (!items.length) return false;
   let idx = items.findIndex(it => it.key === row.dataset.plSkey);
   if (idx < 0) idx = 0;
-  window.__playMyListInViewer({ name: pl.name || 'マイリスト', items, idx });
+  playMyListInViewer({ name: pl.name || 'マイリスト', items, idx });
   return true;
 }
 

@@ -46,7 +46,7 @@ test('キュー再生: ENDED で次のアイテムへ遷移し、旧プレイヤ
   const streamB = await getStream(page, 1);
 
   await page.evaluate(([a, b]) => {
-    window.__playMyListInViewer({ name: 'テストキュー', items: [{ stream: a }, { stream: b }], idx: 0 });
+    window.__kanauDebug.playMyListInViewer({ name: 'テストキュー', items: [{ stream: a }, { stream: b }], idx: 0 });
   }, [streamA, streamB]);
   await waitForPlayerCount(page, 1);
   await expect(page.locator('#sv-bc-title')).toHaveText(streamA.title);
@@ -57,9 +57,9 @@ test('キュー再生: ENDED で次のアイテムへ遷移し、旧プレイヤ
 
   const s = await fakeSummary(page);
   expect(s.created).toBe(2);
-  // 現行実装は旧プレイヤーを destroy() せず DOM から外すだけ(所有権リーク)。
-  // P5b で「destroy の責任者を一つに」直す際にこの期待値を destroyed:1 へ更新する。
-  expect(s.destroyed).toBe(0);
+  // P5b: 動画切替時に旧プレイヤーを destroy する(所有権リーク修正済み)
+  expect(s.destroyed).toBe(1);
+  expect(s.live).toHaveLength(1);
   await expect(page.locator('iframe.fake-yt-iframe')).toHaveCount(1);
 });
 

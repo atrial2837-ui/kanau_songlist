@@ -1215,7 +1215,7 @@ function _svListQueueOpen(idx) {
   }
 }
 
-window.__playMyListInViewer = (queue) => {
+export function playMyListInViewer(queue) {
   if (!queue?.items?.length) return;
   _svListQueue = {
     name: queue.name || 'マイリスト',
@@ -1225,9 +1225,9 @@ window.__playMyListInViewer = (queue) => {
     collapsed: localStorage.getItem(SV_QUEUE_COLLAPSED_KEY) === '1',
   };
   _svListQueueOpen(Math.max(0, Math.min(queue.idx || 0, queue.items.length - 1)));
-};
+}
 
-window.__openMusicQueueInViewer = (videos, idx = 0, resumeAt = 0) => {
+export function openMusicQueueInViewer(videos, idx = 0, resumeAt = 0) {
   if (!videos?.length) return false;
   const items = videos
     .filter(v => v?.url)
@@ -1252,7 +1252,7 @@ window.__openMusicQueueInViewer = (videos, idx = 0, resumeAt = 0) => {
     _svQueueNavigating = false;
   }
   return true;
-};
+}
 
 /** プレイヤー下に挿入するキューセクションの HTML（キュー非アクティブ時は空文字） */
 function _svQueueSectionHtml() {
@@ -2109,7 +2109,7 @@ export function openStreamViewer(stream, resumeAt = 0) {
   const curViewer = $('#stream-viewer');
   if (_svIsDocked(curViewer)) {
     if (curViewer._currentStream?.url === stream.url) {
-      if (!_svUnminify() && !window.__restoreMusicExternalPlayer?.()) _svRestoreFromMusicBar();
+      if (!_svUnminify() && !_musicBridge?.restoreExternalPlayer?.()) _svRestoreFromMusicBar();
       if (resumeAt > 0) {
         try { _svPlayer?.seekTo(Math.floor(resumeAt), true); _svPlayer?.playVideo(); } catch (_) {}
       }
@@ -2118,7 +2118,7 @@ export function openStreamViewer(stream, resumeAt = 0) {
     _svDiscardMini(); // 別の動画 → 退避中のプレイヤーを破棄して通常オープン
   }
 
-  const musicHandoff = window.__takeOverMusicPlayerVideo?.(stream.url) || null;
+  const musicHandoff = _musicBridge?.takeOverVideo?.(stream.url) || null;
   if (!musicHandoff) {
     // 同一動画の2プレイヤー競合で再生が壊れるのを防ぐ。
     import('../music-player.js').then(m => (m.releaseMusicPlayerVideo || m.pauseMusicPlayer)()).catch(() => {});
@@ -2204,6 +2204,7 @@ export function openStreamViewer(stream, resumeAt = 0) {
   // フォーカス先: 埋め込み時はスクロールを引き起こさないよう遅延
   setTimeout(() => { $('#sv-close')?.focus({ preventScroll: true }); }, 50);
 
+  try { _svPlayer?.destroy(); } catch (_) {} // 動画切替時の旧プレイヤーを破棄(リーク防止)
   _svPlayer = null;
   const wrap = $('#sv-player-wrap');
   wrap.innerHTML = '<div class="sv-player-loading">読み込み中…</div>';
@@ -2317,12 +2318,9 @@ export function closeStreamViewer() {
   _svUpdateUrl();
 }
 
-// プレイリストビューからストリームを開けるようにグローバル公開
-window.__openStreamViewer = openStreamViewer;
-
 /** 配信ミニプレイヤー（yt-player-panel にドック中 or インライン）を閉じる。
  *  音楽バー再生開始時に呼び、ミニプレイヤーとバーが二重に出るのを防ぐ。 */
-window.__closeStreamMiniPlayer = () => {
+export function closeStreamMiniPlayer() {
   const viewer = $('#stream-viewer');
   if (_svIsDocked(viewer)) { _svDiscardMini(); return true; }
   const panel = $('#yt-player-panel');
@@ -2334,4 +2332,12 @@ window.__closeStreamMiniPlayer = () => {
     return true;
   }
   return false;
-};
+}
+
+// music-player.js が起動時に登録する連携ブリッジ(音楽バー⇔ビューワーの引き継ぎ)。
+// window.__* の代わりにモジュール間の明示的な登録で結合する。
+let _musicBridge = null;
+export function registerMusicBridge(bridge) { _musicBridge = bridge; }
+
+// テスト・コンソールデバッグ用の公開フック。モジュール間連携には使用しない。
+window.__kanauDebug = { openStreamViewer, playMyListInViewer };

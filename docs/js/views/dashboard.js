@@ -3,6 +3,7 @@ import { $, escapeHtml, fmtDate, fmtMonth, daysSince, youtubeThumb } from '../ut
 import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsThisMonth, buildMonthly, buildHeatmap, heatLevel, isoDate } from '../domain-compat.js';
 import { getToday } from '../store.js';
 import { icon } from '../icons.js';
+import { openStreamViewer, playMyListInViewer } from '../player/stream-player.js';
 
 export function renderDashboard() {
   const { songs, streams } = state.data;
@@ -283,7 +284,7 @@ function bindResumeSection() {
         const all = state.channelData?.combined?.streams || state.data?.streams || [];
         target = all.find(s => s.channel === entry.channel && s.index === entry.index) || null;
       }
-      window.__openStreamViewer?.(target || { url: entry.url, title: entry.title, isMv: !!entry.isMv }, entry.t);
+      openStreamViewer(target || { url: entry.url, title: entry.title, isMv: !!entry.isMv }, entry.t);
     };
   }
   const clear = $('#dashboard-resume-clear');
@@ -307,7 +308,7 @@ function bindResumeSection() {
         return null;
       }).filter(Boolean);
       if (!items.length) return;
-      window.__playMyListInViewer?.({ name: '視聴履歴', items, idx: 0 });
+      playMyListInViewer({ name: '視聴履歴', items, idx: 0 });
     };
   }
 }

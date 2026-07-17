@@ -10,6 +10,7 @@
 
 import { $, escapeHtml, youtubeVideoId, youtubeThumb } from './utils.js';
 import { icon } from './icons.js';
+import { openStreamViewer, openMusicQueueInViewer, closeStreamMiniPlayer, registerMusicBridge } from './player/stream-player.js';
 
 /* ── 状態 ────────────────────────────────────────────────────────────────── */
 
@@ -180,11 +181,11 @@ export function initMusicPlayer() {
     }
     const queue = _queue.slice();
     const idx = _qIdx;
-    if (window.__openMusicQueueInViewer?.(queue, idx, t)) return;
+    if (openMusicQueueInViewer(queue, idx, t)) return;
     releaseMusicPlayerVideo({ hideBar: true });
     // 歌枠由来のトラックは元の配信オブジェクトでストリームビューワーを開く
     const target = video._stream || { url: video.url, title: video.title, isMv: true };
-    window.__openStreamViewer?.(target, t);
+    openStreamViewer(target, t);
   };
   $('#mbar-expand').addEventListener('click', _openInViewer);
   $('#mbar-thumb-overlay').addEventListener('click', _openInViewer);
@@ -232,7 +233,7 @@ export function initMusicPlayer() {
 export function playMusicQueue(videos, startIdx = 0, options = {}) {
   if (!videos?.length) return;
   // バー再生を始めるので、表示中の配信ミニプレイヤーは閉じる（二重表示防止）
-  try { window.__closeStreamMiniPlayer?.(); } catch (_) {}
+  try { closeStreamMiniPlayer(); } catch (_) {}
   _queue = videos.slice();
   _qIdx  = Math.max(0, Math.min(startIdx, _queue.length - 1));
   if (options.shuffle != null) {
@@ -693,5 +694,5 @@ function _syncPlayButton() {
   } catch (_) {}
 }
 
-window.__takeOverMusicPlayerVideo = takeOverMusicPlayerVideo;
-window.__restoreMusicExternalPlayer = restoreExternalPlayer;
+// 音楽バー⇔ビューワーの引き継ぎ連携をブリッジ登録(window.__* 廃止)
+registerMusicBridge({ takeOverVideo: takeOverMusicPlayerVideo, restoreExternalPlayer });

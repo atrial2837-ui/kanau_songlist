@@ -34,10 +34,10 @@ export async function getStream(page, index = 0) {
   }, index);
 }
 
-/** ストリームビューワーをプログラム経由で開く(main.js が公開する正規の入口)。 */
+/** ストリームビューワーをプログラム経由で開く(テスト用デバッグフック経由)。 */
 export async function openViewer(page, stream, resumeAt = 0) {
   await page.evaluate(
-    ([s, t]) => window.__openStreamViewer(s, t),
+    ([s, t]) => window.__kanauDebug.openStreamViewer(s, t),
     [stream, resumeAt],
   );
 }
