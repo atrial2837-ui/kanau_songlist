@@ -6,6 +6,9 @@ import { $, $$, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbTiny, 
 import { readUrlState, writeUrlState } from '../url-state.js';
 import { icon } from '../icons.js';
 import { _matchSongIdx, _normForMatch, _parseTs, _parseTsCommentLine } from './timestamps/parser.js';
+import { _saveWatchEntry, _saveWatchEntryThrottled } from './watch-history.js';
+import { _getPlaylists } from './playlists-store.js';
+import { _svBuildShareUrl, _youtubeExternalUrl } from './share-url.js';
 
 // ─── プレイヤー→シェル依存の注入点 ──────────────────────────────────────────
 // P3 でプレイヤーをモジュール分離する際に player 側から main.js を import しない
@@ -21,14 +24,6 @@ export function _epSetPendingTabOptions(options) { _pendingTabOptions = options;
 
 function _isResponsivePlaybackDisabled() {
   return window.matchMedia('(max-width: 700px)').matches;
-}
-
-function _youtubeExternalUrl(url, startAt = 0) {
-  const raw = String(url || '');
-  const id = youtubeVideoId(raw);
-  if (!id) return raw;
-  const t = Math.max(0, Math.floor(Number(startAt) || 0));
-  return `https://www.youtube.com/watch?v=${id}${t > 0 ? `&t=${t}s` : ''}`;
 }
 
 // ─── ミニプレイヤー 進捗バー ──────────────────────────────────────────────────
@@ -287,41 +282,6 @@ function _svDiscardMini() {
   return true;
 }
 
-// ─── 視聴履歴（続きから見る） ────────────────────────────────────────────────
-
-const WATCH_HISTORY_KEY = 'kanau-watch-history-v1';
-
-let _lastWatchSave = 0;
-
-export function getWatchHistory() {
-  try { return JSON.parse(localStorage.getItem(WATCH_HISTORY_KEY) || '[]'); } catch (_) { return []; }
-}
-
-function _saveWatchEntry(stream, t) {
-  if (!stream?.url || t < 10) return; // 10秒未満は記録しない
-  try {
-    const list = getWatchHistory().filter(e => e.url !== stream.url);
-    list.unshift({
-      url: stream.url,
-      title: stream.title || '',
-      t: Math.max(0, Math.floor(t)),
-      isMv: !!stream.isMv,
-      channel: stream.channel ?? null,
-      index: stream.index ?? null,
-      date: stream.date ?? null,
-      updatedAt: Date.now(),
-    });
-    localStorage.setItem(WATCH_HISTORY_KEY, JSON.stringify(list.slice(0, 10)));
-  } catch (_) {}
-}
-
-function _saveWatchEntryThrottled(stream, t) {
-  const now = Date.now();
-  if (now - _lastWatchSave < 5000) return;
-  _lastWatchSave = now;
-  _saveWatchEntry(stream, t);
-}
-
 // ─── ビューワーの URL 同期・共有 ─────────────────────────────────────────────
 
 let _svUrlTimer = null; // 視聴中に再生位置を URL へ定期反映するタイマー
@@ -335,17 +295,6 @@ function _svCurrentTime(fallback = 0) {
     } catch (_) {}
   }
   return Math.max(0, Math.floor(Number(fallback) || 0));
-}
-
-function _svBuildShareUrl(id, t = 0, options = {}) {
-  if (!id) return '';
-  const current = readUrlState();
-  const params = new URLSearchParams();
-  const channel = current.channel || state.channel;
-  if (channel && channel !== 'new') params.set('ch', channel);
-  params.set('v', id);
-  if (options.includeTime !== false && t > 5) params.set('t', String(Math.floor(t)));
-  return `${location.origin}${location.pathname}?${params}`;
 }
 
 /** ビューワーの表示状態を URL の ?v= / ?t= に反映する。
@@ -1211,26 +1160,6 @@ function _svShowBulkProposeModal(stream) {
   document.addEventListener('keydown', function onEsc(e) {
     if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
   });
-}
-
-// ─── Below-Player: Playlist helpers ──────────────────────────────────────────
-
-function _getPlaylists() {
-  try { return JSON.parse(localStorage.getItem('kanau-playlists') || 'null') || []; }
-  catch (_) { return []; }
-}
-
-function _savePlaylists(pls) {
-  try { localStorage.setItem('kanau-playlists', JSON.stringify(pls)); } catch (_) {}
-}
-
-function _addStreamToPlaylist(playlistId, skey) {
-  const pls = _getPlaylists();
-  const pl = pls.find(p => String(p.id) === String(playlistId));
-  if (!pl) return false;
-  if (!pl.streams) pl.streams = [];
-  if (!pl.streams.includes(skey)) { pl.streams.push(skey); _savePlaylists(pls); }
-  return true;
 }
 
 // ─── マイリスト再生キュー（ビューワー内） ────────────────────────────────────
