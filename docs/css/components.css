@@ -716,6 +716,12 @@ button.official-link {
       linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, var(--primary-soft) 6%), var(--surface-glass));
     box-shadow: var(--shadow);
     overflow: visible;
+  }
+
+  /* 折り畳みアニメーションは初期状態の適用が済んでから有効化する。
+     起動直後に localStorage 復元で class が付くとき、transition があると
+     非合成アニメーション+レイアウトシフトとして計測されるため。 */
+  body.sidebar-anim-ready .tabs {
     transition: width 0.18s ease, padding 0.18s ease;
   }
 

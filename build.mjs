@@ -39,6 +39,27 @@ async function buildMain() {
   console.log('built docs/dist/main.js');
 }
 
+/**
+ * サイトCSSを minify して docs/dist/ に出力する。
+ * index.html は dist/*.css を参照する（/css/ の元ファイルは開発用ソース）。
+ * theme.css の url("../assets/...") は dist/ からも同じパスに解決されるため
+ * woff2 は external にしてそのまま通す。
+ */
+async function buildCss() {
+  await esbuild.build({
+    entryPoints: [
+      join(__dirname, 'docs', 'css', 'theme.css'),
+      join(__dirname, 'docs', 'css', 'components.css'),
+      join(__dirname, 'docs', 'css', 'views.css'),
+    ],
+    outdir: OUT_DIR,
+    bundle: true,
+    minify: true,
+    external: ['*.woff2'],
+  });
+  console.log('built docs/dist/{theme,components,views}.css');
+}
+
 async function buildAdmin() {
   await esbuild.build({
     ...common,
@@ -83,9 +104,9 @@ function cleanStaleChunks() {
 function stampAssetVersions() {
   const hashed = [
     join(__dirname, 'docs', 'dist', 'main.js'),
-    join(__dirname, 'docs', 'css', 'theme.css'),
-    join(__dirname, 'docs', 'css', 'components.css'),
-    join(__dirname, 'docs', 'css', 'views.css'),
+    join(__dirname, 'docs', 'dist', 'theme.css'),
+    join(__dirname, 'docs', 'dist', 'components.css'),
+    join(__dirname, 'docs', 'dist', 'views.css'),
   ];
   const h = createHash('sha1');
   for (const f of hashed) {
@@ -107,9 +128,9 @@ async function main() {
   if (mode === 'admin') {
     await buildAdmin();
   } else if (mode === 'main') {
-    await buildMain();
+    await Promise.all([buildMain(), buildCss()]);
   } else {
-    await Promise.all([buildMain(), buildAdmin()]);
+    await Promise.all([buildMain(), buildAdmin(), buildCss()]);
   }
   cleanStaleChunks();
   stampAssetVersions();

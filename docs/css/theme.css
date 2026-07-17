@@ -205,12 +205,18 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
 @media (min-width: 1021px) {
   body {
     padding-left: var(--db-sidebar-current);
+  }
+
+  body.sidebar-anim-ready {
     transition: padding-left 0.18s ease;
   }
 
   .topbar {
     left: var(--db-sidebar-current);
     width: auto;
+  }
+
+  body.sidebar-anim-ready .topbar {
     transition: left 0.18s ease;
   }
 

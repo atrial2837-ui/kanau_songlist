@@ -242,6 +242,11 @@ function initSidebarNav() {
     setCollapsed(false);
   }
 
+  // 初期状態を描画してから transition を有効化（起動時のアニメーション/シフト防止）
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => document.body.classList.add('sidebar-anim-ready'));
+  });
+
   sidebarToggle?.addEventListener('click', () => {
     setCollapsed(!document.body.classList.contains('sidebar-collapsed'));
   });
