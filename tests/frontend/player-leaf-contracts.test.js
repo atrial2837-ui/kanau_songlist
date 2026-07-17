@@ -15,7 +15,7 @@ globalThis.location = { origin: 'https://example.test', pathname: '/', search: '
 globalThis.window = { location: globalThis.location, addEventListener: () => {} };
 
 const { getWatchHistory, _saveWatchEntry } = await import('../../docs/js/player/watch-history.js');
-const { _getPlaylists } = await import('../../docs/js/player/playlists-store.js');
+const { getPlaylists, savePlaylists } = await import('../../docs/js/player/playlists-store.js');
 const { _youtubeExternalUrl, _svBuildShareUrl } = await import('../../docs/js/player/share-url.js');
 
 describe('watch-history 契約', () => {
@@ -65,14 +65,20 @@ describe('playlists-store 契約', () => {
   beforeEach(() => store.clear());
 
   it('キーは kanau-playlists、未保存時と "null" は []', () => {
-    assert.deepEqual(_getPlaylists(), []);
+    assert.deepEqual(getPlaylists(), []);
     store.set('kanau-playlists', 'null');
-    assert.deepEqual(_getPlaylists(), []);
+    assert.deepEqual(getPlaylists(), []);
   });
 
   it('保存済みリストをそのまま返す', () => {
     store.set('kanau-playlists', JSON.stringify([{ id: 1, name: 'A', streams: ['x'] }]));
-    assert.deepEqual(_getPlaylists(), [{ id: 1, name: 'A', streams: ['x'] }]);
+    assert.deepEqual(getPlaylists(), [{ id: 1, name: 'A', streams: ['x'] }]);
+  });
+
+  it('savePlaylists は同一キーへJSONで書き込む(読み書き round-trip)', () => {
+    savePlaylists([{ id: 2, name: 'B', streams: [] }]);
+    assert.equal(store.has('kanau-playlists'), true);
+    assert.deepEqual(getPlaylists(), [{ id: 2, name: 'B', streams: [] }]);
   });
 });
 

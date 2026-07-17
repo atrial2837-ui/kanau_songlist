@@ -2,6 +2,7 @@
 // Sol協議で「PR E着手のblocking前提」とされた4シナリオ+モバイル外部再生。
 import { test, expect } from '@playwright/test';
 import {
+  FAKE_YT_SOURCE,
   setupFakeYouTube,
   openApp,
   getStream,
@@ -124,4 +125,46 @@ test('モバイル幅では内部プレイヤーを生成せず外部YouTubeへ'
   const s = await fakeSummary(page);
   expect(s?.created ?? 0).toBe(0);
   await expect(page.locator('#stream-viewer')).toBeHidden();
+});
+
+test('YT API準備完了前に音楽バーへ移してもプレイヤーが二重生成されない', async ({ page }) => {
+  // iframe_api の配信を遅延させ、ビューワーのプレイヤー生成待ちの間に移譲する
+  await page.route('https://www.youtube.com/iframe_api', async (route) => {
+    await new Promise((r) => setTimeout(r, 700));
+    await route.fulfill({ contentType: 'text/javascript', body: FAKE_YT_SOURCE });
+  });
+  await page.route(/https:\/\/(i\.ytimg\.com|img\.youtube\.com|www\.youtube\.com\/embed)\/.*/, (r) => r.abort());
+  await openApp(page);
+  const stream = await getStream(page);
+  await openViewer(page, stream);
+  await page.click('#sv-music-btn'); // プレイヤー未生成のまま移譲
+
+  await expect(page.locator('#music-bar')).toBeVisible();
+  await expect(page.locator('#stream-viewer')).toBeHidden();
+  await waitForPlayerCount(page, 1);
+  await page.waitForTimeout(400); // 遅延していたビューワー側コールバックの発火猶予
+  const s = await fakeSummary(page);
+  expect(s.created).toBe(1); // 音楽バーの1つだけ(ビューワー側の待機生成は無効化される)
+  expect(s.live).toHaveLength(1);
+});
+
+test('YTエラー時は壊れたプレイヤーを破棄してfallback iframeへ切り替える', async ({ page }) => {
+  await setupFakeYouTube(page);
+  await openApp(page);
+  const stream = await getStream(page);
+  await openViewer(page, stream);
+  await waitForPlayerCount(page, 1);
+
+  await page.evaluate(() => {
+    const live = window.__fakeYT.instances.find((p) => !p._destroyed);
+    live._fire('onError', { target: live, data: 101 });
+  });
+
+  await page.waitForFunction(() => window.__fakeYT.destroyed === 1);
+  await expect(page.locator('#sv-player-wrap iframe:not(.fake-yt-iframe)')).toHaveCount(1);
+
+  // 壊れた所有者が残らないため、閉じるとミニ化せず正常終了する
+  await page.click('#sv-close');
+  await expect(page.locator('#stream-viewer')).toBeHidden();
+  await expect(page.locator('#yt-player-panel')).toBeHidden();
 });

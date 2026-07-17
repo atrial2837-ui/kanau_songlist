@@ -10,7 +10,7 @@
 
 import { $, escapeHtml, youtubeVideoId, youtubeThumb } from './utils.js';
 import { icon } from './icons.js';
-import { openStreamViewer, openMusicQueueInViewer, closeStreamMiniPlayer, registerMusicBridge } from './player/stream-player.js';
+import { openStreamViewer, openMusicQueueInViewer, closeStreamMiniPlayer, registerMusicBridge, _loadYtApi } from './player/stream-player.js';
 
 /* ── 状態 ────────────────────────────────────────────────────────────────── */
 
@@ -28,7 +28,7 @@ let _queuePopupOpen = false;
 
 let _ytReady = false;
 const _ytQ   = [];
-let _apiLoader = null;
+let _apiLoader = _loadYtApi;
 
 const _storedVol = () => Math.max(0, Math.min(100, parseInt(localStorage.getItem('kanaVol') ?? '100') || 100));
 const _saveVol   = v  => localStorage.setItem('kanaVol', String(v));
@@ -42,8 +42,7 @@ export function notifyYtReady() {
   _ytQ.splice(0).forEach(fn => fn());
 }
 
-/** main.js から _loadYtApi を注入する（循環 import 回避） */
-export function setApiLoader(fn) { _apiLoader = fn; }
+// YT API ローダーはプレイヤーサブシステムのものを直接利用する
 
 function _onYtReady(fn) {
   if (_ytReady && window.YT?.Player) { fn(); return; }
@@ -695,4 +694,11 @@ function _syncPlayButton() {
 }
 
 // 音楽バー⇔ビューワーの引き継ぎ連携をブリッジ登録(window.__* 廃止)
-registerMusicBridge({ takeOverVideo: takeOverMusicPlayerVideo, restoreExternalPlayer });
+registerMusicBridge({
+  takeOverVideo: takeOverMusicPlayerVideo,
+  restoreExternalPlayer,
+  releaseVideo: releaseMusicPlayerVideo,
+  pause: pauseMusicPlayer,
+  playVideo: playMusicBarVideo,
+  adoptExternalPlayer,
+});

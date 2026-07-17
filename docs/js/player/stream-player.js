@@ -20,6 +20,30 @@ const _MODE_TRANSITIONS = {
   'music-bar': ['embedded', 'idle'],
 };
 export function getPlayerMode() { return _playerMode; }
+
+// グローバルキー操作(Space/←→)のうちビューワー再生操作を処理する。消費したら true。
+// シェルが YT.Player・共有モーダル DOM に直接触れないための公開 API。
+export function handleViewerKeyboard(key) {
+  if (!['embedded', 'fullscreen'].includes(_playerMode)) return false;
+  if ($('#sv-share-modal')?.hidden === false) return false;
+  if (!_svPlayer) return false;
+  if (key === ' ') {
+    try {
+      const st = _svPlayer.getPlayerState?.();
+      if (st === window.YT?.PlayerState?.PLAYING) _svPlayer.pauseVideo();
+      else _svPlayer.playVideo();
+    } catch (_) {}
+    return true;
+  }
+  if (key === 'ArrowLeft' || key === 'ArrowRight') {
+    try {
+      const cur = _svPlayer.getCurrentTime?.() ?? 0;
+      _svPlayer.seekTo(Math.max(0, cur + (key === 'ArrowRight' ? 10 : -10)), true);
+    } catch (_) {}
+    return true;
+  }
+  return false;
+}
 function _setPlayerMode(next) {
   if (next === _playerMode) return;
   if (!_MODE_TRANSITIONS[_playerMode]?.includes(next)) {
@@ -28,7 +52,8 @@ function _setPlayerMode(next) {
   _playerMode = next;
 }
 import { _saveWatchEntry, _saveWatchEntryThrottled } from './watch-history.js';
-import { _getPlaylists } from './playlists-store.js';
+import { getPlaylists } from './playlists-store.js';
+import { fetchCommunityTimestamps, submitCommunityTimestamp } from './timestamps/repository.js';
 import { _svBuildShareUrl, _youtubeExternalUrl } from './share-url.js';
 
 // ─── プレイヤー→シェル依存の注入点 ──────────────────────────────────────────
@@ -238,9 +263,22 @@ function _svMoveToMusicBar() {
   };
 
   if (!_svPlayer) {
-    import('../music-player.js')
-      .then(m => m.playMusicBarVideo?.(musicTrack, t))
-      .catch(() => {});
+    // YT API ready 前に移譲すると、ビューワー側の待機中コールバックも後で走って
+    // プレイヤーが二重生成されるため、待機を無効化しビューワーを閉じてから
+    // 生成権を音楽バーへ渡す
+    ++_svGen;
+    _svStopEndedWatch();
+    viewer.hidden = true;
+    viewer._currentStream = null;
+    const wrap = $('#sv-player-wrap');
+    if (wrap) wrap.innerHTML = '';
+    document.body.style.overflow = '';
+    _svLastStream = null;
+    _setPlayerMode('idle');
+    _shellDeps.setSidebarHidden(document.body.dataset.activeTab === 'playlists');
+    hidePlayerPanel();
+    _svUpdateUrl();
+    _musicBridge?.playVideo?.(musicTrack, t);
     return;
   }
 
@@ -269,18 +307,14 @@ function _svMoveToMusicBar() {
   window.addEventListener('resize', _syncMiniPos);
   _miniStartProgress();
 
-  import('../music-player.js')
-    .then(m => {
-      m.adoptExternalPlayer?.(musicTrack, _miniPlayer, {
-        restore: _svRestoreFromMusicBar,
-        close: _svDiscardMusicBar,
-      });
-      _syncMiniPos();
-      requestAnimationFrame(_syncMiniPos);
-      setTimeout(_syncMiniPos, 120);
-      setTimeout(_syncMiniPos, 400);
-    })
-    .catch(() => {});
+  _musicBridge?.adoptExternalPlayer?.(musicTrack, _miniPlayer, {
+    restore: _svRestoreFromMusicBar,
+    close: _svDiscardMusicBar,
+  });
+  _syncMiniPos();
+  requestAnimationFrame(_syncMiniPos);
+  setTimeout(_syncMiniPos, 120);
+  setTimeout(_syncMiniPos, 400);
 }
 
 /** ミニ化状態を完全破棄（別動画を開く・ミニを閉じる時） */
@@ -760,7 +794,7 @@ function _applyVol(slider, btn, player, v) {
   if (player) try { player.setVolume(v); } catch (_) {}
 }
 
-export let _svPlayer = null;
+let _svPlayer = null;
 
 let _svGen = 0;
 
@@ -899,11 +933,9 @@ async function _svLoadCommunityTs(stream) {
     return;
   }
   try {
-    const url = `/api/timestamps/${encodeURIComponent(stream.channel)}/${stream.index}`;
-    const res = await fetch(url);
-    if (!res.ok) return;
-    const data = await res.json();
-    for (const item of (data.items || [])) {
+    const items = await fetchCommunityTimestamps(stream.channel, stream.index);
+    if (!items) return;
+    for (const item of items) {
       if (!_svCommunityTs[item.songIndex]) _svCommunityTs[item.songIndex] = [];
       _svCommunityTs[item.songIndex].push({ timeSeconds: item.timeSeconds, note: item.note ?? null });
     }
@@ -979,14 +1011,10 @@ function _svShowProposeModal(stream, songIdx, songTitle) {
     submitBtn.disabled = true;
     submitBtn.textContent = '送信中…';
     try {
-      const res = await fetch(`/api/timestamps/${encodeURIComponent(stream.channel)}/${stream.index}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          songIndex:     songIdx,
-          timeSeconds:   parsedSec,
-          submitterNote: note,
-        }),
+      const res = await submitCommunityTimestamp(stream.channel, stream.index, {
+        songIndex: songIdx,
+        timeSeconds: parsedSec,
+        submitterNote: note,
       });
       if (res.ok) {
         statusEl.textContent = '提案を送信しました！審査後に公開されます。';
@@ -995,8 +1023,7 @@ function _svShowProposeModal(stream, songIdx, songTitle) {
         submitBtn.hidden = true;
         modal.querySelector('.sv-cts-modal-cancel').textContent = '閉じる';
       } else {
-        const body = await res.json().catch(() => ({}));
-        statusEl.textContent = `送信に失敗しました: ${body.error || res.statusText}`;
+        statusEl.textContent = `送信に失敗しました: ${res.error}`;
         statusEl.className = 'sv-cts-modal-status error';
         statusEl.hidden = false;
         submitBtn.disabled = false;
@@ -1156,14 +1183,11 @@ function _svShowBulkProposeModal(stream) {
     let failed = 0;
     await Promise.all(entries.map(async entry => {
       try {
-        const res = await fetch(
-          `/api/timestamps/${encodeURIComponent(stream.channel)}/${stream.index}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ songIndex: entry.songIndex, timeSeconds: entry.timeSeconds, submitterNote: note }),
-          }
-        );
+        const res = await submitCommunityTimestamp(stream.channel, stream.index, {
+          songIndex: entry.songIndex,
+          timeSeconds: entry.timeSeconds,
+          submitterNote: note,
+        });
         if (res.ok) succeeded++; else failed++;
       } catch (_) { failed++; }
       submitBtn.textContent = `申請中… (${succeeded + failed}/${entries.length})`;
@@ -1479,7 +1503,7 @@ function _svBookmarkSvg() {
 }
 
 function _svIsSavedInAnyPlaylist(skey) {
-  return _getPlaylists().some(pl => (pl.streams || []).includes(skey));
+  return getPlaylists().some(pl => (pl.streams || []).includes(skey));
 }
 
 function _svOpenPlaylistModal(skey, title, button) {
@@ -2121,7 +2145,7 @@ export function openStreamViewer(stream, resumeAt = 0) {
   const musicHandoff = _musicBridge?.takeOverVideo?.(stream.url) || null;
   if (!musicHandoff) {
     // 同一動画の2プレイヤー競合で再生が壊れるのを防ぐ。
-    import('../music-player.js').then(m => (m.releaseMusicPlayerVideo || m.pauseMusicPlayer)()).catch(() => {});
+    (_musicBridge?.releaseVideo || _musicBridge?.pause)?.();
   }
 
   // ミニプレイヤーが表示中なら即時破棄（同一ページで2プレイヤー競合を防ぐ）
@@ -2271,6 +2295,8 @@ export function openStreamViewer(stream, resumeAt = 0) {
           },
           onError: () => {
             if (gen !== _svGen) return;
+            try { _svPlayer?.destroy(); } catch (_) {} // 壊れたプレイヤーの所有を解放
+            _svPlayer = null;
             wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${escapeHtml(id)}?autoplay=1&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}${startSec > 0 ? `&start=${startSec}` : ''}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
           },
         },

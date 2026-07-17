@@ -1,4 +1,5 @@
-// 共有URL・外部YouTube URLの純粋ビルダー。共有モーダルUIは stream-player.js 側。
+// 共有URL・外部YouTube URLのビルダー(state / URL状態 / location に依存)。
+// 共有モーダルUIは stream-player.js 側。
 import { state } from '../store.js';
 import { youtubeVideoId } from '../utils.js';
 import { readUrlState } from '../url-state.js';

@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 
-const FAKE_YT_SOURCE = readFileSync(
+export const FAKE_YT_SOURCE = readFileSync(
   new URL('./fixtures/fake-youtube-api.js', import.meta.url),
   'utf8',
 );

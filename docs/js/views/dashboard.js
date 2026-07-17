@@ -4,6 +4,7 @@ import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsTh
 import { getToday } from '../store.js';
 import { icon } from '../icons.js';
 import { openStreamViewer, playMyListInViewer } from '../player/stream-player.js';
+import { getWatchHistory } from '../player/watch-history.js';
 
 export function renderDashboard() {
   const { songs, streams } = state.data;
@@ -231,11 +232,7 @@ function bindRecapCard(streams, songs) {
 
 /* ── 続きから見る（視聴履歴） ──────────────────────────────────────────── */
 
-const WATCH_HISTORY_KEY = 'kanau-watch-history-v1';
-
-function _watchHistory() {
-  try { return JSON.parse(localStorage.getItem(WATCH_HISTORY_KEY) || '[]'); } catch (_) { return []; }
-}
+// 視聴履歴の永続化は player/watch-history.js が唯一の所有者
 
 function _fmtPos(sec) {
   const s = Math.max(0, Math.floor(sec));
@@ -244,7 +241,7 @@ function _fmtPos(sec) {
 }
 
 function renderResumeSection() {
-  const entries = _watchHistory().slice(0, 6);
+  const entries = getWatchHistory().slice(0, 6);
   if (!entries.length) return '';
   return `
     <div class="card dashboard-card dashboard-resume-card">
@@ -277,7 +274,7 @@ function bindResumeSection() {
     list.onclick = (e) => {
       const btn = e.target.closest('[data-resume-idx]');
       if (!btn) return;
-      const entry = _watchHistory()[Number(btn.dataset.resumeIdx)];
+      const entry = getWatchHistory()[Number(btn.dataset.resumeIdx)];
       if (!entry?.url) return;
       let target = null;
       if (entry.channel != null && entry.index != null) {
@@ -297,7 +294,7 @@ function bindResumeSection() {
   const queueBtn = $('#dashboard-resume-queue');
   if (queueBtn) {
     queueBtn.onclick = () => {
-      const entries = _watchHistory();
+      const entries = getWatchHistory();
       const streams = state.channelData?.combined?.streams || state.data?.streams || [];
       const items = entries.map((entry, i) => {
         const stream = entry.channel != null && entry.index != null

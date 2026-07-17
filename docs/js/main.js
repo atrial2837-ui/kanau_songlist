@@ -3,15 +3,14 @@ import { ensureSongTags, loadAll, loadInitial } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange, cycleTheme } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
-import { $, $$, escapeHtml, fmtDate, isLink, streamKey, youtubeVideoId, youtubeThumb, youtubeThumbFallback, youtubeThumbTiny } from './utils.js';
+import { $, $$, escapeHtml, fmtDate, isLink, streamKey, youtubeThumb, youtubeThumbFallback, youtubeThumbTiny } from './utils.js';
 import { DEFAULT_CHANNEL } from './config.js';
 import { readUrlState, writeUrlState } from './url-state.js';
 import { initSearchPalette, openSearchPalette, closeSearchPalette, isSearchPaletteOpen } from './views/search-palette.js';
 import { icon } from './icons.js';
-import { _parseTs, _parseTsCommentLine, _normForMatch, _matchSongIdx } from './player/timestamps/parser.js';
 import { initChannelModal, initHelpModal, initWelcomeTip } from './views/modals.js';
 import { renderHero } from './views/hero.js';
-import { _epSetPendingTabOptions, _epSetPrevTab, _loadYtApi, _maybeImportSharedPlaylist, _maybeOpenSharedVideo, _svPlayer, closeStreamViewer, getPlayerMode, initPlayerShell, initStreamViewer, initYouTubePlayer, openStreamViewer } from './player/stream-player.js';
+import { _epSetPendingTabOptions, _epSetPrevTab, _maybeImportSharedPlaylist, _maybeOpenSharedVideo, closeStreamViewer, getPlayerMode, handleViewerKeyboard, initPlayerShell, initStreamViewer, initYouTubePlayer, openStreamViewer } from './player/stream-player.js';
 
 initTheme();
 initStore();
@@ -511,97 +510,6 @@ function findSong(key) {
   return (state.data?.songs || []).find(song => song.key === key) || null;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function openSongDetail(key) {
   const song = findSong(key);
   const modal = $('#song-modal');
@@ -719,7 +627,6 @@ function initSongModal() {
   });
 }
 
-
 function showLoading() { $('#loading').hidden = false; $('#error').hidden = true; }
 function hideLoading() { $('#loading').hidden = true; }
 function showError(err) {
@@ -750,7 +657,6 @@ function updatePageTitle(mode) {
   const bg = document.getElementById('hero-ch-bg');
   if (bg) bg.dataset.mode = mode || 'all';
 }
-
 
 async function init() {
   showLoading();
@@ -905,7 +811,7 @@ initMobileMenu();
 initMobileTabNav();
 initPageTopToast();
 initWelcomeTip();
-import('./music-player.js').then(m => { m.setApiLoader(_loadYtApi); m.initMusicPlayer(); }).catch(() => {});
+import('./music-player.js').then(m => m.initMusicPlayer()).catch(() => {});
 
 $('#topbar-search-btn')?.addEventListener('click', openSearchPalette);
 $('#topbar-search-menu-btn')?.addEventListener('click', openSearchPalette);
@@ -936,28 +842,9 @@ document.addEventListener('keydown', (e) => {
 
   // ── ビューワー再生操作: Space 再生/停止、←→ 10秒シーク ──
   if (!inInput && !e.metaKey && !e.ctrlKey && !e.altKey) {
-    const viewerActive = ['embedded', 'fullscreen'].includes(getPlayerMode())
-      && $('#sv-share-modal')?.hidden !== false
-      && _svPlayer;
-    if (viewerActive) {
-      if (e.key === ' ') {
-        e.preventDefault();
-        try {
-          const st = _svPlayer.getPlayerState?.();
-          if (st === window.YT?.PlayerState?.PLAYING) _svPlayer.pauseVideo();
-          else _svPlayer.playVideo();
-        } catch (_) {}
-        return;
-      }
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        try {
-          const cur = _svPlayer.getCurrentTime?.() ?? 0;
-          const next = Math.max(0, cur + (e.key === 'ArrowRight' ? 10 : -10));
-          _svPlayer.seekTo(next, true);
-        } catch (_) {}
-        return;
-      }
+    if ((e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') && handleViewerKeyboard(e.key)) {
+      e.preventDefault();
+      return;
     }
   }
 
