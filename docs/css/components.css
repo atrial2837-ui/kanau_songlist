@@ -525,8 +525,11 @@ button.official-link {
 .theme-toggle:hover {
   border-color: var(--primary);
 }
-/* テーマ切替: ツールチップ（ラベル非表示時もヒントを提供） */
-.theme-toggle::after {
+/* 汎用ツールチップ: data-tooltip 属性を持つ要素にホバー/フォーカスで表示 */
+[data-tooltip] {
+  position: relative;
+}
+[data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
   top: calc(100% + 6px);
@@ -544,9 +547,31 @@ button.official-link {
   transition: opacity 0.15s, transform 0.15s;
   z-index: 100;
 }
-.theme-toggle:hover::after {
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+/* 上向き表示（画面下部の音楽バーなど、下にスペースがない場所用） */
+[data-tooltip][data-tooltip-pos="top"]::after {
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%) translateY(4px);
+}
+[data-tooltip][data-tooltip-pos="top"]:hover::after,
+[data-tooltip][data-tooltip-pos="top"]:focus-visible::after {
+  transform: translateX(-50%) translateY(0);
+}
+/* 左向き表示（overflow: hidden なカード内の右端ボタン用） */
+[data-tooltip][data-tooltip-pos="left"]::after {
+  top: 50%;
+  left: auto;
+  right: calc(100% + 6px);
+  transform: translateY(-50%) translateX(4px);
+}
+[data-tooltip][data-tooltip-pos="left"]:hover::after,
+[data-tooltip][data-tooltip-pos="left"]:focus-visible::after {
+  transform: translateY(-50%) translateX(0);
 }
 .theme-icon { font-size: 14px; }
 .theme-label { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-mute); }

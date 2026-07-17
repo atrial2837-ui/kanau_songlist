@@ -178,20 +178,20 @@ function setupClickHandlers(streams) {
       await navigator.clipboard.writeText(formatStreamSetlist(stream));
       btn.classList.add('is-copied');
       btn.setAttribute('aria-label', 'コピー済み');
-      btn.title = 'コピー済み';
+      btn.setAttribute('data-tooltip', 'コピー済み');
       setTimeout(() => {
         btn.classList.remove('is-copied');
         btn.setAttribute('aria-label', 'セトリをコピー');
-        btn.title = 'セトリをコピー';
+        btn.setAttribute('data-tooltip', 'セトリをコピー');
       }, 1200);
     } catch (_) {
       btn.classList.add('is-error');
       btn.setAttribute('aria-label', 'コピーに失敗');
-      btn.title = 'コピーに失敗';
+      btn.setAttribute('data-tooltip', 'コピーに失敗');
       setTimeout(() => {
         btn.classList.remove('is-error');
         btn.setAttribute('aria-label', 'セトリをコピー');
-        btn.title = 'セトリをコピー';
+        btn.setAttribute('data-tooltip', 'セトリをコピー');
       }, 1200);
     }
   };
@@ -221,12 +221,12 @@ function renderItem(s, idx, filter) {
     ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || '配信')}</a>`
     : escapeHtml(s.title || '配信');
   const watchHtml = s.url
-    ? `<span class="watch-actions"><a class="watch-open-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener" aria-label="YouTubeで開く" title="YouTubeで開く">${TIMELINE_PLAY_ICON}</a></span>`
+    ? `<span class="watch-actions"><a class="watch-open-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener" aria-label="YouTubeで開く" data-tooltip="YouTubeで開く" data-tooltip-pos="left">${TIMELINE_PLAY_ICON}</a></span>`
     : '';
   const skey = streamKey(s);
   const saved = isStreamInAnyPlaylist(skey);
-  const saveHtml = `<button class="timeline-save-btn${saved ? ' is-saved' : ''}" type="button" data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}" title="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${icon('bookmark')}</button>`;
-  const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-key="${escapeHtml(skey)}" aria-label="セトリをコピー" title="セトリをコピー">${TIMELINE_COPY_ICON}</button>`;
+  const saveHtml = `<button class="timeline-save-btn${saved ? ' is-saved' : ''}" type="button" data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}" aria-label="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}" data-tooltip="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}" data-tooltip-pos="left">${icon('bookmark')}</button>`;
+  const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-key="${escapeHtml(skey)}" aria-label="セトリをコピー" data-tooltip="セトリをコピー" data-tooltip-pos="left">${TIMELINE_COPY_ICON}</button>`;
   const open = filter ? ' open' : '';
   return `
     <details class="timeline-item ${recentClass}"${open}>

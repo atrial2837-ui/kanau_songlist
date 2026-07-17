@@ -74,30 +74,30 @@ export function initMusicPlayer() {
         <span class="mbar-type-badge" id="mbar-type-badge"></span>
       </div>
       <div class="mbar-controls">
-        <button class="mbar-mode-btn is-on" id="mbar-continuous" type="button" aria-pressed="true" title="連続再生">∞</button>
-        <button class="mbar-ctrl-btn" id="mbar-prev" type="button" aria-label="前の曲">
+        <button class="mbar-mode-btn is-on" id="mbar-continuous" type="button" aria-pressed="true" data-tooltip="連続再生" data-tooltip-pos="top">∞</button>
+        <button class="mbar-ctrl-btn" id="mbar-prev" type="button" aria-label="前の曲" data-tooltip="前の曲" data-tooltip-pos="top">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
           </svg>
         </button>
-        <button class="mbar-play-btn" id="mbar-play" type="button" data-playing="0" aria-label="再生/停止"></button>
-        <button class="mbar-ctrl-btn" id="mbar-next" type="button" aria-label="次の曲">
+        <button class="mbar-play-btn" id="mbar-play" type="button" data-playing="0" aria-label="再生/停止" data-tooltip="再生 / 一時停止" data-tooltip-pos="top"></button>
+        <button class="mbar-ctrl-btn" id="mbar-next" type="button" aria-label="次の曲" data-tooltip="次の曲" data-tooltip-pos="top">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>
           </svg>
         </button>
-        <button class="mbar-mode-btn" id="mbar-repeat" type="button" aria-pressed="false" title="1曲リピート">↻</button>
-        <button class="mbar-mode-btn${_shuffle ? ' is-on' : ''}" id="mbar-shuffle" type="button" aria-pressed="${_shuffle ? 'true' : 'false'}" title="シャッフル再生">
+        <button class="mbar-mode-btn" id="mbar-repeat" type="button" aria-pressed="false" data-tooltip="1曲リピート" data-tooltip-pos="top">↻</button>
+        <button class="mbar-mode-btn${_shuffle ? ' is-on' : ''}" id="mbar-shuffle" type="button" aria-pressed="${_shuffle ? 'true' : 'false'}" data-tooltip="シャッフル再生" data-tooltip-pos="top">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
           </svg>
         </button>
-        <button class="mbar-mode-btn${_repeatAll ? ' is-on' : ''}" id="mbar-repeat-all" type="button" aria-pressed="${_repeatAll ? 'true' : 'false'}" title="全体リピート（ON: 最後の曲が終わったら先頭へ戻る）">
+        <button class="mbar-mode-btn${_repeatAll ? ' is-on' : ''}" id="mbar-repeat-all" type="button" aria-pressed="${_repeatAll ? 'true' : 'false'}" data-tooltip="全体リピート（ON: 最後の曲が終わったら先頭へ戻る）" data-tooltip-pos="top">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
           </svg>
         </button>
-        <button class="mbar-mode-btn mbar-queue-btn" id="mbar-queue-btn" type="button" title="再生キュー（次に流れる曲）" aria-label="再生キュー">
+        <button class="mbar-mode-btn mbar-queue-btn" id="mbar-queue-btn" type="button" data-tooltip="再生キュー（次に流れる曲）" data-tooltip-pos="top" aria-label="再生キュー">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
             <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>
           </svg>
@@ -108,12 +108,12 @@ export function initMusicPlayer() {
           <button class="vol-btn" id="mbar-vol-btn" type="button" aria-label="音量">${icon('volume')}</button>
           <input class="vol-slider" id="mbar-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
         </div>
-        <button class="mbar-expand-btn" id="mbar-expand" type="button" title="現在位置から動画ビューワーで見る" aria-label="現在位置から動画ビューワーで見る">
+        <button class="mbar-expand-btn" id="mbar-expand" type="button" data-tooltip="現在位置から動画ビューワーで見る" data-tooltip-pos="top" aria-label="現在位置から動画ビューワーで見る">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4V6zm5.5 3.5 5 3-5 3v-6z"/></svg>
           <span>動画で見る</span>
         </button>
         <span class="mbar-queue-info" id="mbar-queue-info"></span>
-        <button class="mbar-close-btn" id="mbar-close" type="button" aria-label="閉じる">${icon('close')}</button>
+        <button class="mbar-close-btn" id="mbar-close" type="button" aria-label="閉じる" data-tooltip="閉じる" data-tooltip-pos="top">${icon('close')}</button>
       </div>
     </div>
     <div class="mbar-queue-popup" id="mbar-queue-popup" hidden></div>`;

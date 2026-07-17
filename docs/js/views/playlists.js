@@ -461,7 +461,7 @@ function _renderMusicViewBar(videos) {
         <button class="pl-music-view-btn${_musicView === 'grid'     ? ' active' : ''}" data-music-view="grid"     type="button">グリッド</button>
         <button class="pl-music-view-btn${_musicView === 'list'     ? ' active' : ''}" data-music-view="list"     type="button">リスト</button>
         <button class="pl-music-view-btn${_musicView === 'category' ? ' active' : ''}" data-music-view="category" type="button">カテゴリ</button>
-        <button class="pl-music-view-btn pl-music-select-toggle${_musicSelectMode ? ' active' : ''}" data-music-select-toggle="1" type="button" ${shown ? '' : 'disabled'} title="複数選択してまとめて追加">☑ 選択</button>
+        <button class="pl-music-view-btn pl-music-select-toggle${_musicSelectMode ? ' active' : ''}" data-music-select-toggle="1" type="button" ${shown ? '' : 'disabled'} data-tooltip="複数選択してまとめて追加">☑ 選択</button>
       </div>
     </div>
     ${_musicSelectMode ? _renderMusicSelectBar() : ''}`;

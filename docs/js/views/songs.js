@@ -61,7 +61,7 @@ export function renderSongs() {
           <input id="songs-search" class="text-input songs-search-input" type="search" placeholder="曲名・アーティスト・雰囲気で検索" value="${escapeHtml(state.songsQuery)}">
           <div id="search-history-dropdown" class="search-history-dropdown" hidden></div>
         </div>
-        <button class="songs-fav-toggle ${state.favoritesFilter ? 'is-active' : ''}" type="button" data-filter="favorites" aria-pressed="${state.favoritesFilter ? 'true' : 'false'}" title="お気に入りだけ表示">${icon('heart')}</button>
+        <button class="songs-fav-toggle ${state.favoritesFilter ? 'is-active' : ''}" type="button" data-filter="favorites" aria-pressed="${state.favoritesFilter ? 'true' : 'false'}" aria-label="お気に入りだけ表示" data-tooltip="お気に入りだけ表示">${icon('heart')}</button>
         ${state.singerMode ? '<button class="songs-setlist-mini btn primary" id="setlist-toggle-btn" type="button" aria-controls="setlist-planner" aria-expanded="' + (state.setlistExpanded ? 'true' : 'false') + '">' + (state.setlistExpanded ? 'セトリを閉じる' : 'セトリ制作') + '</button>' : ''}
       </div>
       <!-- 雰囲気サジェストチップ（常時表示・8種のみ） -->
@@ -1183,7 +1183,7 @@ function rowHtml(song, tokens) {
     <div class="song-row" data-songkey="${escapeHtml(song.key)}" data-songtitle="${escapeHtml(song.title)}" data-songartist="${escapeHtml(song.artist)}" title="クリックで曲詳細を表示">
       <div class="rank ${rankClass}">${song.rank}</div>
       <div class="info">
-        <div class="title song-title-line"><span class="song-title-text">${titleHtml}</span><button class="fav-btn ${favActive ? 'is-active' : ''}" type="button" data-fav-toggle="${escapeHtml(song.key)}" aria-label="お気に入り" aria-pressed="${favActive ? 'true' : 'false'}" title="お気に入り">${icon('heart')}</button></div>
+        <div class="title song-title-line"><span class="song-title-text">${titleHtml}</span><button class="fav-btn ${favActive ? 'is-active' : ''}" type="button" data-fav-toggle="${escapeHtml(song.key)}" aria-label="お気に入り" aria-pressed="${favActive ? 'true' : 'false'}" data-tooltip="お気に入り">${icon('heart')}</button></div>
         <button class="artist artist-search-btn" type="button" data-artist-search="${escapeHtml(song.artist)}">${artistHtml}</button>
         <div class="song-meta-line">
           <span class="genre-badge">${escapeHtml(genreLabel(song))}</span>
@@ -1231,6 +1231,6 @@ function keyHtml(song) {
   if (!keys.length) {
     return `<div class="song-key-line song-key-actions"><span class="song-key-empty">キー未登録</span>${addButton}</div>`;
   }
-  const badges = keys.map(k => `<button type="button" class="song-key-badge" title="統合集計 T/U列のキー"><span>キー</span><strong>${escapeHtml(k)}</strong></button>`).join('');
+  const badges = keys.map(k => `<button type="button" class="song-key-badge" data-tooltip="統合集計 T/U列のキー"><span>キー</span><strong>${escapeHtml(k)}</strong></button>`).join('');
   return `<div class="song-key-line song-key-actions">${badges}${addButton}</div>`;
 }
