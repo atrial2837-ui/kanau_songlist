@@ -366,6 +366,10 @@ button.official-link {
   color: var(--primary-strong);
   transform: translateY(-1px);
 }
+.btn:focus-visible {
+  outline: 2px solid var(--primary-strong);
+  outline-offset: 2px;
+}
 .btn.primary {
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   border-color: var(--primary-strong);
@@ -402,6 +406,10 @@ button.official-link {
   border-color: var(--primary);
   color: var(--primary-strong);
   transform: rotate(40deg);
+}
+.icon-btn:focus-visible {
+  outline: 2px solid var(--primary-strong);
+  outline-offset: 2px;
 }
 .help-btn,
 .help-close {
@@ -521,9 +529,9 @@ button.official-link {
 .theme-toggle::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: calc(100% + 6px);
   left: 50%;
-  transform: translateX(-50%) translateY(2px);
+  transform: translateX(-50%) translateY(-4px);
   background: var(--ink);
   color: var(--surface);
   font-size: 10px;
@@ -534,7 +542,7 @@ button.official-link {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s, transform 0.15s;
-  z-index: 10;
+  z-index: 100;
 }
 .theme-toggle:hover::after {
   opacity: 1;

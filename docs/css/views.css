@@ -255,48 +255,6 @@
 .g6 { background: #d49a6a; }
 .g7 { background: #9bdcf7; }
 
-.monthly-bars {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  align-items: end;
-  gap: 6px;
-  min-height: 118px;
-}
-.month-bar {
-  display: grid;
-  grid-template-rows: minmax(68px, 1fr) auto auto;
-  gap: 3px;
-  min-width: 0;
-  text-align: center;
-}
-.month-bar-track {
-  display: flex;
-  align-items: end;
-  justify-content: center;
-  min-height: 68px;
-  border-radius: 8px;
-  background: var(--surface-2);
-  border: 1px solid var(--border-soft);
-  overflow: hidden;
-}
-.month-bar-track span {
-  display: block;
-  width: 100%;
-  min-height: 4px;
-  border-radius: 8px 8px 0 0;
-  background: linear-gradient(180deg, var(--accent), var(--primary));
-}
-.month-label {
-  color: var(--ink-soft);
-  font-size: 9.5px;
-  line-height: 1;
-  white-space: nowrap;
-}
-.month-bar strong {
-  color: var(--primary-strong);
-  font-size: 10.5px;
-  font-feature-settings: var(--tnum);
-}
 
 /* Heatmap (calendar) */
 
@@ -1275,16 +1233,6 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   .genre-insights {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .monthly-bars {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    min-height: 150px;
-  }
-  .month-bar {
-    grid-template-rows: minmax(48px, 1fr) auto auto;
-  }
-  .month-bar-track {
-    min-height: 48px;
-  }
   .podium {
     grid-template-columns: repeat(3, minmax(84px, 1fr));
     gap: 6px;
@@ -2092,6 +2040,7 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
 }
 .bar-list .bar-row.clickable { cursor: pointer; }
 .bar-list .bar-row.clickable:hover .bar-bar { filter: brightness(1.1); }
+.bar-list .bar-row.clickable:focus-visible { outline: 2px solid var(--primary-strong); outline-offset: 2px; border-radius: 4px; }
 .bar-list .bar-rank {
   font-weight: 700;
   font-size: 12px;
