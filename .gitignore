@@ -9,6 +9,11 @@ node_modules/
 # Local-only design / handoff notes (kept out of the public repo)
 /SoT/
 tmp/
+_local/
+
+# Playwright
+test-results/
+playwright-report/
 
 # Claude Code project files
 .claude/
