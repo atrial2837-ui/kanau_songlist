@@ -50,3 +50,29 @@ jobs:
 
       - name: Smoke test
         run: npm run smoke
+
+  # プレイヤー挙動固定テスト(フェイク YT API・実ネットワーク不要)。
+  # main.js リファクタリング PR の挙動不変ゲート。
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Build bundles
+        run: npm run build
+
+      - name: Player behavior tests
+        run: npx playwright test

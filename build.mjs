@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { createHash } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -11,7 +11,7 @@ if (!existsSync(OUT_DIR)) {
   mkdirSync(OUT_DIR, { recursive: true });
 }
 
-const common = {
+export const common = {
   bundle: true,
   platform: 'browser',
   format: 'esm',
@@ -22,15 +22,20 @@ const common = {
   external: ['chart.js'],
 };
 
-async function buildMain() {
-  await esbuild.build({
+// scripts/refactor/build-compare.mjs が同一設定でビルド構造を比較できるよう公開
+export function mainBuildOptions() {
+  return {
     ...common,
     entryPoints: [{ in: join(__dirname, 'docs', 'js', 'main.js'), out: 'main' }],
     outdir: OUT_DIR,
     splitting: true,          // 動的importをチャンクに分離してunused JSを削減
     chunkNames: 'chunk-[hash]',
     metafile: true,
-  });
+  };
+}
+
+async function buildMain() {
+  await esbuild.build(mainBuildOptions());
   console.log('built docs/dist/main.js');
 }
 
@@ -110,7 +115,10 @@ async function main() {
   stampAssetVersions();
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// 直接実行時のみビルド(build-compare.mjs が設定 import しただけでは走らない)
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
