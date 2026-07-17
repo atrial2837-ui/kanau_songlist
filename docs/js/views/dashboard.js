@@ -4,7 +4,7 @@ import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsTh
 import { getToday } from '../store.js';
 import { icon } from '../icons.js';
 import { openStreamViewer, playMyListInViewer } from '../player/stream-player.js';
-import { getWatchHistory } from '../player/watch-history.js';
+import { getWatchHistory, clearWatchHistory } from '../player/watch-history.js';
 
 export function renderDashboard() {
   const { songs, streams } = state.data;
@@ -287,7 +287,7 @@ function bindResumeSection() {
   const clear = $('#dashboard-resume-clear');
   if (clear) {
     clear.onclick = () => {
-      try { localStorage.removeItem(WATCH_HISTORY_KEY); } catch (_) {}
+      clearWatchHistory();
       $('#panel-dashboard .dashboard-resume-card')?.remove();
     };
   }

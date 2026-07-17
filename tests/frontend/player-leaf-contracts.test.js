@@ -14,7 +14,7 @@ globalThis.localStorage = {
 globalThis.location = { origin: 'https://example.test', pathname: '/', search: '' };
 globalThis.window = { location: globalThis.location, addEventListener: () => {} };
 
-const { getWatchHistory, _saveWatchEntry } = await import('../../docs/js/player/watch-history.js');
+const { getWatchHistory, _saveWatchEntry, clearWatchHistory } = await import('../../docs/js/player/watch-history.js');
 const { getPlaylists, savePlaylists } = await import('../../docs/js/player/playlists-store.js');
 const { _youtubeExternalUrl, _svBuildShareUrl } = await import('../../docs/js/player/share-url.js');
 
@@ -58,6 +58,14 @@ describe('watch-history 契約', () => {
     assert.equal(list[0].url, 'u11');
     assert.equal(list[0].t, 99);
     assert.equal(list.filter(e => e.url === 'u11').length, 1);
+  });
+
+  it('clearWatchHistory は永続削除する(キーがlocalStorageから消える)', () => {
+    _saveWatchEntry({ url: 'u1', title: 'T' }, 30);
+    assert.equal(store.has('kanau-watch-history-v1'), true);
+    clearWatchHistory();
+    assert.equal(store.has('kanau-watch-history-v1'), false);
+    assert.deepEqual(getWatchHistory(), []);
   });
 });
 

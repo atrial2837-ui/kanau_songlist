@@ -2,8 +2,9 @@
 // Sol協議で「PR E着手のblocking前提」とされた4シナリオ+モバイル外部再生。
 import { test, expect } from '@playwright/test';
 import {
-  FAKE_YT_SOURCE,
   setupFakeYouTube,
+  setupFakeYouTubeDeferred,
+  fireYtReady,
   openApp,
   getStream,
   openViewer,
@@ -128,12 +129,7 @@ test('モバイル幅では内部プレイヤーを生成せず外部YouTubeへ'
 });
 
 test('YT API準備完了前に音楽バーへ移してもプレイヤーが二重生成されない', async ({ page }) => {
-  // iframe_api の配信を遅延させ、ビューワーのプレイヤー生成待ちの間に移譲する
-  await page.route('https://www.youtube.com/iframe_api', async (route) => {
-    await new Promise((r) => setTimeout(r, 700));
-    await route.fulfill({ contentType: 'text/javascript', body: FAKE_YT_SOURCE });
-  });
-  await page.route(/https:\/\/(i\.ytimg\.com|img\.youtube\.com|www\.youtube\.com\/embed)\/.*/, (r) => r.abort());
+  await setupFakeYouTubeDeferred(page); // ready 未発火 = プレイヤー未生成
   await openApp(page);
   const stream = await getStream(page);
   await openViewer(page, stream);
@@ -141,10 +137,13 @@ test('YT API準備完了前に音楽バーへ移してもプレイヤーが二�
 
   await expect(page.locator('#music-bar')).toBeVisible();
   await expect(page.locator('#stream-viewer')).toBeHidden();
+
+  // ready 発火で、無効化されたビューワー側と音楽バー側の両待機が走る
+  await fireYtReady(page);
   await waitForPlayerCount(page, 1);
-  await page.waitForTimeout(400); // 遅延していたビューワー側コールバックの発火猶予
+  await page.waitForTimeout(200);
   const s = await fakeSummary(page);
-  expect(s.created).toBe(1); // 音楽バーの1つだけ(ビューワー側の待機生成は無効化される)
+  expect(s.created).toBe(1); // ビューワー側の待機生成は _svGen で無効化されている
   expect(s.live).toHaveLength(1);
 });
 
@@ -167,4 +166,50 @@ test('YTエラー時は壊れたプレイヤーを破棄してfallback iframeへ
   await page.click('#sv-close');
   await expect(page.locator('#stream-viewer')).toBeHidden();
   await expect(page.locator('#yt-player-panel')).toBeHidden();
+});
+
+test('API準備前にfullscreenから音楽バーへ移すとfullscreen状態が残らない', async ({ page }) => {
+  await setupFakeYouTubeDeferred(page); // ready 未発火 = プレイヤー未生成
+  await openApp(page);
+  const stream = await getStream(page);
+  await openViewer(page, stream);
+  await page.click('#sv-fullscreen-btn'); // プレイヤー生成前でも全画面に入れる
+  await expect(page.locator('body')).toHaveClass(/has-sv-fullscreen/);
+
+  await page.click('#sv-music-btn'); // 未生成のまま音楽バーへ移譲
+
+  await expect(page.locator('#music-bar')).toBeVisible();
+  await expect(page.locator('#stream-viewer')).toBeHidden();
+  await expect(page.locator('body')).not.toHaveClass(/has-sv-fullscreen/);
+  await expect(page.locator('#stream-viewer')).not.toHaveClass(/sv-fullscreen/);
+
+  await fireYtReady(page); // ビューワー側待機の無効化を確認(音楽バー側の1つだけ生成)
+  await page.waitForTimeout(200);
+  const s = await fakeSummary(page);
+  expect(s.created).toBe(1);
+});
+
+test('music-playerチャンク未ロード中に音楽バーへ移しても再生要求が失われない', async ({ page }) => {
+  // YT は ready 未発火(プレイヤー未生成)。music-player チャンクをゲートで止め、
+  // bridge 未登録の窓を壁時計に依存せず決定論的に作る(has-music-bar で識別)。
+  await setupFakeYouTubeDeferred(page);
+  let releaseChunk;
+  const gate = new Promise((r) => { releaseChunk = r; });
+  await page.route('**/chunk-*.js', async (route) => {
+    const resp = await route.fetch();
+    const body = await resp.text();
+    if (body.includes('has-music-bar')) await gate; // music-player チャンクだけ保留
+    await route.fulfill({ response: resp, body });
+  });
+  await openApp(page);
+  const stream = await getStream(page);
+  await openViewer(page, stream); // プレイヤー未生成
+  await page.click('#sv-music-btn'); // 早期移譲(!_svPlayer)、bridge 未登録の窓
+
+  // bridge 未登録の間は再生要求を保持(バーはまだ出ない)
+  await expect(page.locator('#stream-viewer')).toBeHidden();
+  await expect(page.locator('#music-bar')).toBeHidden();
+
+  releaseChunk(); // music-player ロード完了 → _ensureMusicBridge が再生要求を届ける
+  await expect(page.locator('#music-bar')).toBeVisible();
 });

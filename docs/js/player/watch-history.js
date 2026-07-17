@@ -11,6 +11,10 @@ export function getWatchHistory() {
   try { return JSON.parse(localStorage.getItem(WATCH_HISTORY_KEY) || '[]'); } catch (_) { return []; }
 }
 
+export function clearWatchHistory() {
+  try { localStorage.removeItem(WATCH_HISTORY_KEY); } catch (_) {}
+}
+
 export function _saveWatchEntry(stream, t) {
   if (!stream?.url || t < 10) return; // 10秒未満は記録しない
   try {

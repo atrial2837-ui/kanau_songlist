@@ -268,6 +268,11 @@ function _svMoveToMusicBar() {
     // 生成権を音楽バーへ渡す
     ++_svGen;
     _svStopEndedWatch();
+    // 全画面はプレイヤー生成前でも入れるため、全画面状態も併せて解除する
+    _svFullscreen = false;
+    viewer.classList.remove('sv-fullscreen');
+    document.body.classList.remove('has-sv-fullscreen');
+    $('#sv-fullscreen-btn')?.setAttribute('aria-pressed', 'false');
     viewer.hidden = true;
     viewer._currentStream = null;
     const wrap = $('#sv-player-wrap');
@@ -278,7 +283,8 @@ function _svMoveToMusicBar() {
     _shellDeps.setSidebarHidden(document.body.dataset.activeTab === 'playlists');
     hidePlayerPanel();
     _svUpdateUrl();
-    _musicBridge?.playVideo?.(musicTrack, t);
+    // ビューワーを閉じた後に再生要求が消えないよう、bridge の登録完了を待ってから移譲する
+    _ensureMusicBridge().then(b => b?.playVideo?.(musicTrack, t));
     return;
   }
 
@@ -2363,7 +2369,21 @@ export function closeStreamMiniPlayer() {
 // music-player.js が起動時に登録する連携ブリッジ(音楽バー⇔ビューワーの引き継ぎ)。
 // window.__* の代わりにモジュール間の明示的な登録で結合する。
 let _musicBridge = null;
+let _musicBridgeLoading = null;
 export function registerMusicBridge(bridge) { _musicBridge = bridge; }
+// bridge は music-player.js のモジュール評価時に登録される。破壊的移譲(ビューワーを
+// 閉じてから再生要求を渡す)で要求を失わないよう、ロード完了と initMusicPlayer
+// (#music-bar の DOM 生成、冪等)の両方を保証してから解決する。
+// 注意: bootstrap 側の import().then(initMusicPlayer) とは別 promise のため、
+// bridge 登録済みでも DOM 未生成の瞬間があり得る。fast path は置かない。
+function _ensureMusicBridge() {
+  if (!_musicBridgeLoading) {
+    _musicBridgeLoading = import('../music-player.js')
+      .then((m) => { m.initMusicPlayer(); return _musicBridge; })
+      .catch(() => null);
+  }
+  return _musicBridgeLoading;
+}
 
 // テスト・コンソールデバッグ用の公開フック。モジュール間連携には使用しない。
 window.__kanauDebug = { openStreamViewer, playMyListInViewer };
