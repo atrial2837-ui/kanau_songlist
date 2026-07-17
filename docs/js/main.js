@@ -11,7 +11,7 @@ import { icon } from './icons.js';
 import { _parseTs, _parseTsCommentLine, _normForMatch, _matchSongIdx } from './player/timestamps/parser.js';
 import { initChannelModal, initHelpModal, initWelcomeTip } from './views/modals.js';
 import { renderHero } from './views/hero.js';
-import { _epSetPendingTabOptions, _epSetPrevTab, _loadYtApi, _maybeImportSharedPlaylist, _maybeOpenSharedVideo, _svFullscreen, _svIsDocked, _svPlayer, closeStreamViewer, initPlayerShell, initStreamViewer, initYouTubePlayer, openStreamViewer } from './player/stream-player.js';
+import { _epSetPendingTabOptions, _epSetPrevTab, _loadYtApi, _maybeImportSharedPlaylist, _maybeOpenSharedVideo, _svPlayer, closeStreamViewer, getPlayerMode, initPlayerShell, initStreamViewer, initYouTubePlayer, openStreamViewer } from './player/stream-player.js';
 
 initTheme();
 initStore();
@@ -172,10 +172,8 @@ async function renderTab(tab = state.activeTab, options = {}) {
 function activateTab(tab, options = {}) {
   if (!isValidTab(tab)) tab = 'dashboard';
 
-  // ブラウザ操作などで埋め込みモードのままタブ切替が来た場合、ミニプレイヤーへ引き継ぐ
-  const streamViewer = $('#stream-viewer');
-  if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen
-      && !_svIsDocked(streamViewer)) {
+  // 埋め込み再生中のタブ切替はミニプレイヤーへ引き継いでから遷移する
+  if (getPlayerMode() === 'embedded') {
     _epSetPrevTab(tab);
     _epSetPendingTabOptions(options);
     closeStreamViewer();
@@ -192,24 +190,28 @@ function activateTab(tab, options = {}) {
 }
 
 function syncActiveTabUi(tab) {
+  // ビューワー表示中(embedded/fullscreen)はプレイヤーパネルを前面にし、
+  // タブボタンは非選択にする。activeTab 自体は下層のタブを保持し続ける。
+  const playerVisible = ['embedded', 'fullscreen'].includes(getPlayerMode());
+  const btnTab = playerVisible ? null : tab;
   $$('.tab-btn').forEach(b => {
-    const isActive = b.dataset.tab === tab;
+    const isActive = b.dataset.tab === btnTab;
     b.classList.toggle('active', isActive);
     b.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
   $$('.mobile-tab-item').forEach(b => {
-    const isActive = b.dataset.mobileTab === tab;
+    const isActive = b.dataset.mobileTab === btnTab;
     b.classList.toggle('is-active', isActive);
     b.setAttribute('aria-current', isActive ? 'page' : 'false');
   });
   const current = $('#mobile-tab-current');
   const activeLabel = $(`.tab-btn[data-tab="${tab}"] span:last-child`)?.textContent?.trim();
   if (current && activeLabel) current.textContent = activeLabel;
-  $$('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
-  document.body.dataset.activeTab = tab; // ヒーロー圧縮・ビューワー集中表示の CSS フック
+  $$('.panel').forEach(p => p.classList.toggle('active', p.id === (playerVisible ? 'panel-player' : `panel-${tab}`)));
+  document.body.dataset.activeTab = playerVisible ? 'player' : tab; // ヒーロー圧縮・ビューワー集中表示の CSS フック
 
-  // プレイリストタブはサイドバーを非表示にして全幅使用
-  _setSidebarHidden(tab === 'playlists');
+  // ビューワー表示中とプレイリストタブはサイドバーを非表示にして全幅使用
+  _setSidebarHidden(playerVisible || tab === 'playlists');
 }
 
 /** サイドバーの表示・非表示を切り替え、body padding と topbar left を同期する */
@@ -762,7 +764,8 @@ async function init() {
     const url = readUrlState();
     const hasSharedVideo = !!url.v;
     state.songsQuery = url.q;
-    state.activeTab = hasSharedVideo ? 'player' : (isValidTab(url.tab) ? url.tab : 'dashboard');
+    // 共有動画(?v=)でもactiveTabは下層タブのまま。ビューワー表示はplayerModeが担う
+    state.activeTab = isValidTab(url.tab) ? url.tab : 'dashboard';
     syncActiveTabUi(state.activeTab);
     let initialChannel = url.channel || state.channel || DEFAULT_CHANNEL;
     if (!getDataset(initialChannel)) initialChannel = DEFAULT_CHANNEL;
@@ -809,10 +812,8 @@ function applyUrlState() {
 $$('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
-    const streamViewer = $('#stream-viewer');
     // 埋め込みモード（非全画面）でストリームが再生中 → ミニプレイヤーへ引き継ぐ
-    if (tab !== 'player' && streamViewer && !streamViewer.hidden && !_svFullscreen
-        && !_svIsDocked(streamViewer)) {
+    if (getPlayerMode() === 'embedded') {
       _epSetPrevTab(tab); // closeStreamViewer 内の hidePlayerPanel がこのタブへ遷移する
       closeStreamViewer();
       return;
@@ -888,7 +889,12 @@ document.body.addEventListener('click', (e) => {
 });
 
 $('#retry-btn').addEventListener('click', init);
-initPlayerShell({ activateTab, setSidebarHidden: _setSidebarHidden, ensureFullData });
+initPlayerShell({
+  activateTab,
+  setSidebarHidden: _setSidebarHidden,
+  ensureFullData,
+  syncTabUi: () => syncActiveTabUi(state.activeTab),
+});
 initHelpModal();
 initChannelModal();
 initYouTubePlayer();
@@ -930,10 +936,7 @@ document.addEventListener('keydown', (e) => {
 
   // ── ビューワー再生操作: Space 再生/停止、←→ 10秒シーク ──
   if (!inInput && !e.metaKey && !e.ctrlKey && !e.altKey) {
-    const viewer = $('#stream-viewer');
-    const viewerActive = viewer && !viewer.hidden
-      && !viewer.classList.contains('sv-minified')
-      && !viewer.classList.contains('sv-music-minified')
+    const viewerActive = ['embedded', 'fullscreen'].includes(getPlayerMode())
       && $('#sv-share-modal')?.hidden !== false
       && _svPlayer;
     if (viewerActive) {
@@ -988,10 +991,8 @@ document.addEventListener('keydown', (e) => {
 
   // Esc: 優先度順に閉じる
   if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey) {
-    // 0. 配信プレイヤー（全画面 or プレイヤーパネルがアクティブな場合）
-    const streamViewer = $('#stream-viewer');
-    const playerPanelActive = !!$('#panel-player.active');
-    if (streamViewer && !streamViewer.hidden && (_svFullscreen || playerPanelActive)) {
+    // 0. 配信プレイヤー（全画面 or 埋め込み表示中）
+    if (['embedded', 'fullscreen'].includes(getPlayerMode())) {
       e.preventDefault();
       closeStreamViewer();
       return;

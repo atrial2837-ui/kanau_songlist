@@ -6,6 +6,27 @@ import { $, $$, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbTiny, 
 import { readUrlState, writeUrlState } from '../url-state.js';
 import { icon } from '../icons.js';
 import { _matchSongIdx, _normForMatch, _parseTs, _parseTsCommentLine } from './timestamps/parser.js';
+
+// ─── playerMode 状態機械 ─────────────────────────────────────────────────────
+// 再生サブシステムの表示状態を activeTab(URLルート)から分離して一元管理する。
+// idle: 非表示 / embedded: ビューワー埋め込み / fullscreen: ビューワー全画面
+// mini: ミニプレイヤー(ビューワー退避 or インライン再生) / music-bar: 音楽バー退避
+let _playerMode = 'idle';
+const _MODE_TRANSITIONS = {
+  idle: ['embedded', 'mini'],
+  embedded: ['fullscreen', 'mini', 'music-bar', 'idle'],
+  fullscreen: ['embedded', 'idle'],
+  mini: ['embedded', 'idle'],
+  'music-bar': ['embedded', 'idle'],
+};
+export function getPlayerMode() { return _playerMode; }
+function _setPlayerMode(next) {
+  if (next === _playerMode) return;
+  if (!_MODE_TRANSITIONS[_playerMode]?.includes(next)) {
+    console.warn(`[player] 不正なモード遷移: ${_playerMode} → ${next}`);
+  }
+  _playerMode = next;
+}
 import { _saveWatchEntry, _saveWatchEntryThrottled } from './watch-history.js';
 import { _getPlaylists } from './playlists-store.js';
 import { _svBuildShareUrl, _youtubeExternalUrl } from './share-url.js';
@@ -68,7 +89,7 @@ function _miniResumeAt() {
   return Math.max(0, _svMiniStartAt + (Date.now() - _svMiniStartWallTime) / 1000);
 }
 
-export function _svIsDocked(viewer = $('#stream-viewer')) {
+function _svIsDocked(viewer = $('#stream-viewer')) {
   return !!viewer && (
     viewer.classList.contains('sv-minified') ||
     viewer.classList.contains('sv-music-minified')
@@ -124,6 +145,7 @@ function _svMinify() {
   document.body.classList.add('has-sv-mini');
   document.body.style.overflow = '';
 
+  _setPlayerMode('mini');
   hidePlayerPanel();
   _svUpdateUrl();
 
@@ -194,6 +216,7 @@ function _svDiscardMusicBar() {
   if (wrap) { wrap.style.cssText = ''; wrap.innerHTML = ''; }
   _miniDestroyPlayer();
   _svLastStream = null;
+  _setPlayerMode('idle');
   _svUpdateUrl();
   return true;
 }
@@ -228,6 +251,7 @@ function _svMoveToMusicBar() {
   _svLastStream = null;
   _svFullscreen = false;
   viewer.classList.remove('sv-fullscreen', 'sv-minified');
+  _setPlayerMode('music-bar');
   viewer.classList.add('sv-music-minified');
   document.body.classList.remove('has-sv-fullscreen', 'has-sv-mini');
   document.body.classList.add('has-sv-music');
@@ -277,6 +301,7 @@ function _svDiscardMini() {
   const panel = $('#yt-player-panel');
   if (panel) panel.hidden = true;
   _svLastStream = null;
+  _setPlayerMode('idle');
   _shellDeps.setSidebarHidden(document.body.dataset.activeTab === 'playlists');
   _svUpdateUrl();
   return true;
@@ -534,6 +559,7 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
         document.body.style.overflow = '';
         _svLastStream = null;
         _pendingTabOptions = {};
+        _setPlayerMode('idle');
         hidePlayerPanel();
         _svUpdateUrl();
       }
@@ -556,6 +582,7 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
   if (hintEl) hintEl.textContent = _svLastStream ? '▲ タップして配信ビューワーへ戻る' : '';
   panel.classList.toggle('has-stream', !!_svLastStream);
   panel.hidden = false;
+  _setPlayerMode('mini');
 
   // YT.Player を生成（API 準備完了後）
   _onYtReady(() => {
@@ -633,6 +660,7 @@ export function initYouTubePlayer() {
     if (_svDiscardMini()) return;
     _miniDestroyPlayer();
     _svLastStream = null;
+    _setPlayerMode('idle');
   });
 
   // 再生 / 停止トグル
@@ -742,7 +770,7 @@ let _svMiniStartAt = 0;       // seconds into video when mini player started
 
 let _svMiniStartWallTime = 0; // Date.now() when mini player started
 
-export let _svFullscreen = false;    // stream viewer が全画面モードか
+let _svFullscreen = false;    // stream viewer が全画面モードか(playerMode='fullscreen' と同期)
 
 let _epPrevTab = 'timeline';  // 埋め込みプレイヤーを開く前のタブ
 
@@ -770,13 +798,10 @@ let _svSetlistCollapsed = false;
 /** 埋め込みプレイヤーパネルを表示（タブバーの active はリセット） */
 function showPlayerPanel() {
   _epPrevTab = state.activeTab || 'timeline';
-  state.activeTab = 'player';
-  $$('.tab-btn').forEach(b => {
-    b.classList.remove('active');
-    b.setAttribute('aria-selected', 'false');
-  });
-  $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-player'));
-  document.body.dataset.activeTab = 'player'; // 集中表示（ヒーロー/タブを隠す）
+  // activeTab は URL ルートのまま維持し、表示状態は playerMode で表す。
+  // パネル/タブUIの切替はシェル(syncActiveTabUi)が playerMode を見て行う。
+  _setPlayerMode('embedded');
+  _shellDeps.syncTabUi();
 }
 
 /** 前のタブに戻る */
@@ -792,6 +817,7 @@ function hidePlayerPanel() {
  *  position:fixed が root レベルで機能するようにする */
 function enterStreamFullscreen() {
   _svFullscreen = true;
+  _setPlayerMode('fullscreen');
   const viewer = $('#stream-viewer');
   if (!viewer) return;
   viewer.classList.add('sv-fullscreen');
@@ -2268,6 +2294,7 @@ export function closeStreamViewer() {
     if (closeBtn) closeBtn.title = 'ミニプレイヤーで再生を続けながら戻ります（Esc）';
     const fsBtn = $('#sv-fullscreen-btn');
     if (fsBtn) fsBtn.setAttribute('aria-pressed', 'false');
+    _setPlayerMode('embedded');
     return; // 動画はそのまま継続再生
   }
 
@@ -2284,6 +2311,7 @@ export function closeStreamViewer() {
   if (wrap) wrap.innerHTML = '';
   document.body.style.overflow = '';
   // ビューワーを閉じたらサイドバーを復元（プレイリストタブ中は引き続き非表示）
+  _setPlayerMode('idle');
   _shellDeps.setSidebarHidden(document.body.dataset.activeTab === 'playlists');
   hidePlayerPanel();
   _svUpdateUrl();
@@ -2302,6 +2330,7 @@ window.__closeStreamMiniPlayer = () => {
     panel.hidden = true;
     _miniDestroyPlayer();
     _svLastStream = null;
+    _setPlayerMode('idle');
     return true;
   }
   return false;
