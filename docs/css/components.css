@@ -146,19 +146,6 @@ button.official-link {
   object-position: center;
 }
 
-.ch-card-banner-label {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.75);
-  background: rgba(0,0,0,0.22);
-  border-radius: 999px;
-  padding: 2px 9px;
-  position: relative; /* バナー画像の上に表示 */
-  z-index: 1;
-}
-
 /* アバター画像あり */
 .ch-card-avatar--img {
   padding: 0;

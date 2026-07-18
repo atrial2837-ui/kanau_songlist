@@ -41,9 +41,8 @@ function _buildChCard(key) {
 
   // バナー部分（画像URL があれば img、なければグラデーション）
   const bannerInner = info.bannerUrl
-    ? `<img class="ch-card-banner-img" src="${escapeHtml(info.bannerUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">
-       <span class="ch-card-banner-label ch-card-banner-label--over">${escapeHtml(info.label)}</span>`
-    : `<span class="ch-card-banner-label">${escapeHtml(info.label)}</span>`;
+    ? `<img class="ch-card-banner-img" src="${escapeHtml(info.bannerUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+    : '';
 
   // アバター部分（画像URL があれば img、なければ文字）
   const avatarInner = info.avatarUrl
