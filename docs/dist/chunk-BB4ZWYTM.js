@@ -1,4 +1,4 @@
-import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"./chunk-33BPFLKT.js";import{F as _,G as Y,H as P,K as B,Q as h,a as g,c as p,p as k,q as H,r as D,s as L,t as R,u as j,v as T}from"./chunk-UU6CTPWE.js";function ra(){let{songs:a,streams:t}=y.data,e=[...a].sort((m,b)=>b.count-m.count).slice(0,5),i=e[0]?.count||1,d=t.slice(0,5),l=S(),s=L(a,l),n=g("#panel-dashboard"),o=T(t,l),u=R(t).slice(-12),M=Math.max(1,...u.map(m=>m.songs)),$=`
+import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"./chunk-33BPFLKT.js";import{F as _,G as P,H as Y,K as B,Q as h,a as g,c as p,p as k,q as H,r as T,s as D,t as L,u as R,v as j}from"./chunk-UU6CTPWE.js";function ra(){let{songs:a,streams:t}=y.data,e=[...a].sort((m,b)=>b.count-m.count).slice(0,5),i=e[0]?.count||1,d=t.slice(0,5),l=S(),s=D(a,l),n=g("#panel-dashboard"),o=j(t,l),u=L(t).slice(-12),M=Math.max(1,...u.map(m=>m.songs)),$=`
     <div class="card dashboard-card dashboard-activity-card">
       <div class="card-title">${h("analytics")} \u4ECA\u6708\u306E\u6D3B\u52D5</div>
       <div class="dashboard-metric-list">
@@ -10,7 +10,7 @@ import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"
         <div class="activity-row">
           <span class="a-date">\u6B4C\u5531</span>
           <span class="a-meta">\u4ECA\u6708\u306E\u7DCF\u6B4C\u5531\u6570</span>
-          <strong>${D(t,l)}\u66F2</strong>
+          <strong>${T(t,l)}\u66F2</strong>
         </div>
         <div class="activity-row">
           <span class="a-date">\u65B0\u66F2</span>
@@ -50,10 +50,10 @@ import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"
         </div>
       </div>
       ${G()}
-      ${z()}
+      ${q()}
       ${V(t,a,d)}
     </div>
-  `,K(),O(t,a),Z(u)}function z(){return`
+  `,K(),W(t,a),Z(u)}function q(){return`
     <div class="card dashboard-card dashboard-recap-card" id="dashboard-recap-card">
       <div class="card-title">
         ${h("chart")} \u304B\u306A\u3046\u306E\u307E\u3068\u3081
@@ -64,7 +64,7 @@ import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"
       </div>
       <div id="dashboard-recap-body"></div>
     </div>
-  `}function A(a,t,r,e){let i=e.getFullYear(),d=e.getMonth();function l(c){let v=c.date instanceof Date?c.date:new Date(c.date);return r==="year"?v.getFullYear()===i:v.getFullYear()===i&&v.getMonth()===d}let s=a.filter(l);if(!s.length)return null;let n=s.length,o=s.reduce((c,v)=>c+(v.songs?.length||0),0),u=new Set;for(let c of s)for(let v of c.songs||[])v.key&&u.add(v.key);let M=u.size,$=new Map;for(let c of s)for(let v of c.songs||[]){if(!v.key)continue;let C=$.get(v.key)||{title:v.title,count:0};C.count++,$.set(v.key,C)}let f=null,m=0;for(let[,c]of $)c.count>m&&(m=c.count,f=c);let b=0;for(let c of t){if(!c.firstSung)continue;let v=c.firstSung instanceof Date?c.firstSung:new Date(c.firstSung);(r==="year"&&v.getFullYear()===i||r==="month"&&v.getFullYear()===i&&v.getMonth()===d)&&b++}return{streamCount:n,totalSongs:o,distinctCount:M,topSong:f,topCount:m,newSongCount:b}}function W(a,t){if(!a)return'<div class="empty-state">\u3053\u306E\u671F\u9593\u306E\u8A18\u9332\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093</div>';let r=a.topSong?`${p(a.topSong.title)} <span class="recap-sub">(${a.topCount}\u56DE)</span>`:"\u2014";return`
+  `}function z(a,t,r,e){let i=e.getFullYear(),d=e.getMonth();function l(c){let v=c.date instanceof Date?c.date:new Date(c.date);return r==="year"?v.getFullYear()===i:v.getFullYear()===i&&v.getMonth()===d}let s=a.filter(l);if(!s.length)return null;let n=s.length,o=s.reduce((c,v)=>c+(v.songs?.length||0),0),u=new Set;for(let c of s)for(let v of c.songs||[])v.key&&u.add(v.key);let M=u.size,$=new Map;for(let c of s)for(let v of c.songs||[]){if(!v.key)continue;let C=$.get(v.key)||{title:v.title,count:0};C.count++,$.set(v.key,C)}let f=null,m=0;for(let[,c]of $)c.count>m&&(m=c.count,f=c);let b=0;for(let c of t){if(!c.firstSung)continue;let v=c.firstSung instanceof Date?c.firstSung:new Date(c.firstSung);(r==="year"&&v.getFullYear()===i||r==="month"&&v.getFullYear()===i&&v.getMonth()===d)&&b++}return{streamCount:n,totalSongs:o,distinctCount:M,topSong:f,topCount:m,newSongCount:b}}function A(a,t){if(!a)return'<div class="empty-state">\u3053\u306E\u671F\u9593\u306E\u8A18\u9332\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093</div>';let r=a.topSong?`${p(a.topSong.title)} <span class="recap-sub">(${a.topCount}\u56DE)</span>`:"\u2014";return`
     <div class="recap-period-label">${p(t)}</div>
     <div class="recap-tiles">
       <div class="recap-tile">
@@ -87,7 +87,7 @@ import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"
     <div class="recap-top-song">
       ${h("rank")} \u6700\u591A\u6B4C\u5531: ${r}
     </div>
-  `}function O(a,t){let r=g("#dashboard-recap-body"),e=g("#recap-btn-year"),i=g("#recap-btn-month");if(!r)return;let d=S(),l="year";function s(o){l=o;let u=d.getFullYear(),M=d.getMonth(),f=o==="year"?`${u}\u5E74`:`${u}\u5E74 ${["1\u6708","2\u6708","3\u6708","4\u6708","5\u6708","6\u6708","7\u6708","8\u6708","9\u6708","10\u6708","11\u6708","12\u6708"][M]}`,m=A(a,t,o,d);r.innerHTML=W(m,f),e?.classList.toggle("primary",o==="year"),e?.classList.toggle("ghost",o!=="year"),i?.classList.toggle("primary",o==="month"),i?.classList.toggle("ghost",o!=="month")}s("year");let n=g("#dashboard-recap-toggle");n&&n.addEventListener("click",o=>{let u=o.target.closest("[data-recap-period]");u&&s(u.dataset.recapPeriod)})}var q="kanau-watch-history-v1";function x(){try{return JSON.parse(localStorage.getItem(q)||"[]")}catch{return[]}}function E(a){let t=Math.max(0,Math.floor(a)),r=Math.floor(t/3600),e=Math.floor(t%3600/60),i=t%60;return r>0?`${r}:${String(e).padStart(2,"0")}:${String(i).padStart(2,"0")}`:`${e}:${String(i).padStart(2,"0")}`}function G(){let a=x().slice(0,6);return a.length?`
+  `}function W(a,t){let r=g("#dashboard-recap-body"),e=g("#recap-btn-year"),i=g("#recap-btn-month");if(!r)return;let d=S(),l="year";function s(o){l=o;let u=d.getFullYear(),M=d.getMonth(),f=o==="year"?`${u}\u5E74`:`${u}\u5E74 ${["1\u6708","2\u6708","3\u6708","4\u6708","5\u6708","6\u6708","7\u6708","8\u6708","9\u6708","10\u6708","11\u6708","12\u6708"][M]}`,m=z(a,t,o,d);r.innerHTML=A(m,f),e?.classList.toggle("primary",o==="year"),e?.classList.toggle("ghost",o!=="year"),i?.classList.toggle("primary",o==="month"),i?.classList.toggle("ghost",o!=="month")}s("year");let n=g("#dashboard-recap-toggle");n&&n.addEventListener("click",o=>{let u=o.target.closest("[data-recap-period]");u&&s(u.dataset.recapPeriod)})}var O="kanau-watch-history-v1";function x(){try{return JSON.parse(localStorage.getItem(O)||"[]")}catch{return[]}}function E(a){let t=Math.max(0,Math.floor(a)),r=Math.floor(t/3600),e=Math.floor(t%3600/60),i=t%60;return r>0?`${r}:${String(e).padStart(2,"0")}:${String(i).padStart(2,"0")}`:`${e}:${String(i).padStart(2,"0")}`}function G(){let a=x().slice(0,6);return a.length?`
     <div class="card dashboard-card dashboard-resume-card">
       <div class="card-title">${h("play")} \u7D9A\u304D\u304B\u3089\u898B\u308B
         <span class="dashboard-resume-actions">
@@ -103,16 +103,16 @@ import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"
             <span class="dashboard-resume-meta">${h("time")} ${E(t.t)} \u304B\u3089 \u30FB ${d}</span>
           </button>`}).join("")}
       </div>
-    </div>`:""}function K(){let a=g("#dashboard-resume-list");a&&(a.onclick=e=>{let i=e.target.closest("[data-resume-idx]");if(!i)return;let d=x()[Number(i.dataset.resumeIdx)];if(!d?.url)return;let l=null;d.channel!=null&&d.index!=null&&(l=(y.channelData?.combined?.streams||y.data?.streams||[]).find(n=>n.channel===d.channel&&n.index===d.index)||null),window.__openStreamViewer?.(l||{url:d.url,title:d.title,isMv:!!d.isMv},d.t)});let t=g("#dashboard-resume-clear");t&&(t.onclick=()=>{try{localStorage.removeItem(q)}catch{}g("#panel-dashboard .dashboard-resume-card")?.remove()});let r=g("#dashboard-resume-queue");r&&(r.onclick=()=>{let e=x(),i=y.channelData?.combined?.streams||y.data?.streams||[],d=e.map((l,s)=>{let n=l.channel!=null&&l.index!=null?i.find(o=>o.channel===l.channel&&o.index===l.index):null;return n?.url?{kind:"stream",key:`${n.channel}:${n.index}`,stream:n}:l.url?{kind:"mv",key:`history:${s}`,video:{url:l.url,title:l.title||"\u52D5\u753B",isMv:!!l.isMv}}:null}).filter(Boolean);d.length&&window.__playMyListInViewer?.({name:"\u8996\u8074\u5C65\u6B74",items:d,idx:0})})}function V(a,t,r){let e=t.filter(s=>s.daysSinceLast>=180).sort((s,n)=>n.count-s.count).slice(0,5),i=t.filter(s=>s.daysSinceLast!=null&&s.daysSinceLast<=30).sort((s,n)=>n.count-s.count).slice(0,5),d=k(a,"month",S()),l=k(a,"year",S());return`
+    </div>`:""}function K(){let a=g("#dashboard-resume-list");a&&(a.onclick=e=>{let i=e.target.closest("[data-resume-idx]");if(!i)return;let d=x()[Number(i.dataset.resumeIdx)];if(!d?.url)return;let l=null;d.channel!=null&&d.index!=null&&(l=(y.channelData?.combined?.streams||y.data?.streams||[]).find(n=>n.channel===d.channel&&n.index===d.index)||null),window.__openStreamViewer?.(l||{url:d.url,title:d.title,isMv:!!d.isMv},d.t)});let t=g("#dashboard-resume-clear");t&&(t.onclick=()=>{try{localStorage.removeItem(O)}catch{}g("#panel-dashboard .dashboard-resume-card")?.remove()});let r=g("#dashboard-resume-queue");r&&(r.onclick=()=>{let e=x(),i=y.channelData?.combined?.streams||y.data?.streams||[],d=e.map((l,s)=>{let n=l.channel!=null&&l.index!=null?i.find(o=>o.channel===l.channel&&o.index===l.index):null;return n?.url?{kind:"stream",key:`${n.channel}:${n.index}`,stream:n}:l.url?{kind:"mv",key:`history:${s}`,video:{url:l.url,title:l.title||"\u52D5\u753B",isMv:!!l.isMv}}:null}).filter(Boolean);d.length&&window.__playMyListInViewer?.({name:"\u8996\u8074\u5C65\u6B74",items:d,idx:0})})}function V(a,t,r){let e=t.filter(s=>s.daysSinceLast>=180).sort((s,n)=>n.count-s.count).slice(0,5),i=t.filter(s=>s.daysSinceLast!=null&&s.daysSinceLast<=30).sort((s,n)=>n.count-s.count).slice(0,5),d=k(a,"month",S()),l=k(a,"year",S());return`
     <div class="card dashboard-card dashboard-list-card dashboard-list-month">
-      <div class="card-title">${h("rank")} \u4ECA\u6708\u306E\u3088\u304F\u6B4C\u308F\u308C\u305F\u66F2 <span class="pill">\u8EFD\u91CF\u7248</span></div>
+      <div class="card-title">${h("rank")} \u4ECA\u6708\u306E\u3088\u304F\u6B4C\u308F\u308C\u305F\u66F2 <span class="pill">TOP5</span></div>
       <div class="bar-list">
         ${d.length?d.slice(0,5).map((s,n)=>w(s,n,d[0].count)).join(""):'<div class="empty-state">\u4ECA\u6708\u306E\u6B4C\u5531\u5C65\u6B74\u306A\u3057</div>'}
       </div>
     </div>
 
     <div class="card dashboard-card dashboard-list-card dashboard-list-year">
-      <div class="card-title">${h("rank")} \u4ECA\u5E74\u306E\u3088\u304F\u6B4C\u308F\u308C\u305F\u66F2 <span class="pill">\u8EFD\u91CF\u7248</span></div>
+      <div class="card-title">${h("rank")} \u4ECA\u5E74\u306E\u3088\u304F\u6B4C\u308F\u308C\u305F\u66F2 <span class="pill">TOP5</span></div>
       <div class="bar-list">
         ${l.length?l.slice(0,5).map((s,n)=>w(s,n,l[0].count)).join(""):'<div class="empty-state">\u4ECA\u5E74\u306E\u6B4C\u5531\u5C65\u6B74\u306A\u3057</div>'}
       </div>
@@ -136,7 +136,7 @@ import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"
       <div class="card-title">${h("video")} \u76F4\u8FD1\u306E\u6B4C\u67A0 <span class="pill">\u6700\u65B0${r.length}\u4EF6</span></div>
       ${r.map(s=>`
         <div class="activity-row">
-          <span class="a-date">${Y(s.date)}</span>
+          <span class="a-date">${P(s.date)}</span>
           <span class="a-title">${s.url?`<a href="${p(s.url)}" target="_blank" rel="noopener">${p(s.title||"\u914D\u4FE1")}</a>`:p(s.title)}</span>
           <span class="a-meta">${h("mic")} ${s.songs.length}\u66F2</span>
         </div>
@@ -186,7 +186,7 @@ import{c as F,d as I,g as N}from"./chunk-ZJSWZSMC.js";import{d as S,e as y}from"
         </div>
       </div>
     </div>
-  `}function Z(a){if(!a.length)return;let t=a.map(e=>P(e.date).replace(/^\d{4}\//,"")),r=F();I("chart-monthly","line",{labels:t,datasets:[{label:"\u6B4C\u5531\u6570",data:a.map(e=>e.songs),borderColor:r.primaryStrong,backgroundColor:r.primary+"30",tension:.4,fill:!0,pointRadius:3,pointHoverRadius:5,borderWidth:2},{label:"\u6B4C\u67A0\u6570",data:a.map(e=>e.streams),borderColor:r.accent,backgroundColor:"transparent",tension:.4,fill:!1,pointRadius:2,pointHoverRadius:4,borderWidth:1.5,borderDash:[4,3]}]},{plugins:{legend:{display:!0,position:"top",align:"end",labels:{boxWidth:10,padding:10,font:{size:10}}}},scales:{y:{beginAtZero:!0}}})}function Q(a){let r=["\u65E5","\u6708","\u706B","\u6C34","\u6728","\u91D1","\u571F"].map(i=>`<div>${i}</div>`).join(""),e=a.map(i=>i.inRange?`<div class="heatmap-cell ${j(i.value)}" title="${i.iso}: ${i.value}\u66F2"></div>`:'<div class="heatmap-cell" style="visibility:hidden"></div>').join("");return`
+  `}function Z(a){if(!a.length)return;let t=a.map(e=>Y(e.date).replace(/^\d{4}\//,"")),r=F();I("chart-monthly","line",{labels:t,datasets:[{label:"\u6B4C\u5531\u6570",data:a.map(e=>e.songs),borderColor:r.primaryStrong,backgroundColor:r.primary+"30",tension:.4,fill:!0,pointRadius:3,pointHoverRadius:5,borderWidth:2},{label:"\u6B4C\u67A0\u6570",data:a.map(e=>e.streams),borderColor:r.accent,backgroundColor:"transparent",tension:.4,fill:!1,pointRadius:2,pointHoverRadius:4,borderWidth:1.5,borderDash:[4,3]}]},{plugins:{legend:{display:!0,position:"top",align:"end",labels:{boxWidth:10,padding:10,font:{size:10}}}},scales:{y:{beginAtZero:!0}}})}function Q(a){let r=["\u65E5","\u6708","\u706B","\u6C34","\u6728","\u91D1","\u571F"].map(i=>`<div>${i}</div>`).join(""),e=a.map(i=>i.inRange?`<div class="heatmap-cell ${R(i.value)}" title="${i.iso}: ${i.value}\u66F2"></div>`:'<div class="heatmap-cell" style="visibility:hidden"></div>').join("");return`
     <div class="heatmap-flex">
       <div class="heatmap-row-labels">${r}</div>
       <div class="heatmap-wrap"><div class="heatmap">${e}</div></div>

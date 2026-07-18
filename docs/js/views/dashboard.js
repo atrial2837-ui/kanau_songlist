@@ -321,14 +321,14 @@ function deferredDashboardHtml(streams, songs, recent) {
   const yearlyHits = periodHits(streams, 'year', getToday());
   return `
     <div class="card dashboard-card dashboard-list-card dashboard-list-month">
-      <div class="card-title">${icon('rank')} 今月のよく歌われた曲 <span class="pill">軽量版</span></div>
+      <div class="card-title">${icon('rank')} 今月のよく歌われた曲 <span class="pill">TOP5</span></div>
       <div class="bar-list">
         ${monthlyHits.length ? monthlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, monthlyHits[0].count)).join('') : '<div class="empty-state">今月の歌唱履歴なし</div>'}
       </div>
     </div>
 
     <div class="card dashboard-card dashboard-list-card dashboard-list-year">
-      <div class="card-title">${icon('rank')} 今年のよく歌われた曲 <span class="pill">軽量版</span></div>
+      <div class="card-title">${icon('rank')} 今年のよく歌われた曲 <span class="pill">TOP5</span></div>
       <div class="bar-list">
         ${yearlyHits.length ? yearlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, yearlyHits[0].count)).join('') : '<div class="empty-state">今年の歌唱履歴なし</div>'}
       </div>

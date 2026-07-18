@@ -226,40 +226,6 @@ button.official-link {
   margin-top: 1px;
 }
 
-/* 統計グリッド */
-.ch-card-stats {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.ch-card-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--border-soft);
-  border-radius: 10px;
-  padding: 8px 14px;
-  min-width: 64px;
-  flex: 1;
-}
-
-.ch-card-stat-val {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--primary-strong);
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-
-.ch-card-stat-lbl {
-  font-size: 10px;
-  color: var(--ink-mute);
-  margin-top: 2px;
-  font-weight: 500;
-}
-
 .ch-card-desc {
   font-size: 12.5px;
   color: var(--ink-soft);
@@ -340,9 +306,6 @@ button.official-link {
 
 @media (max-width: 520px) {
   .ch-dialog { max-width: 100%; }
-  .ch-card-stats { gap: 6px; }
-  .ch-card-stat { padding: 7px 10px; min-width: 52px; }
-  .ch-card-stat-val { font-size: 14px; }
 }
 
 /* === Buttons === */
@@ -1456,57 +1419,6 @@ button.official-link {
   padding: 0;
   font-size: 10.5px;
 }
-.official-link-icon {
-  display: block;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-.topbar-official-links .official-link-icon {
-  width: 16px;
-  height: 16px;
-}
-.ch-avatar {
-  position: relative;
-  overflow: visible;
-  border: 2px solid transparent;
-  background: var(--surface-2);
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.ch-avatar:hover {
-  transform: scale(1.1);
-}
-.ch-avatar-img {
-  display: block;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-.ch-avatar--new {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(255,158,181,.25);
-}
-.ch-avatar--new:hover {
-  border-color: var(--accent-strong);
-  box-shadow: 0 0 0 2px rgba(255,158,181,.4);
-}
-.ch-avatar--old {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 1px rgba(244,196,74,.25);
-}
-.ch-avatar--old:hover {
-  border-color: #c8a02a;
-  box-shadow: 0 0 0 2px rgba(244,196,74,.4);
-}
-:root[data-theme="dark"] .ch-avatar {
-  background: var(--surface-3);
-}
-.official-link.x-link {
-  border-color: var(--border-strong);
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-}
 .hero-updated {
   text-align: center;
   color: var(--ink);
@@ -1730,22 +1642,6 @@ button.official-link {
   font-feature-settings: var(--tnum);
 }
 
-.search-help {
-  color: var(--ink-mute);
-  font-size: 11px;
-  margin-bottom: 18px;
-  margin-top: -8px;
-  line-height: 1.6;
-}
-.search-help code {
-  background: var(--surface-3);
-  padding: 1px 6px;
-  border-radius: 6px;
-  font-family: ui-monospace, monospace;
-  font-size: 10.5px;
-  color: var(--primary-strong);
-}
-
 mark.hl {
   background: var(--accent-soft);
   color: var(--accent-strong);
@@ -1895,16 +1791,6 @@ mark.hl {
   font-weight: 700;
 }
 
-.suggest-strip-div {
-  width: 1px;
-  min-width: 1px;
-  height: 14px;
-  background: var(--border);
-  flex-shrink: 0;
-  margin: 0 4px;
-  opacity: 0.6;
-}
-
 /* ── ステータス絞り込み行 ─────────────────────────────────── */
 .filter-row {
   display: flex;
@@ -1912,11 +1798,6 @@ mark.hl {
   gap: 6px;
   align-items: center;
   margin-top: 2px;
-}
-.filter-row .status-select {
-  flex: 0 1 auto;
-  min-width: 110px;
-  max-width: 185px;
 }
 
 @media (max-width: 600px) {
@@ -2614,12 +2495,6 @@ body.has-sv-fullscreen .container { z-index: auto; }
   color: var(--primary-strong);
 }
 
-.sv-share-btn.sv-share-copied {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--primary-strong);
-}
-
 /* ── Body ── */
 .sv-body {
   display: grid;
@@ -3279,12 +3154,6 @@ body.has-sv-fullscreen .container { z-index: auto; }
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.18);
   color: rgba(255, 255, 255, 0.72);
-}
-#stream-viewer.sv-fullscreen .sv-share-btn:hover,
-#stream-viewer.sv-fullscreen .sv-share-btn.sv-share-copied {
-  background: rgba(74, 178, 220, 0.28);
-  border-color: rgba(74, 178, 220, 0.7);
-  color: #b4e6f7;
 }
 
 /* ── Share Modal: cute dedicated UI ── */
@@ -4660,43 +4529,6 @@ body.has-sv-fullscreen .container { z-index: auto; }
   color: #fff;
 }
 
-/* 並び替えボタン */
-.pl-sort-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  flex-shrink: 0;
-  margin-right: 4px;
-}
-
-.pl-sort-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 18px;
-  border-radius: 3px;
-  border: 1px solid var(--border-soft);
-  background: var(--surface-2);
-  color: var(--ink-mute);
-  font-size: 10px;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  transition: background 0.1s, border-color 0.1s, color 0.1s;
-}
-
-.pl-sort-btn:not(:disabled):hover {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--primary-strong);
-}
-
-.pl-sort-btn:disabled {
-  opacity: 0.28;
-  cursor: default;
-}
-
 /* カードフッター（YouTube共有） */
 .pl-card-footer {
   padding: 8px 12px 10px;
@@ -5391,13 +5223,6 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
   background: var(--surface-2);
 }
 
-.sv-bp-autoplay-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
 .sv-bp-control-bar {
   display: flex;
   align-items: center;
@@ -5671,35 +5496,6 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
   background: var(--surface);
 }
 
-/* ─── 配信統計 ── */
-.sv-bp-stats {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.sv-bp-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--border-soft);
-  border-radius: 10px;
-  padding: 10px 16px;
-  min-width: 70px;
-  gap: 3px;
-}
-.sv-bp-stat-val {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--ink);
-  line-height: 1.1;
-}
-.sv-bp-stat-label {
-  font-size: 10.5px;
-  color: var(--ink-mute);
-  font-weight: 500;
-}
-
 /* ─── 関連配信 ── */
 .sv-bp-related-list {
   display: flex;
@@ -5764,59 +5560,6 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
   white-space: nowrap;
   margin-top: 2px;
 }
-.sv-bp-rel-badge {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary-strong);
-  background: var(--primary-soft);
-  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
-  border-radius: 6px;
-  padding: 2px 8px;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-/* ─── プレイリスト追加 ── */
-.sv-bp-pl-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.sv-bp-pl-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 9px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
-  transition: border-color 0.13s, background 0.13s;
-}
-.sv-bp-pl-btn:hover:not(:disabled) {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-}
-.sv-bp-pl-btn--added {
-  opacity: 0.6;
-  cursor: default;
-}
-.sv-bp-pl-name {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.sv-bp-pl-status {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary-strong);
-  flex-shrink: 0;
-}
-.sv-bp-pl-btn--added .sv-bp-pl-status {
-  color: #16a34a;
-}
 
 /* ─── モバイル ── */
 @media (max-width: 767px) {
@@ -5844,8 +5587,6 @@ details[open] .sv-paste-summary::before { transform: rotate(90deg); }
     width: 132px;
     height: 74px;
   }
-  .sv-bp-stat-val { font-size: 16px; }
-  .sv-bp-stat { padding: 8px 12px; }
 }
 
 @media (max-width: 479px) {
@@ -6377,11 +6118,6 @@ body.has-music-bar { padding-bottom: 72px; }
   color: var(--ink-mute);
   margin-top: 2px;
 }
-.mv-card-actions {
-  padding: 2px 10px 10px;
-  display: flex;
-  justify-content: flex-end;
-}
 .mv-add-btn {
   border: 1px solid var(--border);
   background: transparent;
@@ -6561,7 +6297,6 @@ body.has-music-bar { padding-bottom: 72px; }
   font-weight: 500;
   color: var(--ink-mute);
 }
-.mv-cat-empty { font-size: 13px; color: var(--ink-mute); }
 
 /* ── プレイリストカード内の音楽動画バッジ ── */
 .mv-badge-inline {
@@ -6718,25 +6453,6 @@ body.has-music-bar { padding-bottom: 72px; }
   letter-spacing: normal;
 }
 .sv-mv-all-btn:hover { text-decoration: underline; }
-
-/* 動画で見るボタン */
-.mv-watch-btn {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--ink-mute);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
-  flex-shrink: 0;
-}
-.mv-watch-btn:hover {
-  color: var(--primary);
-  border-color: var(--primary);
-  background: var(--primary-soft);
-}
-.mv-card-actions { gap: 6px; }
 
 /* ── レスポンシブ ── */
 @media (max-width: 700px) {

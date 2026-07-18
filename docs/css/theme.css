@@ -355,11 +355,6 @@ main.container { padding-top: 28px; padding-bottom: 80px; }
   font-size: 13px;
   line-height: 1.65;
 }
-.help-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
 .guide-flow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -434,38 +429,6 @@ kbd {
   color: var(--ink);
   line-height: 1.6;
   vertical-align: baseline;
-}
-.help-item {
-  display: grid;
-  grid-template-columns: 34px 1fr;
-  gap: 10px;
-  align-items: start;
-  background: var(--surface-2);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-sm);
-  padding: 14px;
-}
-.help-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-  font-size: 13px;
-  font-weight: 800;
-}
-.help-item h3 {
-  font-size: 14px;
-  color: var(--ink);
-  margin-bottom: 3px;
-}
-.help-item p {
-  color: var(--ink-soft);
-  font-size: 12.5px;
-  line-height: 1.65;
 }
 .song-dialog {
   width: min(760px, 100%);
@@ -806,7 +769,6 @@ kbd {
     grid-column: 2;
   }
   .theme-toggle { width: 36px; padding: 0; justify-content: center; }
-  .help-grid { grid-template-columns: 1fr; }
   .guide-flow,
   .guide-sections {
     grid-template-columns: 1fr;
