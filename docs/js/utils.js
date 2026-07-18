@@ -34,6 +34,10 @@ export function youtubeVideoId(url) {
 }
 export const youtubeThumb         = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`  : ''; };
 export const youtubeThumbFallback = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg`  : ''; };
+export function youtubeThumbTiny(url) {
+  const id = youtubeVideoId(url);
+  return id ? `https://i.ytimg.com/vi/${id}/default.jpg` : '';
+}
 
 export const debounce = (fn, ms = 150) => {
   let t;

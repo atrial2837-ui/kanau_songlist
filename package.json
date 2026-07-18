@@ -9,10 +9,16 @@
     "build:main": "node build.mjs main",
     "build:admin": "node build.mjs admin",
     "smoke": "node scripts/smoke.mjs",
+    "e2e": "playwright test",
+    "e2e:build": "npm run build && playwright test",
+    "refactor:symbols": "node scripts/refactor/symbol-baseline.mjs",
+    "refactor:build-compare": "node scripts/refactor/build-compare.mjs",
     "arch": "node scripts/arch-lint.mjs",
     "typecheck": "tsc -p jsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "acorn": "^8.17.0",
     "esbuild": "^0.25.0"
   },
   "dependencies": {
