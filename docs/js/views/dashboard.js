@@ -1,5 +1,5 @@
 import { state } from '../store.js';
-import { $, escapeHtml, fmtDate, fmtMonth, daysSince, youtubeThumb } from '../utils.js';
+import { $, escapeHtml, fmtDate, fmtMonth, daysSince, youtubeThumbFallback } from '../utils.js';
 import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsThisMonth, buildMonthly, buildHeatmap, heatLevel, isoDate } from '../domain-compat.js';
 import { getToday } from '../store.js';
 import { icon } from '../icons.js';
@@ -255,7 +255,8 @@ function renderResumeSection() {
       </div>
       <div class="dashboard-resume-list" id="dashboard-resume-list">
         ${entries.map((e, i) => {
-          const thumb = youtubeThumb(e.url);
+          // hqdefault は 4:3 で上下に黒帯が焼き込まれるため、16:9 の mqdefault を使う
+          const thumb = youtubeThumbFallback(e.url);
           const days = Math.floor((Date.now() - (e.updatedAt || 0)) / 86400000);
           const ago = days <= 0 ? '今日' : `${days}日前`;
           return `

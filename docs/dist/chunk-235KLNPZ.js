@@ -1,4 +1,4 @@
-import{c as W,d as q,g as z}from"./chunk-GE7BKKXY.js";import{a as k,b as N,n as A,q as O}from"./chunk-34IYA3ES.js";import"./chunk-J3NRXPJ3.js";import{d as S,e as y}from"./chunk-33BPFLKT.js";import{F as P,G as B,H as F,K as Y,R as h,a as g,c as p,p as x,q as H,r as D,s as L,t as j,u as R,v as T}from"./chunk-JOP2O3AY.js";function la(){let{songs:a,streams:t}=y.data,e=[...a].sort((m,b)=>b.count-m.count).slice(0,5),i=e[0]?.count||1,d=t.slice(0,5),l=S(),s=L(a,l),n=g("#panel-dashboard"),o=T(t,l),u=j(t).slice(-12),M=Math.max(1,...u.map(m=>m.songs)),$=`
+import{c as W,d as q,g as z}from"./chunk-GE7BKKXY.js";import{a as k,b as N,n as A,q as O}from"./chunk-34IYA3ES.js";import"./chunk-J3NRXPJ3.js";import{d as S,e as y}from"./chunk-33BPFLKT.js";import{F as P,G as F,H as B,L as Y,R as h,a as g,c as p,p as x,q as H,r as D,s as L,t as j,u as R,v as T}from"./chunk-JOP2O3AY.js";function la(){let{songs:a,streams:t}=y.data,e=[...a].sort((m,b)=>b.count-m.count).slice(0,5),i=e[0]?.count||1,d=t.slice(0,5),l=S(),s=L(a,l),n=g("#panel-dashboard"),o=T(t,l),u=j(t).slice(-12),M=Math.max(1,...u.map(m=>m.songs)),$=`
     <div class="card dashboard-card dashboard-activity-card">
       <div class="card-title">${h("analytics")} \u4ECA\u6708\u306E\u6D3B\u52D5</div>
       <div class="dashboard-metric-list">
@@ -136,7 +136,7 @@ import{c as W,d as q,g as z}from"./chunk-GE7BKKXY.js";import{a as k,b as N,n as 
       <div class="card-title">${h("video")} \u76F4\u8FD1\u306E\u6B4C\u67A0 <span class="pill">\u6700\u65B0${r.length}\u4EF6</span></div>
       ${r.map(s=>`
         <div class="activity-row">
-          <span class="a-date">${B(s.date)}</span>
+          <span class="a-date">${F(s.date)}</span>
           <span class="a-title">${s.url?`<a href="${p(s.url)}" target="_blank" rel="noopener">${p(s.title||"\u914D\u4FE1")}</a>`:p(s.title)}</span>
           <span class="a-meta">${h("mic")} ${s.songs.length}\u66F2</span>
         </div>
@@ -186,7 +186,7 @@ import{c as W,d as q,g as z}from"./chunk-GE7BKKXY.js";import{a as k,b as N,n as 
         </div>
       </div>
     </div>
-  `}function U(a){if(!a.length)return;let t=a.map(e=>F(e.date).replace(/^\d{4}\//,"")),r=W();q("chart-monthly","line",{labels:t,datasets:[{label:"\u6B4C\u5531\u6570",data:a.map(e=>e.songs),borderColor:r.primaryStrong,backgroundColor:r.primary+"30",tension:.4,fill:!0,pointRadius:3,pointHoverRadius:5,borderWidth:2},{label:"\u6B4C\u67A0\u6570",data:a.map(e=>e.streams),borderColor:r.accent,backgroundColor:"transparent",tension:.4,fill:!1,pointRadius:2,pointHoverRadius:4,borderWidth:1.5,borderDash:[4,3]}]},{plugins:{legend:{display:!0,position:"top",align:"end",labels:{boxWidth:10,padding:10,font:{size:10}}}},scales:{y:{beginAtZero:!0}}})}function X(a){let r=["\u65E5","\u6708","\u706B","\u6C34","\u6728","\u91D1","\u571F"].map(i=>`<div>${i}</div>`).join(""),e=a.map(i=>i.inRange?`<div class="heatmap-cell ${R(i.value)}" title="${i.iso}: ${i.value}\u66F2"></div>`:'<div class="heatmap-cell" style="visibility:hidden"></div>').join("");return`
+  `}function U(a){if(!a.length)return;let t=a.map(e=>B(e.date).replace(/^\d{4}\//,"")),r=W();q("chart-monthly","line",{labels:t,datasets:[{label:"\u6B4C\u5531\u6570",data:a.map(e=>e.songs),borderColor:r.primaryStrong,backgroundColor:r.primary+"30",tension:.4,fill:!0,pointRadius:3,pointHoverRadius:5,borderWidth:2},{label:"\u6B4C\u67A0\u6570",data:a.map(e=>e.streams),borderColor:r.accent,backgroundColor:"transparent",tension:.4,fill:!1,pointRadius:2,pointHoverRadius:4,borderWidth:1.5,borderDash:[4,3]}]},{plugins:{legend:{display:!0,position:"top",align:"end",labels:{boxWidth:10,padding:10,font:{size:10}}}},scales:{y:{beginAtZero:!0}}})}function X(a){let r=["\u65E5","\u6708","\u706B","\u6C34","\u6728","\u91D1","\u571F"].map(i=>`<div>${i}</div>`).join(""),e=a.map(i=>i.inRange?`<div class="heatmap-cell ${R(i.value)}" title="${i.iso}: ${i.value}\u66F2"></div>`:'<div class="heatmap-cell" style="visibility:hidden"></div>').join("");return`
     <div class="heatmap-flex">
       <div class="heatmap-row-labels">${r}</div>
       <div class="heatmap-wrap"><div class="heatmap">${e}</div></div>
