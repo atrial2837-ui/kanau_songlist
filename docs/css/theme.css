@@ -865,4 +865,5 @@ kbd {
 }
 
 /* ダッシュボード以外ではヒーロー非表示 */
-body:not([data-active-tab='dashboard']) #hero { display: none; }
+/* 属性未設定（JS起動前）はダッシュボード扱いにして初回ペイントのシフトを防ぐ */
+body[data-active-tab]:not([data-active-tab='dashboard']) #hero { display: none; }

@@ -6784,23 +6784,24 @@ body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
      これらの視聴体験まわりの変更は PC(≥768px)限定とする
    ============================================================ */
 @media (min-width: 768px) {
-  /* ダッシュボード以外ではヒーローをスリムなタイトルバーに圧縮（統計・説明は隠す） */
-  body:not([data-active-tab="dashboard"]) #hero .hero-sub,
-  body:not([data-active-tab="dashboard"]) #hero .hero-description,
-  body:not([data-active-tab="dashboard"]) #hero .hero-updated,
-  body:not([data-active-tab="dashboard"]) #hero .stats-grid {
+  /* ダッシュボード以外ではヒーローをスリムなタイトルバーに圧縮（統計・説明は隠す）
+     属性未設定（JS起動前）はダッシュボード扱い＝初回ペイントのシフト防止 */
+  body[data-active-tab]:not([data-active-tab="dashboard"]) #hero .hero-sub,
+  body[data-active-tab]:not([data-active-tab="dashboard"]) #hero .hero-description,
+  body[data-active-tab]:not([data-active-tab="dashboard"]) #hero .hero-updated,
+  body[data-active-tab]:not([data-active-tab="dashboard"]) #hero .stats-grid {
     display: none;
   }
-  body:not([data-active-tab="dashboard"]) #hero {
+  body[data-active-tab]:not([data-active-tab="dashboard"]) #hero {
     padding: 12px 20px;
   }
-  body:not([data-active-tab="dashboard"]) #hero::after { display: none; }
-  body:not([data-active-tab="dashboard"]) #hero .hero-title {
+  body[data-active-tab]:not([data-active-tab="dashboard"]) #hero::after { display: none; }
+  body[data-active-tab]:not([data-active-tab="dashboard"]) #hero .hero-title {
     font-size: 16px;
     margin-bottom: 0;
     justify-content: flex-start;
   }
-  body:not([data-active-tab="dashboard"]) #hero .hero-title-icon { width: 22px; height: 22px; }
+  body[data-active-tab]:not([data-active-tab="dashboard"]) #hero .hero-title-icon { width: 22px; height: 22px; }
 
   /* 動画ビューワー表示中はヒーロー/タブを隠してプレイヤーを最上部に（集中表示） */
   body[data-active-tab="player"] #hero,
