@@ -1,4 +1,5 @@
 import { $, escapeHtml, fmtDate } from '../utils.js';
+import { icon } from '../icons.js';
 
 const API = '/api/song-requests';
 
@@ -33,7 +34,7 @@ export function renderRequests() {
           </div>
           <div id="req-form-msg" class="req-msg" hidden></div>
           <button class="btn primary req-submit" id="req-submit" type="submit">
-            <span class="req-submit-icon" aria-hidden="true">+</span>
+            <span class="req-submit-icon" aria-hidden="true">${icon('plus')}</span>
             <span>リクエストする</span>
           </button>
         </form>
@@ -144,7 +145,7 @@ function renderList(container, items) {
         </div>
       </div>
       <button class="req-vote-btn" data-id="${item.id}" type="button" aria-label="聴きたい">
-        <span class="req-vote-icon" aria-hidden="true">♡</span>
+        <span class="req-vote-icon" aria-hidden="true">${icon('heart')}</span>
         <span class="req-vote-count">${item.voteCount ?? item.vote_count ?? 0}</span>
       </button>
     </div>

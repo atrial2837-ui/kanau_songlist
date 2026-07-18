@@ -236,7 +236,7 @@ function initSidebarNav() {
     document.body.classList.toggle('sidebar-collapsed', collapsed);
     sidebarToggle?.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
     const label = collapsed ? 'メニューを展開' : 'メニューを折り畳む';
-    sidebarToggle?.setAttribute('title', label);
+    sidebarToggle?.setAttribute('data-tooltip', label);
     sidebarToggle?.setAttribute('aria-label', label);
     try { localStorage.setItem(storageKey, collapsed ? '1' : '0'); } catch (_) {}
   };
@@ -246,6 +246,11 @@ function initSidebarNav() {
   } catch (_) {
     setCollapsed(false);
   }
+
+  // 初期状態を描画してから transition を有効化（起動時のアニメーション/シフト防止）
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => document.body.classList.add('sidebar-anim-ready'));
+  });
 
   sidebarToggle?.addEventListener('click', () => {
     setCollapsed(!document.body.classList.contains('sidebar-collapsed'));
@@ -771,7 +776,7 @@ document.body.addEventListener('click', (e) => {
     const onChange = (saved) => {
       plAddEl.classList.toggle('is-saved', saved);
       if (plAddEl.classList.contains('timeline-save-btn')) plAddEl.innerHTML = icon('bookmark');
-      plAddEl.title = saved ? 'プレイリストに保存済み' : 'プレイリストに保存';
+      plAddEl.setAttribute('data-tooltip', saved ? 'プレイリストに保存済み' : 'プレイリストに保存');
     };
     import('./views/playlists.js').then(m => m.showAddToPlaylistModal(skey, title, { onChange }));
     return;

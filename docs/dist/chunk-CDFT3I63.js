@@ -1,4 +1,4 @@
-import{G as q,a as r,c as n}from"./chunk-LYEKSJR3.js";var d="/api/song-requests";function y(){let t=r("#panel-requests");t&&(t.innerHTML=`
+import{G as p,R as c,a as s,c as n}from"./chunk-JOP2O3AY.js";var u="/api/song-requests";function $(){let t=s("#panel-requests");t&&(t.innerHTML=`
     <div class="req-layout">
       <div class="card req-form-card">
         <div class="req-form-head">
@@ -25,7 +25,7 @@ import{G as q,a as r,c as n}from"./chunk-LYEKSJR3.js";var d="/api/song-requests"
           </div>
           <div id="req-form-msg" class="req-msg" hidden></div>
           <button class="btn primary req-submit" id="req-submit" type="submit">
-            <span class="req-submit-icon" aria-hidden="true">+</span>
+            <span class="req-submit-icon" aria-hidden="true">${c("plus")}</span>
             <span>\u30EA\u30AF\u30A8\u30B9\u30C8\u3059\u308B</span>
           </button>
         </form>
@@ -45,11 +45,11 @@ import{G as q,a as r,c as n}from"./chunk-LYEKSJR3.js";var d="/api/song-requests"
       </section>
 
     </div>
-  `,v(),p())}function v(){let t=r("#req-form");t&&t.addEventListener("submit",async s=>{s.preventDefault();let e=r("#req-submit"),a=r("#req-form-msg"),o=r("#req-title").value.trim();if(!o){c(a,"\u66F2\u540D\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044","error"),r("#req-title").focus();return}e.disabled=!0,e.textContent="\u9001\u4FE1\u4E2D\u2026",h(a);try{let i=await fetch(d,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:o,artist:r("#req-artist").value.trim(),url:r("#req-url").value.trim(),requesterName:r("#req-name").value.trim()})}),l=await i.json();if(!i.ok)throw new Error(l.error||"\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F");c(a,"\u2705 \u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u9001\u4FE1\u3057\u307E\u3057\u305F\uFF01\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059","success"),t.reset(),await p()}catch(i){c(a,`\u26A0\uFE0F ${i.message}`,"error")}finally{e.disabled=!1,e.textContent="\u30EA\u30AF\u30A8\u30B9\u30C8\u3059\u308B"}})}async function p(){let t=r("#req-list");if(t)try{let s=await fetch(`${d}?limit=100`);if(!s.ok)throw new Error("\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F");let{items:e}=await s.json();f(t,e||[])}catch(s){t.innerHTML=`<div class="state-card"><div class="msg">\u26A0\uFE0F ${n(s.message)}</div></div>`}}function f(t,s){if(!s.length){t.innerHTML=`
+  `,f(),v())}function f(){let t=s("#req-form");t&&t.addEventListener("submit",async r=>{r.preventDefault();let e=s("#req-submit"),a=s("#req-form-msg"),o=s("#req-title").value.trim();if(!o){d(a,"\u66F2\u540D\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044","error"),s("#req-title").focus();return}e.disabled=!0,e.textContent="\u9001\u4FE1\u4E2D\u2026",b(a);try{let i=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:o,artist:s("#req-artist").value.trim(),url:s("#req-url").value.trim(),requesterName:s("#req-name").value.trim()})}),l=await i.json();if(!i.ok)throw new Error(l.error||"\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F");d(a,"\u2705 \u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u9001\u4FE1\u3057\u307E\u3057\u305F\uFF01\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059","success"),t.reset(),await v()}catch(i){d(a,`\u26A0\uFE0F ${i.message}`,"error")}finally{e.disabled=!1,e.textContent="\u30EA\u30AF\u30A8\u30B9\u30C8\u3059\u308B"}})}async function v(){let t=s("#req-list");if(t)try{let r=await fetch(`${u}?limit=100`);if(!r.ok)throw new Error("\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F");let{items:e}=await r.json();m(t,e||[])}catch(r){t.innerHTML=`<div class="state-card"><div class="msg">\u26A0\uFE0F ${n(r.message)}</div></div>`}}function m(t,r){if(!r.length){t.innerHTML=`
       <div class="req-empty">
         <strong>\u307E\u3060\u30EA\u30AF\u30A8\u30B9\u30C8\u304C\u3042\u308A\u307E\u305B\u3093</strong>
         <span>\u6700\u521D\u306E\u66F2\u3092\u9001\u308B\u3068\u3053\u3053\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002</span>
-      </div>`;return}t.innerHTML=s.map((e,a)=>`
+      </div>`;return}t.innerHTML=r.map((e,a)=>`
     <div class="req-card" data-id="${e.id}">
       <span class="req-rank">${a+1}</span>
       <div class="req-card-body">
@@ -60,12 +60,12 @@ import{G as q,a as r,c as n}from"./chunk-LYEKSJR3.js";var d="/api/song-requests"
         <div class="req-card-meta">
           ${e.url?`<a class="req-card-url" href="${n(e.url)}" target="_blank" rel="noopener noreferrer">\u30EA\u30F3\u30AF\u3092\u958B\u304F</a>`:""}
           ${e.requesterName?`<span class="req-card-name">by ${n(e.requesterName)}</span>`:""}
-          ${e.createdAt?`<span class="req-card-date">${q(e.createdAt)}</span>`:""}
+          ${e.createdAt?`<span class="req-card-date">${p(e.createdAt)}</span>`:""}
         </div>
       </div>
       <button class="req-vote-btn" data-id="${e.id}" type="button" aria-label="\u8074\u304D\u305F\u3044">
-        <span class="req-vote-icon" aria-hidden="true">\u2661</span>
+        <span class="req-vote-icon" aria-hidden="true">${c("heart")}</span>
         <span class="req-vote-count">${e.voteCount??e.vote_count??0}</span>
       </button>
     </div>
-  `).join(""),t.querySelectorAll(".req-vote-btn").forEach(e=>{e.addEventListener("click",()=>m(e))})}async function m(t){if(t.disabled)return;let s=t.dataset.id;t.disabled=!0;let e=t.querySelector(".req-vote-icon"),a=t.querySelector(".req-vote-count"),o=e.textContent;e.textContent="\u2665";try{let i=await fetch(`${d}/${s}/vote`,{method:"POST"}),l=await i.json();if(!i.ok)throw new Error(l.error||"\u30A8\u30E9\u30FC");let u=l.item?.voteCount??l.item?.vote_count;u!=null&&(a.textContent=u),t.classList.add("req-voted")}catch{e.textContent=o,t.disabled=!1}}function c(t,s,e){t.textContent=s,t.className=`req-msg req-msg--${e}`,t.hidden=!1}function h(t){t.hidden=!0}export{y as renderRequests};
+  `).join(""),t.querySelectorAll(".req-vote-btn").forEach(e=>{e.addEventListener("click",()=>h(e))})}async function h(t){if(t.disabled)return;let r=t.dataset.id;t.disabled=!0;let e=t.querySelector(".req-vote-icon"),a=t.querySelector(".req-vote-count"),o=e.textContent;e.textContent="\u2665";try{let i=await fetch(`${u}/${r}/vote`,{method:"POST"}),l=await i.json();if(!i.ok)throw new Error(l.error||"\u30A8\u30E9\u30FC");let q=l.item?.voteCount??l.item?.vote_count;q!=null&&(a.textContent=q),t.classList.add("req-voted")}catch{e.textContent=o,t.disabled=!1}}function d(t,r,e){t.textContent=r,t.className=`req-msg req-msg--${e}`,t.hidden=!1}function b(t){t.hidden=!0}export{$ as renderRequests};

@@ -158,7 +158,7 @@ function _svMinify() {
   const titleEl = $('#yt-mini-title');
   if (titleEl) titleEl.textContent = stream.title || '';
   const hintEl = $('#yt-mini-hint');
-  if (hintEl) hintEl.textContent = '▲ タップして配信ビューワーへ戻る';
+  if (hintEl) hintEl.innerHTML = `${icon('chevronUp')} タップして配信ビューワーへ戻る`;
   panel.classList.add('has-stream');
   panel.hidden = false;
 
@@ -405,7 +405,7 @@ function _svInitShareModal() {
         <span></span><span></span><span></span>
       </div>
       <div class="sv-share-video">
-        <span class="sv-share-video-icon">♪</span>
+        <span class="sv-share-video-icon">${icon('music')}</span>
         <span class="sv-share-video-title" id="sv-share-video-title"></span>
       </div>
       <label class="sv-share-ts" id="sv-share-ts-row">
@@ -619,7 +619,7 @@ function playYouTubeInline(url, startAt = 0, streamTitle = '') {
   const titleEl = $('#yt-mini-title');
   if (titleEl) titleEl.textContent = streamTitle || 'インライン再生';
   const hintEl = $('#yt-mini-hint');
-  if (hintEl) hintEl.textContent = _svLastStream ? '▲ タップして配信ビューワーへ戻る' : '';
+  if (hintEl) hintEl.innerHTML = _svLastStream ? `${icon('chevronUp')} タップして配信ビューワーへ戻る` : '';
   panel.classList.toggle('has-stream', !!_svLastStream);
   panel.hidden = false;
   _setPlayerMode('mini');
@@ -864,7 +864,7 @@ function enterStreamFullscreen() {
   document.body.classList.add('has-sv-fullscreen');
   document.body.style.overflow = 'hidden';
   const closeBtn = $('#sv-close');
-  if (closeBtn) closeBtn.title = '通常表示に戻る（Esc）';
+  if (closeBtn) closeBtn.setAttribute('data-tooltip', '通常表示に戻る（Esc）');
   const fsBtn = $('#sv-fullscreen-btn');
   if (fsBtn) fsBtn.setAttribute('aria-pressed', 'true');
 }
@@ -1465,7 +1465,7 @@ function _svSetSetlistCollapsed(collapsed) {
   if (panel) panel.classList.toggle('is-setlist-collapsed', _svSetlistCollapsed);
   if (btn) {
     btn.textContent = _svSetlistCollapsed ? '開く' : '畳む';
-    btn.title = _svSetlistCollapsed ? 'セットリストを開く' : 'セットリストを折りたたむ';
+    btn.setAttribute('data-tooltip', _svSetlistCollapsed ? 'セットリストを開く' : 'セットリストを折りたたむ');
     btn.setAttribute('aria-expanded', String(!_svSetlistCollapsed));
   }
 }
@@ -1498,7 +1498,7 @@ function _svTogglePlayback() {
 function _svUpdatePlayToggle(isPlaying) {
   $$('.sv-bp-control-btn[data-bp-action="toggle-play"]').forEach(btn => {
     btn.innerHTML = isPlaying ? icon('pause') : icon('play');
-    btn.title = isPlaying ? '一時停止' : '再生';
+    btn.setAttribute('data-tooltip', isPlaying ? '一時停止' : '再生');
     btn.setAttribute('aria-label', isPlaying ? '一時停止' : '再生');
     btn.setAttribute('aria-pressed', String(isPlaying));
   });
@@ -1518,7 +1518,7 @@ function _svOpenPlaylistModal(skey, title, button) {
       onChange: (saved) => {
         button?.classList.toggle('is-saved', !!saved);
         button?.setAttribute('aria-pressed', String(!!saved));
-        if (button) button.title = saved ? 'プレイリストに保存済み' : 'プレイリストに保存';
+        if (button) button.setAttribute('data-tooltip', saved ? 'プレイリストに保存済み' : 'プレイリストに保存');
       },
     });
   }).catch(() => {});
@@ -1618,11 +1618,11 @@ function _svRenderBelowPlayer(stream) {
       <div class="sv-bp-section sv-bp-section--nav">
         <div class="sv-bp-control-bar">
           <button class="sv-bp-control-btn" type="button" data-bp-action="prev-stream"
-            ${newerStream ? '' : 'disabled'} title="前の配信" aria-label="前の配信">${icon('previous')}</button>
+            ${newerStream ? '' : 'disabled'} data-tooltip="前の配信" aria-label="前の配信">${icon('previous')}</button>
           <button class="sv-bp-control-btn sv-bp-control-btn--play" type="button" data-bp-action="toggle-play"
-            title="再生 / 一時停止" aria-label="再生 / 一時停止">${icon('play')}</button>
+            data-tooltip="再生 / 一時停止" aria-label="再生 / 一時停止">${icon('play')}</button>
           <button class="sv-bp-control-btn" type="button" data-bp-action="next-stream"
-            ${olderStream ? '' : 'disabled'} title="次の配信" aria-label="次の配信">${icon('next')}</button>
+            ${olderStream ? '' : 'disabled'} data-tooltip="次の配信" aria-label="次の配信">${icon('next')}</button>
           <label class="sv-bp-ap-label" for="sv-ap-check">
             <span class="sv-bp-ap-switch${_svAutoPlay ? ' sv-bp-ap-switch--on' : ''}">
               <input type="checkbox" id="sv-ap-check" class="sv-bp-ap-check"${_svAutoPlay ? ' checked' : ''}>
@@ -1638,7 +1638,7 @@ function _svRenderBelowPlayer(stream) {
             リピート
           </label>
           <button class="sv-bp-control-btn sv-bp-bookmark-btn${saved ? ' is-saved' : ''}" type="button"
-            data-bp-action="bookmark-stream" aria-pressed="${saved}" title="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}"
+            data-bp-action="bookmark-stream" aria-pressed="${saved}" data-tooltip="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}"
             aria-label="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${_svBookmarkSvg()}</button>
         </div>
         <div class="sv-bp-next-hint">
@@ -1788,11 +1788,11 @@ async function _svRenderBelowPlayerMv(stream) {
       <div class="sv-bp-section sv-bp-section--nav">
         <div class="sv-bp-control-bar">
           <button class="sv-bp-control-btn" type="button" data-mv-action="mv-prev"
-            ${canPrev ? '' : 'disabled'} title="前の動画" aria-label="前の動画">${icon('previous')}</button>
+            ${canPrev ? '' : 'disabled'} data-tooltip="前の動画" aria-label="前の動画">${icon('previous')}</button>
           <button class="sv-bp-control-btn sv-bp-control-btn--play" type="button" data-mv-action="toggle-play"
-            title="再生 / 一時停止" aria-label="再生 / 一時停止">${icon('play')}</button>
+            data-tooltip="再生 / 一時停止" aria-label="再生 / 一時停止">${icon('play')}</button>
           <button class="sv-bp-control-btn" type="button" data-mv-action="mv-next"
-            ${canNext ? '' : 'disabled'} title="次の動画" aria-label="次の動画">${icon('next')}</button>
+            ${canNext ? '' : 'disabled'} data-tooltip="次の動画" aria-label="次の動画">${icon('next')}</button>
           <label class="sv-bp-ap-label" for="sv-ap-check">
             <span class="sv-bp-ap-switch${_svAutoPlay ? ' sv-bp-ap-switch--on' : ''}">
               <input type="checkbox" id="sv-ap-check" class="sv-bp-ap-check"${_svAutoPlay ? ' checked' : ''}>
@@ -1809,7 +1809,7 @@ async function _svRenderBelowPlayerMv(stream) {
           </label>
           <button class="sv-bp-control-btn sv-bp-bookmark-btn${mvSaved ? ' is-saved' : ''}" type="button"
             data-mv-action="bookmark-mv" data-mv-key="${escapeHtml(mvKey)}" aria-pressed="${mvSaved}"
-            title="${mvSaved ? 'プレイリストに保存済み' : 'プレイリストに保存'}"
+            data-tooltip="${mvSaved ? 'プレイリストに保存済み' : 'プレイリストに保存'}"
             aria-label="${mvSaved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${_svBookmarkSvg()}</button>
         </div>
         <div class="sv-bp-next-hint">
@@ -1930,8 +1930,8 @@ export function initStreamViewer() {
     </nav>
     <div class="sv-container">
       <div class="sv-header">
-        <button class="sv-close-btn" id="sv-close" type="button" title="ミニプレイヤーで再生を続けながら戻ります（Esc）">
-          ← <span class="sv-close-label">戻る</span><span class="sv-esc-hint">Esc</span>
+        <button class="sv-close-btn" id="sv-close" type="button" data-tooltip="ミニプレイヤーで再生を続けながら戻ります（Esc）">
+          ${icon('arrowLeft')} <span class="sv-close-label">戻る</span><span class="sv-esc-hint">Esc</span>
         </button>
         <div class="sv-title-area">
           <nav class="sv-breadcrumb" aria-label="現在地">
@@ -1944,18 +1944,18 @@ export function initStreamViewer() {
           <div class="sv-stream-meta" id="sv-stream-meta"></div>
         </div>
         <button class="sv-fullscreen-btn" id="sv-fullscreen-btn" type="button"
-          title="大画面で再生" aria-pressed="false">${icon('external')}</button>
+          data-tooltip="大画面で再生" aria-label="大画面で再生" aria-pressed="false">${icon('external')}</button>
         <div class="sv-volume-wrap">
           <button class="vol-btn" id="sv-vol-btn" type="button" aria-label="音量">${icon('volume')}</button>
           <input class="vol-slider" id="sv-vol-slider" type="range" min="0" max="100" value="100" aria-label="音量">
         </div>
-        <button class="sv-music-btn" id="sv-music-btn" type="button" title="現在位置から音楽プレイヤーで聴く">
+        <button class="sv-music-btn" id="sv-music-btn" type="button" data-tooltip="現在位置から音楽プレイヤーで聴く">
           <span class="sv-music-icon">${icon('music')}</span><span class="sv-music-label">音楽プレイヤーで聴く</span>
         </button>
-        <button class="sv-share-btn" id="sv-share-btn" type="button" title="この動画の共有リンクをコピー">
+        <button class="sv-share-btn" id="sv-share-btn" type="button" data-tooltip="この動画の共有リンクをコピー">
           <span class="sv-share-icon">${icon('link')}</span><span class="sv-share-label">共有</span>
         </button>
-        <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener" title="YouTubeで開く">
+        <a class="sv-yt-link" id="sv-yt-link" href="#" target="_blank" rel="noopener" data-tooltip="YouTubeで開く">
           <span class="sv-yt-icon">${icon('external')}</span><span class="sv-yt-label">YouTubeで開く</span>
         </a>
       </div>
@@ -2324,7 +2324,7 @@ export function closeStreamViewer() {
     document.body.classList.remove('has-sv-fullscreen');
     document.body.style.overflow = '';
     const closeBtn = $('#sv-close');
-    if (closeBtn) closeBtn.title = 'ミニプレイヤーで再生を続けながら戻ります（Esc）';
+    if (closeBtn) closeBtn.setAttribute('data-tooltip', 'ミニプレイヤーで再生を続けながら戻ります（Esc）');
     const fsBtn = $('#sv-fullscreen-btn');
     if (fsBtn) fsBtn.setAttribute('aria-pressed', 'false');
     _setPlayerMode('embedded');

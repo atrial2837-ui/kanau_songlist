@@ -4,8 +4,8 @@ import { $, escapeHtml, fmtDate, streamKey } from '../utils.js';
 import { isStreamInAnyPlaylist } from './playlists.js';
 import { icon } from '../icons.js';
 
-const TIMELINE_COPY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/></svg>';
-const TIMELINE_PLAY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><polygon points="6 4 19 12 6 20 6 4"/></svg>';
+const TIMELINE_COPY_ICON = icon('copy');
+const TIMELINE_PLAY_ICON = icon('play');
 
 export function renderTimeline() {
   const { streams } = state.data;
@@ -153,7 +153,7 @@ function renderFlat(streams, filter) {
 
   const ctrl = $('#timeline-controls');
   if (state.timelineLimit < streams.length) {
-    ctrl.innerHTML = `<button class="load-more-btn" id="load-more">▼ もっと見る (残り${streams.length - state.timelineLimit}枠)</button>`;
+    ctrl.innerHTML = `<button class="load-more-btn" id="load-more">${icon('chevronDown')} もっと見る (残り${streams.length - state.timelineLimit}枠)</button>`;
     $('#load-more').addEventListener('click', () => {
       state.timelineLimit += TIMELINE_STEP;
       renderTimeline();
@@ -178,20 +178,20 @@ function setupClickHandlers(streams) {
       await navigator.clipboard.writeText(formatStreamSetlist(stream));
       btn.classList.add('is-copied');
       btn.setAttribute('aria-label', 'コピー済み');
-      btn.title = 'コピー済み';
+      btn.setAttribute('data-tooltip', 'コピー済み');
       setTimeout(() => {
         btn.classList.remove('is-copied');
         btn.setAttribute('aria-label', 'セトリをコピー');
-        btn.title = 'セトリをコピー';
+        btn.setAttribute('data-tooltip', 'セトリをコピー');
       }, 1200);
     } catch (_) {
       btn.classList.add('is-error');
       btn.setAttribute('aria-label', 'コピーに失敗');
-      btn.title = 'コピーに失敗';
+      btn.setAttribute('data-tooltip', 'コピーに失敗');
       setTimeout(() => {
         btn.classList.remove('is-error');
         btn.setAttribute('aria-label', 'セトリをコピー');
-        btn.title = 'セトリをコピー';
+        btn.setAttribute('data-tooltip', 'セトリをコピー');
       }, 1200);
     }
   };
@@ -221,12 +221,12 @@ function renderItem(s, idx, filter) {
     ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || '配信')}</a>`
     : escapeHtml(s.title || '配信');
   const watchHtml = s.url
-    ? `<span class="watch-actions"><a class="watch-open-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener" aria-label="YouTubeで開く" title="YouTubeで開く">${TIMELINE_PLAY_ICON}</a></span>`
+    ? `<span class="watch-actions"><a class="watch-open-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener" aria-label="YouTubeで開く" data-tooltip="YouTubeで開く" data-tooltip-pos="left">${TIMELINE_PLAY_ICON}</a></span>`
     : '';
   const skey = streamKey(s);
   const saved = isStreamInAnyPlaylist(skey);
-  const saveHtml = `<button class="timeline-save-btn${saved ? ' is-saved' : ''}" type="button" data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}" title="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}">${icon('bookmark')}</button>`;
-  const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-key="${escapeHtml(skey)}" aria-label="セトリをコピー" title="セトリをコピー">${TIMELINE_COPY_ICON}</button>`;
+  const saveHtml = `<button class="timeline-save-btn${saved ? ' is-saved' : ''}" type="button" data-playlist-add="${escapeHtml(skey)}" data-stream-title="${escapeHtml(s.title || '配信')}" aria-label="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}" data-tooltip="${saved ? 'プレイリストに保存済み' : 'プレイリストに保存'}" data-tooltip-pos="left">${icon('bookmark')}</button>`;
+  const copyHtml = `<button class="timeline-copy-btn" type="button" data-copy-key="${escapeHtml(skey)}" aria-label="セトリをコピー" data-tooltip="セトリをコピー" data-tooltip-pos="left">${TIMELINE_COPY_ICON}</button>`;
   const open = filter ? ' open' : '';
   return `
     <details class="timeline-item ${recentClass}"${open}>
