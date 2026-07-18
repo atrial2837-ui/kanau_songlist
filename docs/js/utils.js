@@ -32,8 +32,10 @@ export function youtubeVideoId(url) {
   }
   return '';
 }
-export const youtubeThumb         = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`  : ''; };
-export const youtubeThumbFallback = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg`  : ''; };
+// mqdefault は純粋な 16:9 (320x180)。hqdefault (480x360, 4:3) は 16:9 動画で
+// 上下に黒帯が焼き込まれるため、表示は mq を主・hq をフォールバックにする。
+export const youtubeThumb         = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg`  : ''; };
+export const youtubeThumbFallback = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`  : ''; };
 export function youtubeThumbTiny(url) {
   const id = youtubeVideoId(url);
   return id ? `https://i.ytimg.com/vi/${id}/default.jpg` : '';

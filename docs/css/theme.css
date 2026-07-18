@@ -598,8 +598,8 @@ kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: min(150px, 36vw);
-  min-height: 48px;
+  width: min(120px, 30vw);
+  min-height: 42px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -621,11 +621,14 @@ kbd {
   aspect-ratio: 150 / 51;
 }
 .page-top-toast.is-visible {
-  opacity: 0.98;
+  /* コンテンツに重なる場面で主張しすぎないよう待機時は半透明 */
+  opacity: 0.72;
   pointer-events: auto;
   transform: translateY(0);
 }
-.page-top-toast:hover {
+.page-top-toast:hover,
+.page-top-toast:focus-visible {
+  opacity: 1;
   transform: translateY(-1px);
   filter: drop-shadow(0 10px 20px rgba(106, 184, 219, 0.32));
 }

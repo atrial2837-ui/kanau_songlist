@@ -1,5 +1,5 @@
 import { state } from '../store.js';
-import { $, escapeHtml, fmtDate, fmtMonth, daysSince, youtubeThumbFallback } from '../utils.js';
+import { $, escapeHtml, fmtDate, fmtMonth, daysSince, youtubeThumb } from '../utils.js';
 import { periodHits, countStreamsThisMonth, countSongsThisMonth, countNewSongsThisMonth, buildMonthly, buildHeatmap, heatLevel, isoDate } from '../domain-compat.js';
 import { getToday } from '../store.js';
 import { icon } from '../icons.js';
@@ -83,6 +83,10 @@ export function renderDashboard() {
   bindResumeSection();
   bindRecapCard(streams, songs);
   drawMonthlyChart(monthly);
+
+  // ヒートマップは直近1年を横に並べるため、初期表示で最新（右端）へ
+  const heatmapWrap = panel.querySelector('.heatmap-wrap');
+  if (heatmapWrap) heatmapWrap.scrollLeft = heatmapWrap.scrollWidth;
 }
 
 /* ── まとめカード（年間/月間リキャップ） ────────────────────────────────── */
@@ -255,8 +259,7 @@ function renderResumeSection() {
       </div>
       <div class="dashboard-resume-list" id="dashboard-resume-list">
         ${entries.map((e, i) => {
-          // hqdefault は 4:3 で上下に黒帯が焼き込まれるため、16:9 の mqdefault を使う
-          const thumb = youtubeThumbFallback(e.url);
+          const thumb = youtubeThumb(e.url);
           const days = Math.floor((Date.now() - (e.updatedAt || 0)) / 86400000);
           const ago = days <= 0 ? '今日' : `${days}日前`;
           return `
@@ -363,7 +366,7 @@ function deferredDashboardHtml(streams, songs, recent) {
 function topBarRow(s, i, max) {
   const pct = Math.round((s.count / max) * 100);
   return `
-    <div class="bar-row clickable" role="button" tabindex="0" data-songkey="${escapeHtml(s.key)}" data-songtitle="${escapeHtml(s.title)}" data-songartist="${escapeHtml(s.artist)}" aria-label="${escapeHtml(s.title)} — タイムラインで絞り込む">
+    <div class="bar-row clickable" role="button" tabindex="0" data-songkey="${escapeHtml(s.key)}" data-songtitle="${escapeHtml(s.title)}" data-songartist="${escapeHtml(s.artist)}">
       <div class="bar-rank">${i + 1}</div>
       <div class="bar-content">
         <div class="bar-label">${escapeHtml(s.title)} <span style="color:var(--ink-mute);font-size:11px;">/ ${escapeHtml(s.artist)}</span></div>
@@ -455,6 +458,7 @@ function drawMonthlyChart(monthly) {
         pointHoverRadius: 4,
         borderWidth: 1.5,
         borderDash: [4, 3],
+        yAxisID: 'y2',
       },
     ],
   }, {
@@ -466,7 +470,16 @@ function drawMonthlyChart(monthly) {
         labels: { boxWidth: 10, padding: 10, font: { size: 10 } },
       },
     },
-    scales: { y: { beginAtZero: true } },
+    scales: {
+      y: { beginAtZero: true },
+      // 歌枠数(1桁台)は歌唱数(3桁)と桁が違い左軸では潰れるため右軸に分離
+      y2: {
+        position: 'right',
+        beginAtZero: true,
+        grid: { drawOnChartArea: false },
+        ticks: { color: c.accentStrong, font: { size: 10 }, precision: 0 },
+      },
+    },
   });
 }
 

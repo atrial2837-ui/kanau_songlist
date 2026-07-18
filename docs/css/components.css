@@ -654,6 +654,11 @@ button.official-link {
   outline-offset: 2px;
 }
 
+/* tablist ラッパー: ARIA構造のためだけの要素で、レイアウトには関与させない */
+.tab-group {
+  display: contents;
+}
+
 .mobile-tab-nav {
   display: none;
 }

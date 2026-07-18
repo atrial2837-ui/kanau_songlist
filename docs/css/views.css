@@ -219,6 +219,17 @@
   overflow-y: hidden;
   padding-bottom: 2px;
   scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.heatmap-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+.heatmap-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.heatmap-wrap::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
 }
 .heatmap {
   display: grid;
