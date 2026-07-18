@@ -2,7 +2,7 @@
 // Pages Functions (/api/*) は提供しない — フロントは API 失敗時も動作する前提。
 import { createServer } from 'http';
 import { readFile } from 'fs/promises';
-import { join, normalize, extname, dirname } from 'path';
+import { join, normalize, extname, dirname, sep } from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs');
@@ -27,7 +27,9 @@ const server = createServer(async (req, res) => {
     let pathname = decodeURIComponent(url.pathname);
     if (pathname.endsWith('/')) pathname += 'index.html';
     const file = normalize(join(ROOT, pathname));
-    if (!file.startsWith(ROOT)) {
+    // 文字列前方一致だと兄弟ディレクトリ(例: docs-evil/)へ抜けられるため、
+    // ディレクトリ境界(ROOT + sep)で判定する
+    if (file !== ROOT && !file.startsWith(ROOT + sep)) {
       res.writeHead(403).end('forbidden');
       return;
     }
