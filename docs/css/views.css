@@ -66,7 +66,8 @@
 .dashboard-monthly-card {
   padding-bottom: 14px;
 }
-.dashboard-list-card { grid-column: span 6; }
+/* リスト3枚（よく歌われた曲 / 久しぶり / 定番）を1行に */
+.dashboard-list-card { grid-column: span 4; }
 .dashboard-recent-card { grid-column: 1 / -1; }
 @media (min-width: 760px) {
   .col-12 { grid-column: 1 / -1 !important; }

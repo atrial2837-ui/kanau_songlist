@@ -64,7 +64,7 @@ import{f as k}from"./chunk-R4TZ2GNU.js";import"./chunk-B5PIMRCO.js";import{b as 
         <span class="timeline-summary-main">
           <span class="timeline-head">
             <span class="timeline-stream-no">\u7B2C${s.index}\u67A0</span>
-            <span class="timeline-songcount">${p("check")} ${s.songs.length}\u66F2</span>
+            <span class="timeline-songcount">${s.songs.length}\u66F2</span>
           </span>
           <span class="timeline-title">${l}</span>
         </span>

@@ -82,11 +82,33 @@ export function renderDashboard() {
   `;
   bindResumeSection();
   bindRecapCard(streams, songs);
+  bindHitsToggle();
   drawMonthlyChart(monthly);
 
   // ヒートマップは直近1年を横に並べるため、初期表示で最新（右端）へ
   const heatmapWrap = panel.querySelector('.heatmap-wrap');
   if (heatmapWrap) heatmapWrap.scrollLeft = heatmapWrap.scrollWidth;
+}
+
+/* ── よく歌われた曲（今月/今年 切替） ──────────────────────────────────── */
+
+function bindHitsToggle() {
+  const toggle = $('#dashboard-hits-toggle');
+  const card = toggle?.closest('.dashboard-list-card');
+  if (!toggle || !card) return;
+  toggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-hits-period]');
+    if (!btn) return;
+    const period = btn.dataset.hitsPeriod;
+    card.querySelectorAll('[data-hits-list]').forEach(list => {
+      list.hidden = list.dataset.hitsList !== period;
+    });
+    toggle.querySelectorAll('[data-hits-period]').forEach(b => {
+      const active = b.dataset.hitsPeriod === period;
+      b.classList.toggle('primary', active);
+      b.classList.toggle('ghost', !active);
+    });
+  });
 }
 
 /* ── まとめカード（年間/月間リキャップ） ────────────────────────────────── */
@@ -165,7 +187,7 @@ function computeRecap(streams, songs, period, today) {
   return { streamCount, totalSongs, distinctCount, topSong, topCount, newSongCount };
 }
 
-function recapBodyHtml(recap, periodLabel) {
+function recapBodyHtml(recap, periodLabel, periodShort) {
   if (!recap) {
     return `<div class="empty-state">この期間の記録はまだありません</div>`;
   }
@@ -177,19 +199,19 @@ function recapBodyHtml(recap, periodLabel) {
     <div class="recap-tiles">
       <div class="recap-tile">
         <strong>${recap.streamCount}</strong>
-        <span>歌枠数</span>
+        <span>${escapeHtml(periodShort)}の歌枠数</span>
       </div>
       <div class="recap-tile">
         <strong>${recap.totalSongs}</strong>
-        <span>総歌唱数</span>
+        <span>${escapeHtml(periodShort)}の歌唱数</span>
       </div>
       <div class="recap-tile">
         <strong>${recap.distinctCount}</strong>
-        <span>曲の種類</span>
+        <span>歌った曲の種類</span>
       </div>
       <div class="recap-tile">
         <strong>${recap.newSongCount}</strong>
-        <span>初披露曲</span>
+        <span>${escapeHtml(periodShort)}の初披露曲</span>
       </div>
     </div>
     <div class="recap-top-song">
@@ -214,7 +236,7 @@ function bindRecapCard(streams, songs) {
     const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
     const label = period === 'year' ? `${y}年` : `${y}年 ${monthNames[m]}`;
     const recap = computeRecap(streams, songs, period, today);
-    body.innerHTML = recapBodyHtml(recap, label);
+    body.innerHTML = recapBodyHtml(recap, label, period === 'year' ? '今年' : '今月');
     // ボタンの active 切替
     yearBtn?.classList.toggle('primary', period === 'year');
     yearBtn?.classList.toggle('ghost', period !== 'year');
@@ -322,31 +344,32 @@ function deferredDashboardHtml(streams, songs, recent) {
   const monthlyHits = periodHits(streams, 'month', getToday());
   const yearlyHits = periodHits(streams, 'year', getToday());
   return `
-    <div class="card dashboard-card dashboard-list-card dashboard-list-month">
-      <div class="card-title">${icon('rank')} 今月のよく歌われた曲 <span class="pill">TOP5</span></div>
-      <div class="bar-list">
+    <div class="card dashboard-card dashboard-list-card dashboard-list-hits">
+      <div class="card-title">${icon('rank')} よく歌われた曲
+        <span class="dashboard-recap-toggle" id="dashboard-hits-toggle">
+          <button class="btn primary" type="button" data-hits-period="month">今月</button>
+          <button class="btn ghost" type="button" data-hits-period="year">今年</button>
+        </span>
+      </div>
+      <div class="bar-list" data-hits-list="month">
         ${monthlyHits.length ? monthlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, monthlyHits[0].count)).join('') : '<div class="empty-state">今月の歌唱履歴なし</div>'}
       </div>
-    </div>
-
-    <div class="card dashboard-card dashboard-list-card dashboard-list-year">
-      <div class="card-title">${icon('rank')} 今年のよく歌われた曲 <span class="pill">TOP5</span></div>
-      <div class="bar-list">
+      <div class="bar-list" data-hits-list="year" hidden>
         ${yearlyHits.length ? yearlyHits.slice(0, 5).map((s, i) => topBarRow(s, i, yearlyHits[0].count)).join('') : '<div class="empty-state">今年の歌唱履歴なし</div>'}
       </div>
     </div>
 
     <div class="card dashboard-card dashboard-list-card dashboard-list-stale">
-      <div class="card-title">${icon('time')} 久しぶり候補 <span class="pill">180日以上</span></div>
+      <div class="card-title">${icon('time')} 久しぶりの曲 <span class="pill">180日以上歌唱なし</span></div>
       <div class="bar-list">
-        ${stalePicks.length ? stalePicks.map((s, i) => topBarRow(s, i, stalePicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
+        ${stalePicks.length ? stalePicks.map((s, i) => topBarRow(s, i, stalePicks[0].count)).join('') : '<div class="empty-state">該当なし</div>'}
       </div>
     </div>
 
     <div class="card dashboard-card dashboard-list-card dashboard-list-recent">
       <div class="card-title">${icon('sparkle')} 最近歌った定番 <span class="pill">30日以内</span></div>
       <div class="bar-list">
-        ${recentPicks.length ? recentPicks.map((s, i) => topBarRow(s, i, recentPicks[0].count)).join('') : '<div class="empty-state">候補なし</div>'}
+        ${recentPicks.length ? recentPicks.map((s, i) => topBarRow(s, i, recentPicks[0].count)).join('') : '<div class="empty-state">該当なし</div>'}
       </div>
     </div>
 

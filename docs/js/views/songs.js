@@ -1231,6 +1231,6 @@ function keyHtml(song) {
   if (!keys.length) {
     return `<div class="song-key-line song-key-actions"><span class="song-key-empty">キー未登録</span>${addButton}</div>`;
   }
-  const badges = keys.map(k => `<button type="button" class="song-key-badge" data-tooltip="統合集計 T/U列のキー"><span>キー</span><strong>${escapeHtml(k)}</strong></button>`).join('');
+  const badges = keys.map(k => `<button type="button" class="song-key-badge" data-tooltip="配信で使われた参考キー"><span>キー</span><strong>${escapeHtml(k)}</strong></button>`).join('');
   return `<div class="song-key-line song-key-actions">${badges}${addButton}</div>`;
 }

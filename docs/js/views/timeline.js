@@ -236,7 +236,7 @@ function renderItem(s, idx, filter) {
         <span class="timeline-summary-main">
           <span class="timeline-head">
             <span class="timeline-stream-no">第${s.index}枠</span>
-            <span class="timeline-songcount">${icon('check')} ${s.songs.length}曲</span>
+            <span class="timeline-songcount">${s.songs.length}曲</span>
           </span>
           <span class="timeline-title">${titleHtml}</span>
         </span>
