@@ -58,6 +58,10 @@
   display: grid;
   gap: 2px;
 }
+/* display:grid が hidden 属性(UAのdisplay:none)を上書きしないように */
+.dashboard-card .bar-list[hidden] {
+  display: none;
+}
 .dashboard-activity-card { grid-area: activity; }
 .dashboard-top-card { grid-area: top; }
 .dashboard-genre-card { grid-area: genre; }
