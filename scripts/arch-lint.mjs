@@ -15,6 +15,9 @@
  *   - usecase →  infra                        （具体 infra へ依存しない。port 経由）
  *   - adapter →  infra                        （アダプタは具体フレームワークを知らない）
  *   - ui(docs/js) → usecase / adapter / infra （UI は domain-compat 経由の domain のみ）
+ *   - views/X → views/Y                       （ビュー同士は結合しない。共有ロジックは
+ *                                              player/ store.js utils.js 等の共有層へ置く。
+ *                                              同一ビューのサブモジュール間は許可）
  *
  * adapter → usecase は内向きなので許可（コントローラがユースケースを呼ぶ正当な依存）。
  * infra は最外層（wire）なので outbound 制約なし。
@@ -89,22 +92,41 @@ const targets = [
   ...walk(join(ROOT, 'docs', 'js')),
 ];
 
+// パス → ビュー名（docs/js/views/X.js と docs/js/views/X/**.js は同一ビュー 'X'）
+function viewOf(absPath) {
+  const rel = relative(ROOT, absPath).split(sep).join('/');
+  const m = rel.match(/^docs\/js\/views\/([^/]+?)(?:\.js)?(?:\/|$)/);
+  return m ? m[1] : null;
+}
+
 const violations = [];
 for (const file of targets) {
   const from = layerOf(file);
   if (!from) continue;
-  const banned = FORBIDDEN[from];
-  if (!banned || !banned.length) continue;
+  const banned = FORBIDDEN[from] || [];
+  const fromView = viewOf(file);
+  if (!banned.length && !fromView) continue;
 
   const src = readFileSync(file, 'utf-8');
   for (const spec of specifiersOf(src)) {
     if (!spec.startsWith('.')) continue;                 // 外部パッケージは対象外
-    const targetLayer = layerOf(resolve(dirname(file), spec));
+    const targetAbs = resolve(dirname(file), spec);
+    const targetLayer = layerOf(targetAbs);
     if (targetLayer && banned.includes(targetLayer)) {
       violations.push({
         file: relative(ROOT, file).split(sep).join('/'),
         from,
         to: targetLayer,
+        spec,
+      });
+    }
+    // views 同士の import 禁止（同一ビューのサブモジュール間は許可）
+    const targetView = viewOf(targetAbs);
+    if (fromView && targetView && fromView !== targetView) {
+      violations.push({
+        file: relative(ROOT, file).split(sep).join('/'),
+        from: `views/${fromView}`,
+        to: `views/${targetView}`,
         spec,
       });
     }

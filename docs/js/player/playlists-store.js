@@ -11,3 +11,8 @@ export function getPlaylists() {
 export function savePlaylists(pls) {
   try { localStorage.setItem('kanau-playlists', JSON.stringify(pls)); } catch (_) {}
 }
+
+/** streamKey（または 'mv:<id>'）がいずれかのプレイリストに含まれるか */
+export function isStreamInAnyPlaylist(skey) {
+  return getPlaylists().some(p => p.streams.includes(skey));
+}

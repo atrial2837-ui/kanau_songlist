@@ -1,7 +1,7 @@
 import { state } from '../store.js';
 import { TIMELINE_INITIAL, TIMELINE_STEP } from '../config.js';
 import { $, escapeHtml, fmtDate, streamKey } from '../utils.js';
-import { isStreamInAnyPlaylist } from './playlists.js';
+import { isStreamInAnyPlaylist } from '../player/playlists-store.js';
 import { icon } from '../icons.js';
 
 const TIMELINE_COPY_ICON = icon('copy');

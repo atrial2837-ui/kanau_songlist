@@ -1,0 +1,1 @@
+function e(){try{return JSON.parse(localStorage.getItem("kanau-playlists")||"null")||[]}catch{return[]}}function s(t){try{localStorage.setItem("kanau-playlists",JSON.stringify(t))}catch{}}function l(t){return e().some(a=>a.streams.includes(t))}export{e as a,s as b,l as c};

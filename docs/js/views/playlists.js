@@ -14,7 +14,7 @@ import { state } from '../store.js';
 import { $, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbFallback, youtubeVideoId } from '../utils.js';
 import { icon } from '../icons.js';
 import { openStreamViewer, playMyListInViewer } from '../player/stream-player.js';
-import { getPlaylists as storeGetPlaylists, savePlaylists as storeSavePlaylists } from '../player/playlists-store.js';
+import { getPlaylists as storeGetPlaylists, savePlaylists as storeSavePlaylists, isStreamInAnyPlaylist } from '../player/playlists-store.js';
 
 // 永続化は player/playlists-store.js が唯一の所有者(キー: kanau-playlists)
 const MUSIC_CACHE_KEY = 'kanau-music-videos-cache-v2';
@@ -79,9 +79,8 @@ export function removeStreamFromPlaylist(playlistId, skey) {
   savePlaylists(lists);
 }
 
-export function isStreamInAnyPlaylist(skey) {
-  return getPlaylists().some(p => p.streams.includes(skey));
-}
+// プレイリスト所属判定は player/playlists-store.js が所有（ビュー間依存を作らないため）
+export { isStreamInAnyPlaylist } from '../player/playlists-store.js';
 
 /* ── メイン描画 ────────────────────────────────────────────────────────── */
 
