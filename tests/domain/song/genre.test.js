@@ -4,7 +4,7 @@
  *   Node.js 組み込みテストランナー (node:test) を使用。
  *
  * ## カバレッジ方針
- * - GENRE_LIST: 10 値固定 / freeze / 期待値配列との完全一致
+ * - GENRE_LIST: 11 値固定 / freeze / 期待値配列との完全一致
  * - isValidGenre: 各 GENRE_LIST 要素 / 境界値 / 無効値
  * - parseGenre: 正常値 / 空白付き / NFKC 全角変換 / sentinel / 未知の値
  * - DEFAULT_GENRE / UNCATEGORIZED 定数の確認
@@ -28,14 +28,15 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('GENRE_LIST', () => {
-  it('固定 10 値であること', () => {
-    assert.equal(GENRE_LIST.length, 10);
+  it('固定 11 値であること', () => {
+    assert.equal(GENRE_LIST.length, 11);
   });
 
   it('期待するジャンルをすべて含み順序も一致すること', () => {
     const expected = [
       'オリジナル',
       'ディズニー',
+      'ミュージカル',
       '童謡・唱歌',
       'K-POP',
       'アイドル',
