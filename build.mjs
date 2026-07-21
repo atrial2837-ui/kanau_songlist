@@ -110,7 +110,9 @@ function stampAssetVersions() {
   ];
   const h = createHash('sha1');
   for (const f of hashed) {
-    if (existsSync(f)) h.update(readFileSync(f));
+    // Windows チェックアウト(CRLF)と CI(Linux, LF)でバイト列が変わっても
+    // 同じバージョン文字列になるよう、改行を LF に正規化してからハッシュする
+    if (existsSync(f)) h.update(readFileSync(f, 'utf-8').replace(/\r\n/g, '\n'));
   }
   const ver = h.digest('hex').slice(0, 10);
   const page = join(__dirname, 'docs', 'index.html');
