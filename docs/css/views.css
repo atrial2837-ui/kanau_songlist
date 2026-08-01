@@ -1983,6 +1983,26 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* ダッシュボードTOP5のアーティスト名。クリックできるが見た目は文字のままにする。 */
+.bar-label-artist {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  color: var(--ink-mute);
+  font-size: 11px;
+}
+.bar-label-artist:hover,
+.bar-label-artist:focus-visible {
+  color: var(--primary-strong);
+  text-decoration: underline;
+}
+.bar-label-sep {
+  color: var(--ink-mute);
+  font-size: 11px;
+}
 .bar-list .bar-bar {
   height: 8px;
   border-radius: 999px;
@@ -2483,6 +2503,57 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   text-decoration: none;
 }
 
+.req-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 自分の投稿だけに出るバッジと取り消しボタン（ownerToken を持つ端末のみ） */
+.req-card-own {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.req-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-mute);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.req-delete-btn:hover:not(:disabled),
+.req-delete-btn:focus-visible {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--surface-2);
+}
+
+.req-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.req-delete-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
 .req-vote-btn {
   display: inline-flex;
   align-items: center;
@@ -2490,7 +2561,7 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   gap: 5px;
   min-width: 58px;
   height: 38px;
-  padding: 0 12px;
+  padding: 0 14px;
   border: 2px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
@@ -2499,7 +2570,26 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   font-size: 12px;
   font-weight: 900;
   cursor: pointer;
+  white-space: nowrap;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+
+/* 説明文の「聴きたい」と画面表示を一致させるための文字ラベル。
+   狭い画面では隠してハート＋数字だけにする（レイアウト崩れ防止）。 */
+.req-vote-label {
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.req-vote-count {
+  min-width: 12px;
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  .req-vote-label {
+    display: none;
+  }
 }
 
 .req-vote-btn:hover:not(:disabled),
@@ -2545,9 +2635,13 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
     grid-template-columns: 30px minmax(0, 1fr);
   }
 
-  .req-vote-btn {
+  /* アクション群をカード2列目へ回り込ませる（グリッド子は .req-card-actions） */
+  .req-card-actions {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .req-vote-btn {
     height: 34px;
   }
 }

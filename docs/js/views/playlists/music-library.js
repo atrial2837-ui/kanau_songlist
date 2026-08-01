@@ -7,7 +7,7 @@
  * クリック/入力は handleMusicClick / handleMusicSearchInput で委譲される。
  */
 
-import { $, escapeHtml, youtubeThumb, youtubeThumbFallback } from '../../utils.js';
+import { $, escapeHtml, youtubeThumb, youtubeThumbHq } from '../../utils.js';
 import { icon } from '../../icons.js';
 import { openStreamViewer } from '../../player/stream-player.js';
 import { isStreamInAnyPlaylist } from '../../player/playlists-store.js';
@@ -392,8 +392,9 @@ function _musicDateText(video) {
 /* ── カード / リスト / カテゴリ描画 ─────────────────────────────────────── */
 
 function _musicCard(video, globalIdx) {
-  const thumb = youtubeThumb(video.url);
-  const thumbFb = youtubeThumbFallback(video.url);
+  // 主=maxres(高解像度)、失敗時は data-fallback の mqdefault に onerror で切り替わる
+  const thumb = youtubeThumbHq(video.url);
+  const thumbFb = youtubeThumb(video.url);
   const { label: badge, cls: badgeClass } = mvBadge(video);
   const saved = isStreamInAnyPlaylist('mv:' + video.id);
   // 選択モード: カードクリックで選択トグル（再生はしない）
@@ -437,8 +438,9 @@ function _musicCard(video, globalIdx) {
 }
 
 function _musicListRow(video, globalIdx) {
-  const thumb = youtubeThumb(video.url);
-  const thumbFb = youtubeThumbFallback(video.url);
+  // 主=maxres(高解像度)、失敗時は data-fallback の mqdefault に onerror で切り替わる
+  const thumb = youtubeThumbHq(video.url);
+  const thumbFb = youtubeThumb(video.url);
   const { label: badge, cls: badgeClass, sub } = mvBadge(video);
   const saved = isStreamInAnyPlaylist('mv:' + video.id);
   if (_musicSelectMode) {

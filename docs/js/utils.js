@@ -36,6 +36,9 @@ export function youtubeVideoId(url) {
 // 上下に黒帯が焼き込まれるため、表示は mq を主・hq をフォールバックにする。
 export const youtubeThumb         = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg`  : ''; };
 export const youtubeThumbFallback = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`  : ''; };
+// maxresdefault は 16:9 の高解像度 (1280x720)。存在しない動画があるため、
+// onerror フォールバック（→ mqdefault）を必ず併用して使う。
+export const youtubeThumbHq       = (url) => { const id = youtubeVideoId(url); return id ? `https://i.ytimg.com/vi/${id}/maxresdefault.jpg` : ''; };
 export function youtubeThumbTiny(url) {
   const id = youtubeVideoId(url);
   return id ? `https://i.ytimg.com/vi/${id}/default.jpg` : '';

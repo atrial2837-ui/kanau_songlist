@@ -5,7 +5,7 @@
  * 全体再描画は initAllStreams({ rerender }) で親ビューから注入される。
  */
 
-import { $, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbFallback } from '../../utils.js';
+import { $, escapeHtml, fmtDate, streamKey, youtubeThumb, youtubeThumbHq } from '../../utils.js';
 import { isStreamInAnyPlaylist } from '../../player/playlists-store.js';
 
 const PER_PAGE = 24; // 4列 × 6行
@@ -61,8 +61,9 @@ export function renderAllStreams(streams) {
 
   const cards = slice.map(s => {
     const skey = streamKey(s);
-    const thumb = youtubeThumb(s.url);
-    const thumbFb = youtubeThumbFallback(s.url);
+    // 主=maxres(高解像度)、失敗時は data-fallback の mqdefault に onerror で切り替わる
+    const thumb = youtubeThumbHq(s.url);
+    const thumbFb = youtubeThumb(s.url);
     const songCount = s.songs?.length ?? 0;
     return `
       <button class="pl-sg-card" type="button" data-stream-play="${escapeHtml(skey)}"
