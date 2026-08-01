@@ -1,4 +1,4 @@
-import{c as B,d as F,g as Y}from"./chunk-IM7F7PX5.js";import{a as k,b as z,l as E,o as N}from"./chunk-OQVGQ22E.js";import"./chunk-J3NRXPJ3.js";import"./chunk-LXYT6HRB.js";import{d as S,e as y}from"./chunk-33BPFLKT.js";import{F as P,G as A,H as q,K as W,R as v,a as g,c as p,p as x,q as H,r as L,s as D,t as j,u as R,v as T}from"./chunk-MQZUTSLQ.js";function ct(){let{songs:t,streams:a}=y.data,s=[...t].sort((b,c)=>c.count-b.count).slice(0,5),r=s[0]?.count||1,o=a.slice(0,5),l=S(),n=D(t,l),i=g("#panel-dashboard"),d=T(a,l),u=j(a).slice(-12),M=Math.max(1,...u.map(b=>b.songs)),f=`
+import{c as B,d as F,g as Y}from"./chunk-JVKSVKYL.js";import{a as k,b as z,l as E,o as N}from"./chunk-ADELMESR.js";import"./chunk-J3NRXPJ3.js";import"./chunk-LXYT6HRB.js";import{d as S,e as y}from"./chunk-33BPFLKT.js";import{F as P,G as A,H as q,K as W,Q as v,a as g,c as p,p as x,q as H,r as L,s as D,t as j,u as R,v as T}from"./chunk-LMNEV3KV.js";function ct(){let{songs:t,streams:a}=y.data,s=[...t].sort((b,c)=>c.count-b.count).slice(0,5),r=s[0]?.count||1,o=a.slice(0,5),l=S(),n=D(t,l),i=g("#panel-dashboard"),d=T(a,l),u=j(a).slice(-12),M=Math.max(1,...u.map(b=>b.songs)),f=`
     <div class="card dashboard-card dashboard-activity-card">
       <div class="card-title">${v("analytics")} \u4ECA\u6708\u306E\u6D3B\u52D5</div>
       <div class="dashboard-metric-list">
@@ -147,7 +147,7 @@ import{c as B,d as F,g as Y}from"./chunk-IM7F7PX5.js";import{a as k,b as z,l as 
     <div class="bar-row clickable" role="button" tabindex="0" data-songkey="${p(t.key)}" data-songtitle="${p(t.title)}" data-songartist="${p(t.artist)}">
       <div class="bar-rank">${a+1}</div>
       <div class="bar-content">
-        <div class="bar-label">${p(t.title)} <span style="color:var(--ink-mute);font-size:11px;">/ ${p(t.artist)}</span></div>
+        <div class="bar-label">${p(t.title)}${t.artist?` <span class="bar-label-sep">/</span> <button class="bar-label-artist artist-search-btn" type="button" data-artist-search="${p(t.artist)}" title="\u3053\u306E\u30A2\u30FC\u30C6\u30A3\u30B9\u30C8\u306E\u66F2\u3092\u7D5E\u308A\u8FBC\u3080">${p(t.artist)}</button>`:""}</div>
         <div class="bar-bar" style="width:${s}%;"></div>
       </div>
       <div class="bar-value">${t.count}</div>
