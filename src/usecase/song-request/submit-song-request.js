@@ -4,6 +4,7 @@
  */
 
 import { ValidationError } from '../../domain/error/validation-error.js';
+import { generateOwnerToken, hashOwnerToken } from '../../domain/song-request/owner-token.js';
 
 const TITLE_MAX = 120;
 const ARTIST_MAX = 120;
@@ -18,6 +19,8 @@ const NAME_MAX = 40;
  * @param {string} [input.artist]
  * @param {string|null} [input.url]
  * @param {string|null} [input.requesterName]
+ * @returns {Promise<{ item: object, ownerToken: string }>}
+ *   ownerToken は投稿者が自分の投稿を取り消すための鍵。ここでしか返さない。
  */
 export async function submitSongRequest(deps, input) {
   const title = clean(input.title);
@@ -31,12 +34,16 @@ export async function submitSongRequest(deps, input) {
   if (url.length > URL_MAX) throw new ValidationError(`URLは${URL_MAX}文字以内にしてください`);
   if (requesterName.length > NAME_MAX) throw new ValidationError(`名前は${NAME_MAX}文字以内にしてください`);
 
-  return deps.songRequests.insert({
+  // 生トークンはこの戻り値でしか渡らない。DB にはハッシュのみ保存する。
+  const ownerToken = generateOwnerToken();
+  const item = await deps.songRequests.insert({
     title,
     artist,
     url: url || null,
     requesterName: requesterName || null,
+    ownerTokenHash: await hashOwnerToken(ownerToken),
   });
+  return { item, ownerToken };
 }
 
 function clean(value) {
