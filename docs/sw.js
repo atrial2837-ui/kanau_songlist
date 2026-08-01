@@ -28,6 +28,10 @@ self.addEventListener('fetch', event => {
 
   const path = url.pathname;
 
+  // /api/* → SW は一切介在しない（投稿・投票・取り消しが即時反映される必要があり、
+  // 古い応答を返すと削除した項目が残って見える）
+  if (path.startsWith('/api/')) return;
+
   // /data/*.json → stale-while-revalidate（即座に返しつつ裏で更新）
   if (path.startsWith('/data/') && path.endsWith('.json')) {
     event.respondWith(staleWhileRevalidate(request, DATA_CACHE));

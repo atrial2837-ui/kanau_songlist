@@ -40,8 +40,11 @@ export async function onRequest({ request, env }) {
     const response = await router.dispatch(request, env);
     const headers = new Headers(response.headers);
     for (const [k, v] of Object.entries(CORS_HEADERS)) headers.set(k, v);
-    if (request.method === 'GET' && response.status === 200 && !headers.has('Cache-Control')) {
-      headers.set('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=600');
+    // 投稿・投票・取り消しが即座に反映される必要があるためキャッシュしない。
+    // 以前は max-age=30/s-maxage=120 を付けており、削除した項目が最大数分間
+    // 一覧に残り続ける（CDN/ブラウザが古い応答を返す）不具合になっていた。
+    if (request.method === 'GET' && !headers.has('Cache-Control')) {
+      headers.set('Cache-Control', 'no-store');
     }
     return new Response(response.body, { status: response.status, headers });
   } catch (error) {

@@ -185,7 +185,8 @@ async function loadList() {
   if (!list) return;
 
   try {
-    const res = await fetch(`${API}?limit=100`);
+    // 投稿・投票・取り消しの直後に呼ばれるため、キャッシュ済みの古い一覧を掴まない
+    const res = await fetch(`${API}?limit=100`, { cache: 'no-store' });
     const { items, error } = await readApiJson(res);
     if (!res.ok) throw new Error(error || '取得に失敗しました');
     renderList(list, items || []);
