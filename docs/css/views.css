@@ -2509,6 +2509,27 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   gap: 6px;
 }
 
+/* 運営が対応したリクエストの状態バッジ。
+   未対応(unregistered)は出さないので、バッジがある＝運営が確認済み。 */
+.req-status {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.req-status--singable {
+  border: 1px solid var(--green-text);
+  background: var(--green-bg);
+  color: var(--green-text);
+}
+.req-status--practicing {
+  border: 1px solid var(--orange-text);
+  background: var(--orange-bg);
+  color: var(--orange-text);
+}
+
 /* 自分の投稿だけに出るバッジと取り消しボタン（ownerToken を持つ端末のみ） */
 .req-card-own {
   display: inline-block;

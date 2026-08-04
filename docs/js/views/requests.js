@@ -1,9 +1,11 @@
 import { $, escapeHtml, fmtDate } from '../utils.js';
 import { icon } from '../icons.js';
+import { statusBadge } from './requests/status.js';
 
 const API = '/api/song-requests';
 const VOTED_KEY = 'songRequestVotes';
 const OWNER_KEY = 'songRequestOwners';
+
 
 /** このブラウザで投票済みのリクエストID。ログインが無いため端末ローカルで持つ。 */
 function votedIds() {
@@ -218,6 +220,7 @@ function renderList(container, items) {
         <div class="req-card-main">
           <span class="req-card-title">${escapeHtml(item.title)}</span>
           ${item.artist ? `<span class="req-card-artist">${escapeHtml(item.artist)}</span>` : ''}
+          ${statusBadge(item.status)}
           ${isOwn ? '<span class="req-card-own">自分の投稿</span>' : ''}
         </div>
         <div class="req-card-meta">
