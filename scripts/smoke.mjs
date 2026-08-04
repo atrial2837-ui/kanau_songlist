@@ -81,6 +81,36 @@ try {
   ok(`アイコン ${ (manifest.icons || []).length } 件 OK`);
 } catch (_) { /* 上の JSON チェックで報告済み */ }
 
+// ── 6. マイグレーションファイルの静的検証 ────────────────────────────────────
+// 適用状況の確認には D1 認証が要るため CI では見られない（npm run db:status で確認）。
+// ここではオフラインで分かる事故だけを潰す: 番号の重複と命名規則。
+console.log('D1 マイグレーション:');
+{
+  const ROOT = join(DOCS, '..');
+  // 適用順が曖昧にならないよう d1/migrations に一本化している
+  const dirs = ['d1/migrations'];
+  const seen = new Map(); // 連番 → 最初に使ったファイル
+  let count = 0;
+  for (const dir of dirs) {
+    const abs = join(ROOT, dir);
+    if (!existsSync(abs)) continue;
+    for (const file of readdirSync(abs).filter(f => f.endsWith('.sql'))) {
+      count++;
+      const m = /^(\d{4})_[a-z0-9_]+\.sql$/.exec(file);
+      if (!m) {
+        fail(`命名規則違反 (0000_snake_case.sql): ${dir}/${file}`);
+        continue;
+      }
+      // 番号が重複すると適用順が環境依存になり、再現しない不具合の元になる
+      const prev = seen.get(m[1]);
+      if (prev) fail(`連番の重複 ${m[1]}: ${prev} と ${dir}/${file}`);
+      else seen.set(m[1], `${dir}/${file}`);
+    }
+  }
+  if (!count) fail('マイグレーションファイルが 1 件も無い');
+  else ok(`${count} 件の命名・連番 OK`);
+}
+
 // ── 結果 ────────────────────────────────────────────────────────────────────
 if (failures) {
   console.error(`\nNG: ${failures} 件の問題`);

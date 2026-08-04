@@ -14,6 +14,8 @@
     "refactor:symbols": "node scripts/refactor/symbol-baseline.mjs",
     "refactor:build-compare": "node scripts/refactor/build-compare.mjs",
     "arch": "node scripts/arch-lint.mjs",
+    "db:status": "node scripts/db-migrate.mjs",
+    "db:migrate": "node scripts/db-migrate.mjs --apply",
     "typecheck": "tsc -p jsconfig.json --noEmit"
   },
   "devDependencies": {
