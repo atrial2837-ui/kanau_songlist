@@ -2,6 +2,7 @@ import { state } from '../store.js';
 import { TIMELINE_INITIAL, TIMELINE_STEP } from '../config.js';
 import { $, escapeHtml, fmtDate, streamKey } from '../utils.js';
 import { isStreamInAnyPlaylist } from '../player/playlists-store.js';
+import { groupByYearMonth, sortTimelineStreams, formatStreamSetlist } from './timeline/grouping.js';
 import { icon } from '../icons.js';
 
 const TIMELINE_COPY_ICON = icon('copy');
@@ -252,61 +253,5 @@ function renderItem(s, idx, filter) {
   `;
 }
 
-// ── ユーティリティ ─────────────────────────────────────────────────────────
-
-function groupByYearMonth(streams) {
-  const groups = new Map();
-  for (const s of streams) {
-    const d = s.date instanceof Date ? s.date : new Date(s.date || 0);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = `${d.getFullYear()}年${d.getMonth() + 1}月`;
-    if (!groups.has(key)) groups.set(key, { key, label, streams: [] });
-    groups.get(key).streams.push(s);
-  }
-  return [...groups.values()];
-}
-
-function sortTimelineStreams(streams, sort) {
-  const list = [...streams];
-  const dateTime = (s) => s.date instanceof Date ? s.date.getTime() : new Date(s.date || 0).getTime();
-  const streamIndex = (s) => Number(s.index) || 0;
-  const songCount = (s) => s.songs?.length || 0;
-  const byDateDesc = (a, b) => dateTime(b) - dateTime(a) || streamIndex(b) - streamIndex(a);
-
-  switch (sort) {
-    case 'date-asc':
-      list.sort((a, b) => dateTime(a) - dateTime(b) || streamIndex(a) - streamIndex(b));
-      break;
-    case 'songs-desc':
-      list.sort((a, b) => songCount(b) - songCount(a) || byDateDesc(a, b));
-      break;
-    case 'songs-asc':
-      list.sort((a, b) => songCount(a) - songCount(b) || byDateDesc(a, b));
-      break;
-    case 'index-desc':
-      list.sort((a, b) => streamIndex(b) - streamIndex(a) || byDateDesc(a, b));
-      break;
-    case 'index-asc':
-      list.sort((a, b) => streamIndex(a) - streamIndex(b) || byDateDesc(a, b));
-      break;
-    case 'title':
-      list.sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'ja') || byDateDesc(a, b));
-      break;
-    case 'date-desc':
-    default:
-      list.sort(byDateDesc);
-      break;
-  }
-  return list;
-}
-
-function formatStreamSetlist(stream) {
-  return (stream.songs || [])
-    .map((song) => {
-      const title = String(song?.title || '').trim();
-      const artist = String(song?.artist || '').trim();
-      return artist ? `${title} / ${artist}` : title;
-    })
-    .filter(Boolean)
-    .join('\n');
-}
+// 並び替え・グループ化・セトリ整形は views/timeline/grouping.js が所有する
+// （DOM 非依存の純粋関数としてテストするため分離）
