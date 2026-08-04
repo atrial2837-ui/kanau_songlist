@@ -434,30 +434,6 @@ button.official-link {
   .audience-switch .ch-btn { padding: 0 7px; }
 }
 
-@media (max-width: 700px) {
-  .tabs {
-    position: static;
-    z-index: 45;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    background: var(--surface-glass);
-    border: 1px solid var(--border-soft);
-    border-radius: 20px;
-    box-shadow: var(--shadow);
-    gap: 8px;
-    margin: 20px 0 16px;
-    overflow: visible;
-    padding: 10px;
-  }
-  .tab-btn {
-    justify-content: center;
-    min-width: 0;
-    padding: 9px 10px;
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
 
 .theme-toggle {
   display: inline-flex;
@@ -587,6 +563,17 @@ button.official-link {
 .tabs::-webkit-scrollbar {
   display: none;
 }
+
+/* モバイルではナビが二重になる（この横並びタブ + 右下固定の .mobile-tab-nav）。
+   常時 240px ほど画面を占有して本文を押し下げていたため、固定ナビ側に一本化する。
+   .tabs 内のプロフィール導線は #mobile-tab-panel に「公式リンク」として移設済み。
+   ※ 上の .tabs 定義より後ろに置くこと（同詳細度では後勝ちのため）。 */
+@media (max-width: 700px) {
+  .tabs {
+    display: none;
+  }
+}
+
 .tab-btn {
   display: inline-flex;
   align-items: center;
@@ -932,23 +919,8 @@ button.official-link {
 }
 
 @media (max-width: 700px) {
-  .tabs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-    gap: 6px;
-    margin: 20px 0 16px;
-    padding: 6px;
-    border-radius: 16px;
-    overflow: visible;
-  }
-  .tab-btn {
-    min-width: 0;
-    padding: 8px 8px;
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  /* ナビは右下固定の .mobile-tab-nav に一本化（上の同メディアクエリ内で display:none 済み）。
+     ここで再度グリッド表示に戻さないよう、定義を復活させないこと。 */
   .mobile-tab-nav {
     position: fixed;
     right: 14px;
@@ -1035,6 +1007,15 @@ button.official-link {
     background: linear-gradient(135deg, var(--primary), var(--primary-strong));
     border-color: var(--primary-strong);
     color: #fff;
+  }
+  /* タブ移動ではない補助項目（公式リンク）。2列を跨いで区切って見せる */
+  .mobile-tab-item--sub {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+    border-style: dashed;
+    background: var(--surface-2);
+    color: var(--ink-mute);
+    font-weight: 700;
   }
 }
 

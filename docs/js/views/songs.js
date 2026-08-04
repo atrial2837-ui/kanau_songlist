@@ -62,9 +62,6 @@ export function renderSongs() {
       <h2>${state.singerMode ? `${icon('mic')} 選曲ボード` : `${icon('music')} 全曲リスト`}</h2>
       <span class="count-pill" id="songs-count">—</span>
     </div>
-    <div class="mobile-panel-switch">
-      <button class="btn ghost active" type="button" data-mobile-panel-toggle="filters">絞り込み</button>
-    </div>
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="songs-search-shell">
         <div class="search-input-wrap">
@@ -250,9 +247,6 @@ export function renderSongs() {
   $('#setlist-toggle-btn')?.addEventListener('click', () => toggleSetlistPlanner());
   $('#recommend-btn')?.addEventListener('click', () => showRecommendation());
   $('#todays-song-btn')?.addEventListener('click', () => showTodaysSong());
-  for (const btn of panel.querySelectorAll('[data-mobile-panel-toggle]')) {
-    btn.addEventListener('click', () => toggleMobilePanel(btn.dataset.mobilePanelToggle));
-  }
   panel.onclick = (e) => {
     const clearBtn = e.target.closest('#search-history-clear');
     if (clearBtn) {
@@ -400,34 +394,6 @@ function showSearchHistory() {
 function hideSearchHistory() {
   const dropdown = $('#search-history-dropdown');
   if (dropdown) dropdown.hidden = true;
-}
-
-function toggleMobilePanel(panelName) {
-  const filters = $('#songs-filter-panel');
-  const setlist = $('#setlist-planner');
-  if (panelName === 'setlist' && !state.singerMode) {
-    filters?.classList.add('is-open');
-    setlist?.classList.remove('is-open');
-    for (const btn of document.querySelectorAll('[data-mobile-panel-toggle]')) {
-      btn.classList.toggle('active', btn.dataset.mobilePanelToggle === 'filters');
-    }
-    return;
-  }
-  if (state.singerMode) {
-    filters?.classList.add('is-open');
-    const target = filters;
-    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    for (const btn of document.querySelectorAll('[data-mobile-panel-toggle]')) {
-      btn.classList.toggle('active', btn.dataset.mobilePanelToggle === 'filters');
-    }
-    return;
-  }
-  const showSetlist = panelName === 'setlist';
-  filters?.classList.toggle('is-open', !showSetlist);
-  setlist?.classList.toggle('is-open', showSetlist);
-  for (const btn of document.querySelectorAll('[data-mobile-panel-toggle]')) {
-    btn.classList.toggle('active', btn.dataset.mobilePanelToggle === panelName);
-  }
 }
 
 function genreLabel(song) {

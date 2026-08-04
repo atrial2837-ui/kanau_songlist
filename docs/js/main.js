@@ -407,12 +407,19 @@ function initMobileTabNav() {
   });
 
   panel.addEventListener('click', (event) => {
+    // 公式リンクなどタブ移動以外の項目も、押したらパネルを閉じる
+    // （モーダルがパネルの裏に隠れてしまうため）
+    if (event.target.closest('[data-ch-modal]')) {
+      setOpen(false);
+      return;
+    }
     const item = event.target.closest('[data-mobile-tab]');
     if (!item) return;
     const tab = item.dataset.mobileTab;
     setOpen(false);
     activateTab(tab);
-    document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // モバイルでは .tabs を隠しているため、本文の先頭へ戻す
+    document.querySelector('.panels')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   document.addEventListener('click', (event) => {
