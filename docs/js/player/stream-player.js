@@ -933,8 +933,8 @@ function _svSongRow(song, i, ts, currentIdx) {
     <span class="sv-song-num">${i + 1}</span>
     <div class="sv-song-lead">${leadBadge}</div>
     <div class="sv-song-info">
-      <span class="sv-song-title">${escapeHtml(song.title)}</span>
-      <span class="sv-song-artist">${escapeHtml(song.artist)}</span>
+      <span class="sv-song-title" title="${escapeHtml(song.title)}">${escapeHtml(song.title)}</span>
+      <span class="sv-song-artist" title="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span>
     </div>
     <div class="sv-song-actions">${memoChip}${delBtn}<button class="sv-ts-set" data-idx="${i}" data-action="set-ts" title="現在の再生時刻を自分用にメモする">${icon('time')}</button><button class="sv-cts-propose" data-idx="${i}" data-action="cts-propose" type="button" title="この曲の正しい開始時刻を提案する" aria-label="開始時刻を提案">${icon('plus')}</button></div>
     ${extraRow}

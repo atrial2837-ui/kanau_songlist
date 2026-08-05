@@ -2820,8 +2820,9 @@ body.has-sv-fullscreen .container { z-index: auto; }
 .sv-song {
   display: grid;
   /* 番号 / 曲の頭の時刻 / 曲名 / 操作。
-     時刻は h:mm:ss まで入る固定幅にし、余りは曲名へ回す（セトリ列は300px前後しかない） */
-  grid-template-columns: 22px 64px minmax(0, 1fr) auto;
+     セトリ列は300px前後しかないので、時刻はバッジの実寸ぶんだけ取り
+     （max-content。固定幅にすると曲名の省略が増える）、余りは曲名へ回す */
+  grid-template-columns: 22px max-content minmax(0, 1fr) auto;
   grid-template-rows: auto auto;
   column-gap: 8px;
   padding: 10px 14px;
@@ -2870,7 +2871,8 @@ body.has-sv-fullscreen .container { z-index: auto; }
 }
 
 .sv-song-info {
-  grid-column: 2;
+  /* 2列目は開始時刻のバッジ。曲名は3列目に置く（同じセルに重ねない） */
+  grid-column: 3;
   grid-row: 1;
   min-width: 0;
   overflow: hidden;
@@ -2925,8 +2927,7 @@ body.has-sv-fullscreen .container { z-index: auto; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  padding: 2px 4px;
+  padding: 2px 6px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--primary) 14%, var(--surface));
