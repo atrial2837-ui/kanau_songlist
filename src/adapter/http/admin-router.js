@@ -22,6 +22,8 @@ import { syncKeyReferenceUrl } from '../../usecase/sync-key-reference-url.js';
 import { loadAdminStatus } from '../../usecase/load-admin-status.js';
 import { listTimestampSubmissions } from '../../usecase/timestamp/list-timestamp-submissions.js';
 import { reviewTimestamp } from '../../usecase/timestamp/review-timestamp.js';
+import { saveApprovedTimestamps } from '../../usecase/timestamp/save-approved-timestamps.js';
+import { getApprovedTimestamps } from '../../usecase/timestamp/get-approved-timestamps.js';
 import { ValidationError } from '../../domain/error/validation-error.js';
 import { NotFoundError } from '../../domain/error/not-found-error.js';
 
@@ -180,6 +182,31 @@ export function buildAdminRouter(options) {
       total: result.total,
       page:  result.page,
       limit: result.limit,
+    });
+  }));
+
+  /** 打刻ツール用: 1枠ぶんをまとめて承認済みで保存（既存の承認済みは置き換え） */
+  router.post(p('/timestamps/bulk'), auth(async (ctx) => {
+    const deps = getDeps(ctx);
+    const body = (await readJsonBody(ctx.request)) || {};
+    const result = await saveApprovedTimestamps(deps, {
+      channelCode:  body.channelCode,
+      streamIndex:  Number(body.streamIndex),
+      items:        body.items,
+      reviewerNote: body.reviewerNote ?? null,
+    });
+    return jsonResponse({ ok: true, count: result.count });
+  }));
+
+  /** 打刻ツール用: 打ち直しのために既存の承認済みを読み戻す */
+  router.get(p('/timestamps/approved'), auth(async (ctx) => {
+    const deps = getDeps(ctx);
+    const items = await getApprovedTimestamps(deps, {
+      channelCode: ctx.query.get('channelCode'),
+      streamIndex: Number(ctx.query.get('streamIndex')),
+    });
+    return jsonResponse({
+      items: items.map((ts) => ({ songIndex: ts.songIndex, timeSeconds: ts.timeSeconds })),
     });
   }));
 

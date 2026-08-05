@@ -15,6 +15,8 @@ import {
   youtubeThumbFallback,
   youtubeThumbHq,
   youtubeThumbTiny,
+  youtubeUrlAt,
+  fmtTs,
   streamKey,
   groupBy,
   sumBy,
@@ -150,5 +152,65 @@ describe('highlightText', () => {
 
   it('正規表現メタ文字を含むクエリでも壊れない', () => {
     assert.doesNotThrow(() => highlightText('a+b (c)', ['+', '(']));
+  });
+});
+
+describe('youtubeUrlAt', () => {
+  it('クエリ付きURLに開始位置を足す', () => {
+    assert.equal(
+      youtubeUrlAt('https://www.youtube.com/live/abc?si=xyz', 904),
+      'https://www.youtube.com/live/abc?si=xyz&t=904',
+    );
+  });
+
+  it('クエリの無いURLには ? で足す', () => {
+    assert.equal(youtubeUrlAt('https://youtu.be/abc', 90), 'https://youtu.be/abc?t=90');
+  });
+
+  it('既に t が付いていれば付け替える（二重に付けない）', () => {
+    assert.equal(youtubeUrlAt('https://youtu.be/abc?t=10', 90), 'https://youtu.be/abc?t=90');
+    assert.equal(
+      youtubeUrlAt('https://www.youtube.com/watch?v=abc&t=10&si=z', 90),
+      'https://www.youtube.com/watch?v=abc&si=z&t=90',
+    );
+  });
+
+  it('小数は切り捨てる', () => {
+    assert.equal(youtubeUrlAt('https://youtu.be/abc', 90.9), 'https://youtu.be/abc?t=90');
+  });
+
+  it('秒数が無い・0以下ならURLを変えない', () => {
+    const url = 'https://youtu.be/abc?si=xyz';
+    assert.equal(youtubeUrlAt(url, null), url);
+    assert.equal(youtubeUrlAt(url, undefined), url);
+    assert.equal(youtubeUrlAt(url, 0), url);
+    assert.equal(youtubeUrlAt(url, -5), url);
+  });
+
+  it('URLが空なら空を返す', () => {
+    assert.equal(youtubeUrlAt('', 90), '');
+    assert.equal(youtubeUrlAt(null, 90), '');
+  });
+
+  it('ハッシュを壊さない', () => {
+    assert.equal(youtubeUrlAt('https://youtu.be/abc#frag', 90), 'https://youtu.be/abc?t=90#frag');
+  });
+});
+
+describe('fmtTs', () => {
+  it('1時間未満は m:ss', () => {
+    assert.equal(fmtTs(904), '15:04');
+    assert.equal(fmtTs(0), '0:00');
+  });
+
+  it('1時間以上は h:mm:ss', () => {
+    assert.equal(fmtTs(3647), '1:00:47');
+    assert.equal(fmtTs(8785), '2:26:25');
+  });
+
+  it('数値でなければ空文字', () => {
+    assert.equal(fmtTs(null), '');
+    assert.equal(fmtTs(undefined), '');
+    assert.equal(fmtTs(-1), '');
   });
 });

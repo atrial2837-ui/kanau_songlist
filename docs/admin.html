@@ -92,13 +92,106 @@
 
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
       <h3 style="margin:0 0 12px;font-size:15px">セトリ編集</h3>
-      <label class="admin-field-full">曲リスト<textarea id="edit-songs-text" rows="12" placeholder="曲名 / アーティスト&#10;曲名 / アーティスト | +2 | アニソン"></textarea></label>
+      <p class="admin-note" id="setlist-count">曲リスト</p>
+      <div id="setlist-rows-wrap"></div>
+      <div class="admin-actions">
+        <button class="btn ghost" id="add-setlist-row-btn" type="button">＋ 曲を追加</button>
+        <button class="btn ghost" id="toggle-setlist-text-btn" type="button" aria-expanded="false" aria-controls="setlist-text-box">テキストで一括編集</button>
+      </div>
+
+      <div id="setlist-text-box" hidden>
+        <label class="admin-field-full">曲リスト（1行に1曲）<textarea id="edit-songs-text" rows="12" placeholder="曲名 / アーティスト&#10;曲名 / アーティスト | +2 | アニソン"></textarea></label>
+        <div class="admin-actions">
+          <button class="btn ghost" id="apply-setlist-text-btn" type="button">テキストを反映</button>
+        </div>
+        <p class="admin-note">貼り付けで一括入力する場合はこちら。「テキストを反映」を押すと上の一覧に取り込みます。</p>
+      </div>
+
       <div class="admin-actions">
         <button class="btn ghost" id="preview-edit-stream-btn" type="button">プレビュー</button>
         <button class="btn primary" id="save-setlist-btn" type="button">セトリを保存</button>
       </div>
       <p class="admin-note" id="setlist-status"></p>
       <div id="edit-preview-box"></div>
+    </div>
+  </section>
+
+  <section class="admin-panel" id="marker-section">
+    <div class="section-header">
+      <h2>タイムスタンプ打刻</h2>
+      <span class="badge" id="marker-badge">選択中なし</span>
+    </div>
+    <p class="admin-note">
+      固定コメントが無い歌枠に時刻を付けるツールです。曲の<strong>開始</strong>と<strong>終了</strong>を打刻すると、
+      コメント用テキストは両方を、サイト（D1）へは<strong>開始だけ</strong>を保存します。
+    </p>
+    <div class="admin-form-grid">
+      <label>チャンネル<select id="marker-channel"></select></label>
+      <label>歌枠<select id="marker-stream"></select></label>
+    </div>
+    <div class="admin-actions">
+      <button class="btn ghost" id="marker-load-streams-btn" type="button">歌枠一覧を読み込む</button>
+      <button class="btn primary" id="marker-open-btn" type="button">この枠を開く</button>
+    </div>
+    <p class="admin-note" id="marker-status"></p>
+
+    <div id="marker-workspace" hidden>
+      <div class="marker-layout">
+        <div class="marker-player-col">
+          <div class="marker-player-frame"><div id="marker-player"></div></div>
+          <p class="admin-note marker-now">現在位置 <strong id="marker-current">0:00</strong> <span id="marker-duration"></span></p>
+          <div class="marker-keys">
+            <div><kbd>Space</kbd> 開始を打刻して次へ</div>
+            <div><kbd>E</kbd> 直前に開始した曲の終了を打刻</div>
+            <div><kbd>←</kbd><kbd>→</kbd> 5秒　<kbd>Shift</kbd>+ 30秒　<kbd>Ctrl</kbd>+ 5分</div>
+            <div><kbd>↑</kbd><kbd>↓</kbd> 対象の曲を移動</div>
+            <div><kbd>N</kbd><kbd>P</kbd> 次/前のチャットの山へ　<kbd>J</kbd> 次の手がかりへ</div>
+            <div><kbd>Backspace</kbd> 対象の打刻を消す　<kbd>K</kbd> 再生/停止</div>
+          </div>
+          <label class="marker-toggle">
+            <input id="marker-auto-jump" type="checkbox" checked>
+            打刻したら次の手がかりへ自動で移動する
+          </label>
+          <div class="admin-actions">
+            <label class="marker-file-label">
+              チャットの山を読み込む
+              <input id="marker-anchor-file" type="file" accept=".json,application/json">
+            </label>
+          </div>
+          <p class="admin-note" id="marker-anchor-status">
+            <code>node tools/chat-spikes.mjs &lt;URL&gt; --songs N</code> の出力を読み込むと、拍手の山へ一気に飛べます。
+          </p>
+        </div>
+
+        <div class="marker-list-col">
+          <div class="marker-meta" id="marker-meta"></div>
+          <div id="marker-rows-wrap"></div>
+          <p class="admin-note" id="marker-issues"></p>
+          <div class="admin-actions">
+            <button class="btn primary" id="marker-save-btn" type="button">サイトに開始時刻を保存</button>
+            <button class="btn ghost" id="marker-clear-btn" type="button">全部消す</button>
+          </div>
+          <p class="admin-note" id="marker-save-status"></p>
+        </div>
+      </div>
+
+      <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)">
+      <h3 style="margin:0 0 12px;font-size:15px">コメント用テキスト</h3>
+      <div class="admin-form-grid">
+        <label>行の形式<select id="marker-template"></select></label>
+        <label>時刻の表記<select id="marker-time-format">
+          <option value="auto">自動（1時間未満は m:ss）</option>
+          <option value="hms">常に h:mm:ss</option>
+          <option value="ms">常に m:ss</option>
+        </select></label>
+      </div>
+      <label class="admin-field-full">末尾に足す行（任意）<input id="marker-footer" type="text" placeholder="#夢川かなう #歌枠"></label>
+      <label class="admin-field-full">プレビュー（そのまま手直しできます）<textarea id="marker-comment" rows="14" spellcheck="false"></textarea></label>
+      <div class="admin-actions">
+        <button class="btn primary" id="marker-copy-btn" type="button">コピー</button>
+        <button class="btn ghost" id="marker-regen-btn" type="button">打刻から作り直す</button>
+      </div>
+      <p class="admin-note" id="marker-copy-status">手直しした内容はコピーにそのまま反映されます。「作り直す」を押すと打刻内容から再生成します。</p>
     </div>
   </section>
 

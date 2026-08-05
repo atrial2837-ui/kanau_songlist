@@ -60,6 +60,8 @@ export async function generateStaticData(deps) {
   // buildDataset で全データセットを取得
   const dataset = await buildDataset(deps);
 
+  await attachTimestamps(deps, dataset);
+
   // 現在時刻を ISO 文字列で取得
   const generatedAt = deps.clock.now().toISOString();
 
@@ -87,4 +89,36 @@ export async function generateStaticData(deps) {
   };
 
   return split;
+}
+
+/**
+ * 承認済みタイムスタンプを各曲へ `t`（開始秒）として付ける。
+ *
+ * これを埋めておくことで、曲詳細から「その曲が始まる位置」へ直接飛べる。
+ * フロントが枠ごとに API を叩かずに済むよう、静的データに含めるのが狙い。
+ *
+ * timestamps リポジトリを持たない構成（既存のテストなど）では何もしない。
+ *
+ * @param {GenerateStaticDataDeps & { timestamps?: { getAllApproved: () => Promise<object[]> } }} deps
+ * @param {{ channels: Record<string, { streams: object[] }> }} dataset
+ */
+async function attachTimestamps(deps, dataset) {
+  if (!deps.timestamps?.getAllApproved) return;
+
+  const rows = await deps.timestamps.getAllApproved();
+  if (!rows?.length) return;
+
+  const byKey = new Map();
+  for (const row of rows) {
+    byKey.set(`${row.channelCode}#${row.streamIndex}#${row.songIndex}`, row.timeSeconds);
+  }
+
+  for (const [code, channelData] of Object.entries(dataset.channels || {})) {
+    for (const stream of channelData.streams || []) {
+      (stream.songs || []).forEach((song, i) => {
+        const seconds = byKey.get(`${code}#${stream.index}#${i}`);
+        if (seconds != null) song.t = seconds;
+      });
+    }
+  }
 }

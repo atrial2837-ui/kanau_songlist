@@ -49,7 +49,8 @@ function formatStaticStreamRecord(stream) {
     title: stream.title,
     url: stream.url,
     songCount: stream.songCount,
-    songs: stream.songs.map(({ key }) => ({ key })),
+    // t は曲の開始秒（承認済みタイムスタンプ）。無い曲では欠落させて容量を抑える。
+    songs: stream.songs.map(({ key, t }) => (t == null ? { key } : { key, t })),
   };
 }
 

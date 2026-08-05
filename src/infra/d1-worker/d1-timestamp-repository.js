@@ -30,6 +30,44 @@ export class D1TimestampRepository {
   }
 
   /**
+   * 特定の配信枠の承認済みタイムスタンプを、渡した内容で置き換える（管理者用）。
+   *
+   * 管理画面の打刻ツールが1枠ぶんをまとめて登録するための操作。
+   * 投稿→承認の2手を踏まず、最初から approved で入れる。
+   * 打ち直しに対応するため、既存の承認済み行は先に消す。
+   * pending / rejected の投稿には触れない（ユーザー投稿の履歴を残すため）。
+   *
+   * @param {string} channelCode
+   * @param {number} streamIndex
+   * @param {{songIndex:number, timeSeconds:number}[]} items
+   * @param {string} reviewedAt - ISO 8601
+   * @param {string|null} [reviewerNote]
+   * @returns {Promise<number>} 登録した件数
+   */
+  async replaceApproved(channelCode, streamIndex, items, reviewedAt, reviewerNote = null) {
+    await this.client.run(
+      `DELETE FROM community_timestamps
+       WHERE channel_code = ? AND stream_index = ? AND status = 'approved'`,
+      channelCode,
+      streamIndex,
+    );
+    for (const item of items) {
+      await this.client.run(
+        `INSERT INTO community_timestamps
+           (channel_code, stream_index, song_index, time_seconds, status, reviewed_at, reviewer_note)
+         VALUES (?, ?, ?, ?, 'approved', ?, ?)`,
+        channelCode,
+        streamIndex,
+        item.songIndex,
+        item.timeSeconds,
+        reviewedAt,
+        reviewerNote,
+      );
+    }
+    return items.length;
+  }
+
+  /**
    * 投稿一覧を取得する（管理者用）。
    *
    * @param {object} [opts]

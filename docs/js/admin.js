@@ -3,7 +3,32 @@ import { $, fmtDate, formatNumber } from './utils.js';
 import { loadAll } from './data.js';
 import { CHANNELS, DEFAULT_CHANNEL } from './config.js';
 import { state } from './store.js';
-import { collectDatasetIssues } from './domain-compat.js';
+import { collectDatasetIssues, GENRE_LIST } from './domain-compat.js';
+import {
+  parseSetlistText,
+  serializeSetlistRows,
+  moveSetlistRow,
+  removeSetlistRow,
+  insertSetlistRow,
+  updateSetlistRow,
+} from './admin/setlist-rows.js';
+import {
+  COMMENT_TEMPLATES,
+  DEFAULT_META_ROWS,
+  formatSeconds,
+  parseTimeInput,
+  createMarks,
+  setMark,
+  nextUnmarkedIndex,
+  endTargetIndex,
+  findMarkIssues,
+  nextAnchor,
+  prevAnchor,
+  nextJumpTarget,
+  buildCommentText,
+  buildSavePayload,
+  marksFromItems,
+} from './admin/timestamp-marker.js';
 
 initTheme();
 
@@ -697,6 +722,152 @@ function initMusicVideos() {
 /* ─── 歌枠・セトリ編集 ────────────────────────────────────────────────────── */
 
 let _editStreamId = null;
+/** @type {import('./admin/setlist-rows.js').SetlistRow[]} */
+let _setlistRows = [];
+/** ドラッグ中の行位置。ドラッグしていないときは null。 */
+let _dragFrom = null;
+
+const SETLIST_FIELDS = ['title', 'artist', 'displayKey', 'genre'];
+
+function _setlistRowHtml(row, i, total) {
+  const cell = (field, placeholder, extra = '') => `
+    <td><input data-setlist-field="${field}" data-setlist-index="${i}"
+      value="${escapeHtml(row[field] || '')}" placeholder="${placeholder}" ${extra}></td>`;
+  return `
+    <tr data-setlist-row="${i}" draggable="true">
+      <td class="setlist-handle" title="ドラッグで並び替え" aria-hidden="true">⠿</td>
+      <td class="setlist-pos">${i + 1}</td>
+      ${cell('title', '曲名')}
+      ${cell('artist', 'アーティスト')}
+      ${cell('displayKey', '±0 / 原キー')}
+      ${cell('genre', 'ジャンル', 'list="setlist-genre-list"')}
+      <td class="setlist-ops">
+        <button class="btn ghost" type="button" data-setlist-move="up" data-setlist-index="${i}"
+          ${i === 0 ? 'disabled' : ''} aria-label="${i + 1}曲目を上へ">↑</button>
+        <button class="btn ghost" type="button" data-setlist-move="down" data-setlist-index="${i}"
+          ${i === total - 1 ? 'disabled' : ''} aria-label="${i + 1}曲目を下へ">↓</button>
+        <button class="btn ghost" type="button" data-setlist-insert="${i}"
+          aria-label="${i + 1}曲目の下に追加" title="この下に追加">＋</button>
+        <button class="btn ghost setlist-remove" type="button" data-setlist-remove="${i}"
+          aria-label="${i + 1}曲目を削除" title="削除">✕</button>
+      </td>
+    </tr>`;
+}
+
+/**
+ * セトリ行を描画する。
+ * @param {string} [focus] - 描画後にフォーカスを戻す要素のセレクタ（連続クリック用）。
+ */
+function _renderSetlistRows(focus) {
+  const wrap = $('#setlist-rows-wrap');
+  if (!wrap) return;
+
+  if (!_setlistRows.length) {
+    wrap.innerHTML = '<p class="admin-note">曲がありません。「＋ 曲を追加」かテキスト一括編集から追加してください。</p>';
+  } else {
+    wrap.innerHTML = `
+      <div class="admin-table-wrap">
+        <table class="admin-table setlist-table">
+          <thead>
+            <tr><th></th><th>#</th><th>曲名</th><th>アーティスト</th><th>キー</th><th>ジャンル</th><th>操作</th></tr>
+          </thead>
+          <tbody>${_setlistRows.map((row, i) => _setlistRowHtml(row, i, _setlistRows.length)).join('')}</tbody>
+        </table>
+      </div>
+      <datalist id="setlist-genre-list">
+        ${GENRE_LIST.map((g) => `<option value="${escapeHtml(g)}"></option>`).join('')}
+      </datalist>`;
+  }
+
+  const count = $('#setlist-count');
+  if (count) count.textContent = `曲リスト — ${_setlistRows.length}曲`;
+  if (focus) /** @type {HTMLElement|null} */ (wrap.querySelector(focus))?.focus();
+}
+
+/** 行配列を差し替えて描画する。 */
+function _setSetlistRows(rows, focus) {
+  _setlistRows = rows;
+  _renderSetlistRows(focus);
+  const status = $('#setlist-status');
+  if (status) status.textContent = '未保存の変更があります。「セトリを保存」で確定します。';
+}
+
+function _initSetlistRowEvents() {
+  const wrap = $('#setlist-rows-wrap');
+  if (!wrap) return;
+
+  // 入力は state だけ更新する（再描画するとフォーカスが飛ぶため）
+  wrap.addEventListener('input', (event) => {
+    const input = event.target.closest('[data-setlist-field]');
+    if (!input) return;
+    const field = input.dataset.setlistField;
+    if (!SETLIST_FIELDS.includes(field)) return;
+    _setlistRows = updateSetlistRow(_setlistRows, Number(input.dataset.setlistIndex), field, input.value);
+    const status = $('#setlist-status');
+    if (status) status.textContent = '未保存の変更があります。「セトリを保存」で確定します。';
+  });
+
+  wrap.addEventListener('click', (event) => {
+    const move = event.target.closest('[data-setlist-move]');
+    if (move) {
+      const from = Number(move.dataset.setlistIndex);
+      const to = move.dataset.setlistMove === 'up' ? from - 1 : from + 1;
+      // 押したボタンを追いかけてフォーカスし、連続で押せるようにする
+      _setSetlistRows(moveSetlistRow(_setlistRows, from, to),
+        `[data-setlist-move="${move.dataset.setlistMove}"][data-setlist-index="${to}"]`);
+      return;
+    }
+    const insert = event.target.closest('[data-setlist-insert]');
+    if (insert) {
+      const at = Number(insert.dataset.setlistInsert) + 1;
+      _setSetlistRows(insertSetlistRow(_setlistRows, at),
+        `[data-setlist-field="title"][data-setlist-index="${at}"]`);
+      return;
+    }
+    const remove = event.target.closest('[data-setlist-remove]');
+    if (remove) {
+      const i = Number(remove.dataset.setlistRemove);
+      const label = _setlistRows[i]?.title || `${i + 1}曲目`;
+      if (!confirm(`「${label}」をセトリから外します。よろしいですか？`)) return;
+      _setSetlistRows(removeSetlistRow(_setlistRows, i));
+    }
+  });
+
+  // ドラッグ&ドロップでの並び替え（↑↓ でも同じことができる）
+  wrap.addEventListener('dragstart', (event) => {
+    const tr = event.target.closest('[data-setlist-row]');
+    if (!tr) return;
+    _dragFrom = Number(tr.dataset.setlistRow);
+    event.dataTransfer.effectAllowed = 'move';
+    // Firefox はデータをセットしないと dragover が発火しない
+    event.dataTransfer.setData('text/plain', String(_dragFrom));
+  });
+  wrap.addEventListener('dragover', (event) => {
+    if (_dragFrom === null) return;
+    const tr = event.target.closest('[data-setlist-row]');
+    if (!tr) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    tr.classList.add('is-drop-target');
+  });
+  wrap.addEventListener('dragleave', (event) => {
+    event.target.closest('[data-setlist-row]')?.classList.remove('is-drop-target');
+  });
+  wrap.addEventListener('drop', (event) => {
+    const tr = event.target.closest('[data-setlist-row]');
+    if (_dragFrom === null || !tr) return;
+    event.preventDefault();
+    const to = Number(tr.dataset.setlistRow);
+    const from = _dragFrom;
+    _dragFrom = null;
+    if (from !== to) _setSetlistRows(moveSetlistRow(_setlistRows, from, to));
+    else tr.classList.remove('is-drop-target');
+  });
+  wrap.addEventListener('dragend', () => {
+    _dragFrom = null;
+    wrap.querySelectorAll('.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+  });
+}
 
 function _streamListRow(stream) {
   const label = stream.title || `第${stream.source_index ?? stream.id}枠`;
@@ -740,6 +911,8 @@ async function _loadStreamForEdit(streamId) {
     $('#edit-stream-title').value = s.title || '';
     $('#edit-stream-url').value = s.url || '';
     $('#edit-songs-text').value = data.songsText || '';
+    _setlistRows = parseSetlistText(data.songsText || '');
+    _renderSetlistRows();
     $('#edit-preview-box').innerHTML = '';
     $('#stream-info-status').textContent = '';
     $('#setlist-status').textContent = '';
@@ -793,6 +966,28 @@ function initStreamEdit() {
     }
   });
 
+  _initSetlistRowEvents();
+
+  $('#add-setlist-row-btn')?.addEventListener('click', () => {
+    _setSetlistRows(insertSetlistRow(_setlistRows),
+      `[data-setlist-field="title"][data-setlist-index="${_setlistRows.length}"]`);
+  });
+
+  // テキスト一括編集は開いたときに現在の行内容を流し込み、閉じるまで一覧と切り離す
+  $('#toggle-setlist-text-btn')?.addEventListener('click', (event) => {
+    const box = $('#setlist-text-box');
+    const opening = box.hidden;
+    if (opening) $('#edit-songs-text').value = serializeSetlistRows(_setlistRows);
+    box.hidden = !opening;
+    event.currentTarget.setAttribute('aria-expanded', String(opening));
+    event.currentTarget.textContent = opening ? 'テキスト編集を閉じる' : 'テキストで一括編集';
+  });
+
+  $('#apply-setlist-text-btn')?.addEventListener('click', () => {
+    _setSetlistRows(parseSetlistText($('#edit-songs-text').value));
+    $('#setlist-status').textContent = `テキストから ${_setlistRows.length}曲を取り込みました。「セトリを保存」で確定します。`;
+  });
+
   $('#preview-edit-stream-btn')?.addEventListener('click', async () => {
     $('#setlist-status').textContent = 'プレビュー中…';
     try {
@@ -802,7 +997,7 @@ function initStreamEdit() {
         streamedOn: $('#edit-streamed-on').value,
         title: $('#edit-stream-title').value,
         url: $('#edit-stream-url').value,
-        songsText: $('#edit-songs-text').value,
+        songsText: serializeSetlistRows(_setlistRows),
       });
       $('#edit-preview-box').innerHTML = `
         <div class="admin-table-wrap">
@@ -830,17 +1025,435 @@ function initStreamEdit() {
 
   $('#save-setlist-btn')?.addEventListener('click', async () => {
     if (!_editStreamId) return;
-    if (!confirm('このセトリに完全に置き換えます。よろしいですか？')) return;
+    const songsText = serializeSetlistRows(_setlistRows);
+    if (!songsText) {
+      $('#setlist-status').textContent = '曲が1件もありません。曲名が空の行は保存されません。';
+      return;
+    }
+    const dropped = _setlistRows.length - songsText.split('\n').length;
+    const note = dropped > 0 ? `\n（曲名が空の${dropped}行は除外されます）` : '';
+    if (!confirm(`このセトリ ${songsText.split('\n').length}曲に完全に置き換えます。よろしいですか？${note}`)) return;
     $('#setlist-status').textContent = '保存中…';
     try {
-      const data = await adminApi(`streams/${_editStreamId}/setlist`, {
-        songsText: $('#edit-songs-text').value,
-      });
+      const data = await adminApi(`streams/${_editStreamId}/setlist`, { songsText });
       $('#setlist-status').textContent = `セトリを保存しました: ${data.count}曲。必要なら静的データ生成を実行してください。`;
     } catch (err) {
       $('#setlist-status').textContent = `エラー: ${err.message || err}`;
     }
   });
+}
+
+/* ─── タイムスタンプ打刻 ─────────────────────────────────────────────────── */
+
+/**
+ * 固定コメントが無い歌枠に時刻を付けるためのツール。
+ * 曲の開始と終了を打刻し、コメント用テキストは両方を、D1 へは開始だけを保存する
+ * （community_timestamps は1曲1時刻で、サイトが使うのは開始地点のため）。
+ */
+
+const MK_SEEK_STEPS = { normal: 5, shift: 30, ctrl: 300 };
+
+let _mkStream = null;      // { id, sourceIndex, channelCode, videoId, title }
+let _mkSongs = [];         // [{ title, artist }]
+let _mkMarks = [];         // [{ start, end }]
+let _mkMeta = { start: null, voice: null };
+let _mkTarget = 0;         // 打刻対象の曲
+let _mkAnchors = [];       // チャットの山（秒）
+let _mkPlayer = null;
+let _mkTicker = null;
+let _mkCommentDirty = false; // プレビューを手直ししたら自動再生成しない
+
+const _mkVideoId = (url) => (String(url || '').match(/(?:live\/|v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/) || [])[1] || '';
+const _mkDuration = () => (_mkPlayer?.getDuration ? Math.floor(_mkPlayer.getDuration()) : 0);
+
+// seekTo の直後は getCurrentTime() がしばらく前の値を返すため、
+// 指示した位置を覚えておき、キー連打でシークが積み上がるようにする。
+let _mkPendingSeek = null;
+let _mkPendingTimer = null;
+
+/** いま何秒地点にいるか。シーク直後は指示値を優先する。 */
+function _mkTime() {
+  if (_mkPendingSeek != null) return _mkPendingSeek;
+  return _mkPlayer?.getCurrentTime ? Math.floor(_mkPlayer.getCurrentTime()) : 0;
+}
+
+function _mkSeek(seconds) {
+  if (!_mkPlayer?.seekTo) return;
+  const duration = _mkDuration();
+  const to = Math.max(0, duration ? Math.min(seconds, duration) : seconds);
+  _mkPendingSeek = to;
+  _mkPlayer.seekTo(to, true);
+  _mkRenderNow(to);
+  // プレイヤーが追いついたら実測値に戻す
+  clearTimeout(_mkPendingTimer);
+  _mkPendingTimer = setTimeout(() => { _mkPendingSeek = null; }, 700);
+}
+
+function _mkRenderNow(seconds) {
+  const el = $('#marker-current');
+  if (el) el.textContent = formatSeconds(seconds ?? _mkTime());
+}
+
+/** YouTube IFrame API を読み込む（1度だけ）。 */
+function _mkLoadYouTubeApi() {
+  if (window.YT?.Player) return Promise.resolve();
+  if (!_mkLoadYouTubeApi._promise) {
+    _mkLoadYouTubeApi._promise = new Promise((resolve) => {
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { prev?.(); resolve(); };
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    });
+  }
+  return _mkLoadYouTubeApi._promise;
+}
+
+function _mkRowHtml(song, i) {
+  const mark = _mkMarks[i] || {};
+  const isTarget = i === _mkTarget;
+  return `
+    <tr data-mk-row="${i}" class="${isTarget ? 'is-target' : ''}">
+      <td class="marker-pos">${i + 1}</td>
+      <td class="marker-song">
+        <div class="marker-title">${escapeHtml(song.title)}</div>
+        ${song.artist ? `<div class="marker-artist">${escapeHtml(song.artist)}</div>` : ''}
+      </td>
+      <td><input class="marker-time" data-mk-field="start" data-mk-index="${i}"
+        value="${formatSeconds(mark.start)}" placeholder="開始" inputmode="numeric"></td>
+      <td><input class="marker-time" data-mk-field="end" data-mk-index="${i}"
+        value="${formatSeconds(mark.end)}" placeholder="終了" inputmode="numeric"></td>
+      <td class="marker-ops">
+        <button class="btn ghost" type="button" data-mk-goto="${i}" title="この時刻へ移動"
+          ${mark.start == null ? 'disabled' : ''}>▶</button>
+        <button class="btn ghost" type="button" data-mk-clear="${i}" title="この曲の打刻を消す">✕</button>
+      </td>
+    </tr>`;
+}
+
+function _mkRenderRows() {
+  const wrap = $('#marker-rows-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = `
+    <div class="admin-table-wrap">
+      <table class="admin-table marker-table">
+        <thead><tr><th>#</th><th>曲</th><th>開始</th><th>終了</th><th></th></tr></thead>
+        <tbody>${_mkSongs.map(_mkRowHtml).join('')}</tbody>
+      </table>
+    </div>`;
+
+  const meta = $('#marker-meta');
+  if (meta) {
+    meta.innerHTML = DEFAULT_META_ROWS.map((row) => `
+      <label class="marker-meta-item">${escapeHtml(row.label)}
+        <input class="marker-time" data-mk-meta="${row.key}" value="${formatSeconds(_mkMeta[row.key])}" placeholder="—">
+        <button class="btn ghost" type="button" data-mk-meta-set="${row.key}" title="現在位置を入れる">打刻</button>
+      </label>`).join('');
+  }
+
+  // 打刻の矛盾を出す（保存はできるが気付けるようにする）
+  const issues = findMarkIssues(_mkMarks);
+  const issueEl = $('#marker-issues');
+  if (issueEl) {
+    const done = _mkMarks.filter((m) => m.start != null).length;
+    issueEl.textContent = issues.length
+      ? `⚠ ${issues.map((x) => `${x.index + 1}曲目: ${x.reason}`).join(' / ')}`
+      : `${done}/${_mkSongs.length}曲を打刻済み`;
+    issueEl.classList.toggle('is-warn', issues.length > 0);
+  }
+
+  const row = wrap.querySelector(`[data-mk-row="${_mkTarget}"]`);
+  row?.scrollIntoView({ block: 'nearest' });
+  _mkRenderComment();
+}
+
+/** 打刻内容からコメント用テキストを作り直す。手直し済みなら触らない。 */
+function _mkRenderComment(force = false) {
+  const box = $('#marker-comment');
+  if (!box) return;
+  if (_mkCommentDirty && !force) return;
+  box.value = buildCommentText(_mkSongs, _mkMarks, {
+    template: COMMENT_TEMPLATES[$('#marker-template')?.value]?.template,
+    timeFormat: $('#marker-time-format')?.value || 'auto',
+    meta: _mkMeta,
+    footer: $('#marker-footer')?.value || '',
+  });
+  _mkCommentDirty = false;
+}
+
+function _mkSetTarget(index) {
+  if (!_mkSongs.length) return;
+  _mkTarget = Math.max(0, Math.min(index, _mkSongs.length - 1));
+  _mkRenderRows();
+}
+
+/** 現在位置を対象曲の開始/終了に記録する。 */
+function _mkMark(field) {
+  if (!_mkSongs.length) return;
+  if (field === 'end') {
+    // 開始を打つと対象は次へ進むので、終了はいま歌い終わった曲に入れる
+    const at = endTargetIndex(_mkMarks, _mkTarget);
+    if (at < 0) return;
+    _mkMarks = setMark(_mkMarks, at, 'end', _mkTime());
+    _mkRenderRows();
+    return;
+  }
+  const marked = _mkTime();
+  _mkMarks = setMark(_mkMarks, _mkTarget, 'start', marked);
+  // 続けて次の未打刻へ送る。無ければ隣へ
+  const next = nextUnmarkedIndex(_mkMarks, _mkTarget + 1);
+  _mkTarget = next >= 0 ? next : Math.min(_mkTarget + 1, _mkSongs.length - 1);
+  _mkRenderRows();
+  if ($('#marker-auto-jump')?.checked) _mkJump(marked);
+}
+
+/**
+ * 次の手がかりへ飛ぶ。
+ * チャットの山があれば「いま打った曲の終わり際」に、無ければ等間隔の当たりに着地する。
+ */
+function _mkJump(from) {
+  const jump = nextJumpTarget(_mkMarks, _mkTarget, _mkDuration(), _mkAnchors, from ?? _mkTime());
+  const status = $('#marker-anchor-status');
+  if (!jump) {
+    if (status) status.textContent = '飛び先を決められませんでした（配信の長さが取れないか、最後の曲です）。';
+    return;
+  }
+  _mkSeek(jump.seconds);
+  const how = jump.by === 'anchor' ? 'チャットの山' : '残り時間の等分';
+  if (status) status.textContent = `${formatSeconds(jump.seconds)} へ移動しました（${how}）。ズレていたら矢印キーで調整してください。`;
+}
+
+function _mkKeydown(event) {
+  if ($('#marker-workspace')?.hidden) return;
+  const tag = event.target?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || event.target?.isContentEditable) return;
+
+  const step = event.ctrlKey ? MK_SEEK_STEPS.ctrl : event.shiftKey ? MK_SEEK_STEPS.shift : MK_SEEK_STEPS.normal;
+  const key = event.key;
+  const handlers = {
+    ' ': () => _mkMark('start'),
+    e: () => _mkMark('end'),
+    E: () => _mkMark('end'),
+    ArrowRight: () => _mkSeek(_mkTime() + step),
+    ArrowLeft: () => _mkSeek(_mkTime() - step),
+    ArrowDown: () => _mkSetTarget(_mkTarget + 1),
+    ArrowUp: () => _mkSetTarget(_mkTarget - 1),
+    n: () => { const a = nextAnchor(_mkAnchors, _mkTime()); if (a != null) _mkSeek(a); },
+    N: () => { const a = nextAnchor(_mkAnchors, _mkTime()); if (a != null) _mkSeek(a); },
+    p: () => { const a = prevAnchor(_mkAnchors, _mkTime()); if (a != null) _mkSeek(a); },
+    P: () => { const a = prevAnchor(_mkAnchors, _mkTime()); if (a != null) _mkSeek(a); },
+    j: () => _mkJump(),
+    J: () => _mkJump(),
+    Backspace: () => {
+      _mkMarks = setMark(setMark(_mkMarks, _mkTarget, 'start', null), _mkTarget, 'end', null);
+      _mkRenderRows();
+    },
+    k: () => { const s = _mkPlayer?.getPlayerState?.(); s === 1 ? _mkPlayer.pauseVideo() : _mkPlayer?.playVideo?.(); },
+    K: () => { const s = _mkPlayer?.getPlayerState?.(); s === 1 ? _mkPlayer.pauseVideo() : _mkPlayer?.playVideo?.(); },
+  };
+  const handler = handlers[key];
+  if (!handler) return;
+  event.preventDefault();
+  handler();
+}
+
+async function _mkOpenStream(streamId, channelCode) {
+  const status = $('#marker-status');
+  status.textContent = '読み込み中…';
+  try {
+    const data = await adminApi(`streams/${streamId}/songs`);
+    const s = data.stream;
+    const videoId = _mkVideoId(s.url);
+    if (!videoId) throw new Error('この歌枠のURLから動画IDを取り出せません');
+
+    _mkStream = { id: streamId, sourceIndex: s.source_index, channelCode, videoId, title: s.title };
+    _mkSongs = parseSetlistText(data.songsText || '').map((r) => ({ title: r.title, artist: r.artist }));
+    if (!_mkSongs.length) throw new Error('セトリが空です。先にセトリを登録してください');
+
+    // 打ち直しのため、既に保存済みの開始時刻を読み戻す
+    let existing = [];
+    try {
+      const got = await adminApi(`timestamps/approved?channelCode=${encodeURIComponent(channelCode)}&streamIndex=${s.source_index}`);
+      existing = got.items || [];
+    } catch (_) { /* 未保存なら空のままでよい */ }
+
+    _mkMarks = marksFromItems(existing, _mkSongs.length);
+    _mkMeta = { start: null, voice: null };
+    _mkTarget = Math.max(0, nextUnmarkedIndex(_mkMarks, 0));
+    _mkCommentDirty = false;
+
+    $('#marker-workspace').hidden = false;
+    $('#marker-badge').textContent = `${channelCode === 'new' ? '新' : '旧'}ch #${s.source_index}`;
+    status.textContent = existing.length
+      ? `${s.streamed_on} ${s.title || ''}（保存済み ${existing.length}曲を読み込みました）`
+      : `${s.streamed_on} ${s.title || ''}`;
+
+    await _mkLoadYouTubeApi();
+    if (_mkPlayer?.destroy) { _mkPlayer.destroy(); _mkPlayer = null; }
+    $('#marker-player').innerHTML = '';
+    _mkPlayer = new window.YT.Player($('#marker-player'), {
+      videoId,
+      playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+      events: {
+        onReady: () => {
+          const dur = _mkDuration();
+          $('#marker-duration').textContent = dur ? `/ 全体 ${formatSeconds(dur)}` : '';
+          _mkRenderNow(0);
+        },
+      },
+    });
+
+    clearInterval(_mkTicker);
+    _mkTicker = setInterval(() => { if (!$('#marker-workspace').hidden) _mkRenderNow(); }, 250);
+    _mkRenderRows();
+  } catch (err) {
+    status.textContent = `エラー: ${err.message || err}`;
+  }
+}
+
+function initTimestampMarker() {
+  const channelSel = $('#marker-channel');
+  if (!channelSel) return;
+
+  channelSel.innerHTML = Object.values(CHANNELS)
+    .map((ch) => `<option value="${escapeHtml(ch.id)}">${escapeHtml(ch.label)}</option>`).join('');
+  channelSel.value = CHANNELS[DEFAULT_CHANNEL] ? DEFAULT_CHANNEL : Object.values(CHANNELS)[0]?.id || '';
+
+  $('#marker-template').innerHTML = Object.entries(COMMENT_TEMPLATES)
+    .map(([key, t]) => `<option value="${key}">${escapeHtml(t.label)}</option>`).join('');
+
+  $('#marker-load-streams-btn')?.addEventListener('click', async () => {
+    const status = $('#marker-status');
+    status.textContent = '読み込み中…';
+    try {
+      const data = await adminApi(`streams?channelCode=${encodeURIComponent(channelSel.value)}`);
+      const streams = data.streams || [];
+      $('#marker-stream').innerHTML = streams.map((s) =>
+        `<option value="${s.id}">${escapeHtml(s.streamed_on)} #${s.source_index ?? '-'} ${escapeHtml((s.title || '').slice(0, 40))}（${s.song_count}曲）</option>`
+      ).join('');
+      status.textContent = `${streams.length}件。打刻する枠を選んで「この枠を開く」を押してください。`;
+    } catch (err) {
+      status.textContent = `エラー: ${err.message || err}`;
+    }
+  });
+
+  $('#marker-open-btn')?.addEventListener('click', () => {
+    const id = Number($('#marker-stream')?.value);
+    if (!id) { $('#marker-status').textContent = '先に歌枠一覧を読み込んで選択してください。'; return; }
+    _mkOpenStream(id, channelSel.value);
+  });
+
+  // 行の操作（時刻の直接入力・移動・消去）
+  $('#marker-rows-wrap')?.addEventListener('change', (event) => {
+    const input = event.target.closest('[data-mk-field]');
+    if (!input) return;
+    const seconds = parseTimeInput(input.value);
+    if (input.value.trim() && seconds == null) { input.classList.add('is-invalid'); return; }
+    input.classList.remove('is-invalid');
+    _mkMarks = setMark(_mkMarks, Number(input.dataset.mkIndex), input.dataset.mkField, seconds);
+    _mkRenderRows();
+  });
+
+  $('#marker-rows-wrap')?.addEventListener('click', (event) => {
+    const goto = event.target.closest('[data-mk-goto]');
+    if (goto) {
+      const mark = _mkMarks[Number(goto.dataset.mkGoto)];
+      if (mark?.start != null) _mkSeek(mark.start);
+      return;
+    }
+    const clear = event.target.closest('[data-mk-clear]');
+    if (clear) {
+      const i = Number(clear.dataset.mkClear);
+      _mkMarks = setMark(setMark(_mkMarks, i, 'start', null), i, 'end', null);
+      _mkRenderRows();
+      return;
+    }
+    const row = event.target.closest('[data-mk-row]');
+    if (row) _mkSetTarget(Number(row.dataset.mkRow));
+  });
+
+  // 配信の頭（start / 声入り）
+  $('#marker-meta')?.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-mk-meta-set]');
+    if (!btn) return;
+    _mkMeta = { ..._mkMeta, [btn.dataset.mkMetaSet]: _mkTime() };
+    _mkRenderRows();
+  });
+  $('#marker-meta')?.addEventListener('change', (event) => {
+    const input = event.target.closest('[data-mk-meta]');
+    if (!input) return;
+    _mkMeta = { ..._mkMeta, [input.dataset.mkMeta]: parseTimeInput(input.value) };
+    _mkRenderRows();
+  });
+
+  // チャットの山を読み込む
+  $('#marker-anchor-file')?.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const json = JSON.parse(await file.text());
+      // 拍手の山（曲の終わり）を主に、全体の山も混ぜて移動先を細かくする
+      const seconds = [...(json.applausePeaks || []), ...(json.allPeaks || [])]
+        .map((p) => Number(p.seconds)).filter(Number.isFinite);
+      _mkAnchors = [...new Set(seconds)].sort((a, b) => a - b);
+      $('#marker-anchor-status').textContent = `チャットの山 ${_mkAnchors.length}箇所を読み込みました。N / P キーで前後に飛べます。`;
+    } catch (err) {
+      $('#marker-anchor-status').textContent = `読み込めませんでした: ${err.message || err}`;
+    }
+  });
+
+  // コメント書き出し
+  for (const id of ['#marker-template', '#marker-time-format', '#marker-footer']) {
+    $(id)?.addEventListener('change', () => _mkRenderComment(true));
+  }
+  $('#marker-comment')?.addEventListener('input', () => { _mkCommentDirty = true; });
+  $('#marker-regen-btn')?.addEventListener('click', () => {
+    _mkCommentDirty = false;
+    _mkRenderComment(true);
+    $('#marker-copy-status').textContent = '打刻内容から作り直しました。';
+  });
+  $('#marker-copy-btn')?.addEventListener('click', async () => {
+    const text = $('#marker-comment').value;
+    try {
+      await navigator.clipboard.writeText(text);
+      $('#marker-copy-status').textContent = `コピーしました（${text.split('\n').length}行）。`;
+    } catch (_) {
+      $('#marker-comment').select();
+      $('#marker-copy-status').textContent = 'コピーできなかったので選択しました。Ctrl+C を押してください。';
+    }
+  });
+
+  // 保存（サイト用は開始時刻だけ）
+  $('#marker-save-btn')?.addEventListener('click', async () => {
+    if (!_mkStream) return;
+    const items = buildSavePayload(_mkMarks);
+    const issues = findMarkIssues(_mkMarks);
+    const warn = issues.length ? `\n\n⚠ ${issues.map((x) => `${x.index + 1}曲目: ${x.reason}`).join('\n')}` : '';
+    if (!confirm(`${items.length}曲の開始時刻をサイトに保存します（この枠の既存の承認済みは置き換わります）。${warn}`)) return;
+    $('#marker-save-status').textContent = '保存中…';
+    try {
+      const res = await adminApi('timestamps/bulk', {
+        channelCode:  _mkStream.channelCode,
+        streamIndex:  _mkStream.sourceIndex,
+        items,
+        reviewerNote: '管理画面の打刻ツール',
+      });
+      $('#marker-save-status').textContent = `保存しました: ${res.count}曲。サイトの曲詳細から各曲の開始地点へ飛べるようになります。`;
+    } catch (err) {
+      $('#marker-save-status').textContent = `エラー: ${err.message || err}`;
+    }
+  });
+
+  $('#marker-clear-btn')?.addEventListener('click', () => {
+    if (!confirm('この枠の打刻をすべて消します（保存はまだ行いません）。よろしいですか？')) return;
+    _mkMarks = createMarks(_mkSongs.length);
+    _mkMeta = { start: null, voice: null };
+    _mkTarget = 0;
+    _mkCommentDirty = false;
+    _mkRenderRows();
+  });
+
+  document.addEventListener('keydown', _mkKeydown);
 }
 
 /* ─── 起動 ───────────────────────────────────────────────────────────────── */
@@ -851,3 +1464,4 @@ loadStatus();
 initTimestamps();
 initMusicVideos();
 initStreamEdit();
+initTimestampMarker();
