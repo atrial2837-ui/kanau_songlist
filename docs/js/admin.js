@@ -1198,11 +1198,11 @@ function _mkMark(field) {
     _mkRenderRows();
     return;
   }
+  // 打刻するだけで対象は動かさない。
+  // 開始→終了を同じ行に続けて入れられるようにし、押し間違えたら押し直せるようにする。
+  // 次の曲へは ↓ で移る。
   const marked = _mkTime();
   _mkMarks = setMark(_mkMarks, _mkTarget, 'start', marked);
-  // 続けて次の未打刻へ送る。無ければ隣へ
-  const next = nextUnmarkedIndex(_mkMarks, _mkTarget + 1);
-  _mkTarget = next >= 0 ? next : Math.min(_mkTarget + 1, _mkSongs.length - 1);
   _mkRenderRows();
   if ($('#marker-auto-jump')?.checked) _mkJump(marked);
 }
@@ -1210,9 +1210,13 @@ function _mkMark(field) {
 /**
  * 次の手がかりへ飛ぶ。
  * チャットの山があれば「いま打った曲の終わり際」に、無ければ等間隔の当たりに着地する。
+ *
+ * 予測は「次の曲」を基準にする。Space は打刻するだけで対象を動かさないため、
+ * 対象そのものを渡すと、いま打った曲の位置を計算してしまう。
  */
 function _mkJump(from) {
-  const jump = nextJumpTarget(_mkMarks, _mkTarget, _mkDuration(), _mkAnchors, from ?? _mkTime());
+  const nextIndex = Math.min(_mkTarget + 1, Math.max(0, _mkSongs.length - 1));
+  const jump = nextJumpTarget(_mkMarks, nextIndex, _mkDuration(), _mkAnchors, from ?? _mkTime());
   const status = $('#marker-anchor-status');
   if (!jump) {
     if (status) status.textContent = '飛び先を決められませんでした（配信の長さが取れないか、最後の曲です）。';
