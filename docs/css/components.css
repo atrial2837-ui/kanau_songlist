@@ -898,21 +898,24 @@ button.official-link {
   }
 }
 
-/* プレイリストタブ / ビューワー表示中: サイドバーを非表示にして全幅使用 */
+/* プレイリストタブ / ビューワー表示中: サイドバーを非表示にして全幅使用
+   ※ ミニ化中は除く。ミニプレイヤーは iframe を生かすため #stream-viewer を
+     hidden にできず高さ0で残すだけなので、:not([hidden]) だけだとミニ再生中も
+     ビューワー扱いになり、他タブを見ている間ずっとタブバーが消えてしまう。 */
 @media (min-width: 1021px) {
   body[data-active-tab="playlists"],
-  body:has(#stream-viewer:not([hidden])) {
+  body:has(#stream-viewer:not([hidden]):not(.sv-minified):not(.sv-music-minified)) {
     --db-sidebar-current: 0px;
     padding-left: 0 !important;
   }
 
   body[data-active-tab="playlists"] .tabs,
-  body:has(#stream-viewer:not([hidden])) .tabs {
+  body:has(#stream-viewer:not([hidden]):not(.sv-minified):not(.sv-music-minified)) .tabs {
     display: none;
   }
 
   body[data-active-tab="playlists"] .topbar,
-  body:has(#stream-viewer:not([hidden])) .topbar {
+  body:has(#stream-viewer:not([hidden]):not(.sv-minified):not(.sv-music-minified)) .topbar {
     left: 0 !important;
     width: 100% !important;
   }
@@ -6590,10 +6593,15 @@ body.has-sv-music #panel-player:not(.active) {
   overflow: visible;
 }
 
+/* .sv-topnav はフル表示時に .tabs の代わりを務めるビューワー内ナビ。
+   ミニ化中は本来のタブバーが戻るので、残すとナビが二重に出る
+   （プレイリストタブでは .panel-topnav とほぼ同座標に重なる）。 */
 #stream-viewer.sv-minified .sv-header,
+#stream-viewer.sv-minified .sv-topnav,
 #stream-viewer.sv-minified .sv-below-player,
 #stream-viewer.sv-minified .sv-panel,
 #stream-viewer.sv-music-minified .sv-header,
+#stream-viewer.sv-music-minified .sv-topnav,
 #stream-viewer.sv-music-minified .sv-below-player,
 #stream-viewer.sv-music-minified .sv-panel { display: none; }
 
