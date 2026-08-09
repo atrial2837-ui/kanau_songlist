@@ -403,7 +403,17 @@
 <script type="module" src="dist/main.js?v=13e38caa7b"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // 既に Service Worker に制御されている＝再訪問。この状態で新しい SW が入ると、
+  // このページは古い SW の応答（＝古いデータ）を表示したままになる。
+  // 制御が切り替わった時点で一度だけ読み込み直し、更新を即座に反映させる。
+  var hadController = !!navigator.serviceWorker.controller;
+  var reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!hadController || reloading) return;   // 初回インストール時は再読み込み不要
+    reloading = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register('/sw.js').catch(function () {});
 }
 </script>
 
