@@ -30,6 +30,29 @@ export class D1TimestampRepository {
   }
 
   /**
+   * チャンネル内の枠ごとに、承認済みタイムスタンプの件数を返す（管理者用）。
+   *
+   * 打刻ツールの歌枠プルダウンに「登録済み / 一部 / 未」を出すために使う。
+   * 枠ごとに問い合わせると191回になるので、1クエリでまとめて数える。
+   *
+   * @param {string} channelCode
+   * @returns {Promise<{streamIndex:number, count:number}[]>}
+   */
+  async countApprovedByChannel(channelCode) {
+    const rows = await this.client.query(
+      `SELECT stream_index, COUNT(*) AS n
+         FROM community_timestamps
+        WHERE channel_code = ? AND status = 'approved'
+        GROUP BY stream_index`,
+      channelCode,
+    );
+    return rows.map((row) => ({
+      streamIndex: Number(row.stream_index),
+      count: Number(row.n),
+    }));
+  }
+
+  /**
    * 特定の配信枠の承認済みタイムスタンプを、渡した内容で置き換える（管理者用）。
    *
    * 管理画面の打刻ツールが1枠ぶんをまとめて登録するための操作。

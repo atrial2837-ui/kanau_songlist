@@ -17,6 +17,8 @@ import {
   nextAnchor,
   prevAnchor,
   nextJumpTarget,
+  coverageState,
+  streamOptionLabel,
   buildCommentText,
   buildSavePayload,
   marksFromItems,
@@ -230,6 +232,67 @@ describe('nextAnchor / prevAnchor', () => {
     assert.equal(nextAnchor(anchors, 9999), null);
     assert.equal(prevAnchor(anchors, 0), null);
     assert.equal(nextAnchor([], 100), null);
+  });
+});
+
+describe('coverageState', () => {
+  it('1件も入っていなければ 未', () => {
+    assert.deepEqual(coverageState(26, 0), { state: 'none', mark: '未', covered: 0, songCount: 26 });
+  });
+
+  it('全曲そろっていれば ✓', () => {
+    assert.equal(coverageState(26, 26).state, 'done');
+    assert.equal(coverageState(26, 26).mark, '✓');
+  });
+
+  it('一部だけなら件数を添えて △', () => {
+    assert.deepEqual(coverageState(26, 12), { state: 'partial', mark: '△12/26', covered: 12, songCount: 26 });
+  });
+
+  it('曲数より多く入っていても済み扱い', () => {
+    assert.equal(coverageState(26, 30).state, 'done');
+  });
+
+  it('曲数が不明でも、入っていれば済み扱い', () => {
+    assert.equal(coverageState(0, 5).state, 'done');
+    assert.equal(coverageState(0, 0).state, 'none');
+  });
+
+  it('不正な値は 0 として扱う', () => {
+    assert.equal(coverageState(null, null).state, 'none');
+    assert.equal(coverageState('x', 'y').state, 'none');
+    assert.equal(coverageState(26, -3).state, 'none');
+  });
+});
+
+describe('streamOptionLabel', () => {
+  const stream = { streamed_on: '2026-04-29', source_index: 160, title: 'ch登録8000人耐久', song_count: 24 };
+
+  it('未登録は先頭に 未 を置く', () => {
+    assert.equal(streamOptionLabel(stream, 0), '未 2026-04-29 #160 ch登録8000人耐久（24曲）');
+  });
+
+  it('登録済みは先頭に ✓ を置く', () => {
+    assert.equal(streamOptionLabel(stream, 24), '✓ 2026-04-29 #160 ch登録8000人耐久（24曲）');
+  });
+
+  it('一部は件数が分かるようにする', () => {
+    assert.equal(streamOptionLabel(stream, 10), '△10/24 2026-04-29 #160 ch登録8000人耐久（24曲）');
+  });
+
+  it('長いタイトルは40文字までに切る', () => {
+    const long = { ...stream, title: 'あ'.repeat(60) };
+    assert.ok(streamOptionLabel(long, 0).includes('あ'.repeat(40)));
+    assert.ok(!streamOptionLabel(long, 0).includes('あ'.repeat(41)));
+  });
+
+  it('枠番号が無ければ - にする', () => {
+    assert.ok(streamOptionLabel({ ...stream, source_index: null }, 0).includes('#-'));
+  });
+
+  it('項目が欠けていても壊れない', () => {
+    assert.doesNotThrow(() => streamOptionLabel({}, 0));
+    assert.doesNotThrow(() => streamOptionLabel(null, 0));
   });
 });
 

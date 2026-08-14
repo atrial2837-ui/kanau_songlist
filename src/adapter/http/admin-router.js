@@ -24,6 +24,7 @@ import { listTimestampSubmissions } from '../../usecase/timestamp/list-timestamp
 import { reviewTimestamp } from '../../usecase/timestamp/review-timestamp.js';
 import { saveApprovedTimestamps } from '../../usecase/timestamp/save-approved-timestamps.js';
 import { getApprovedTimestamps } from '../../usecase/timestamp/get-approved-timestamps.js';
+import { getTimestampCoverage } from '../../usecase/timestamp/get-timestamp-coverage.js';
 import { ValidationError } from '../../domain/error/validation-error.js';
 import { NotFoundError } from '../../domain/error/not-found-error.js';
 
@@ -196,6 +197,15 @@ export function buildAdminRouter(options) {
       reviewerNote: body.reviewerNote ?? null,
     });
     return jsonResponse({ ok: true, count: result.count });
+  }));
+
+  /** 打刻ツール用: 枠ごとの登録済み曲数（プルダウンに済/未を出すため） */
+  router.get(p('/timestamps/coverage'), auth(async (ctx) => {
+    const deps = getDeps(ctx);
+    const coverage = await getTimestampCoverage(deps, {
+      channelCode: ctx.query.get('channelCode'),
+    });
+    return jsonResponse({ coverage });
   }));
 
   /** 打刻ツール用: 打ち直しのために既存の承認済みを読み戻す */

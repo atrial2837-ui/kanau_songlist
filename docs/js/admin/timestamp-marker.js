@@ -214,6 +214,44 @@ export function prevAnchor(anchors, seconds) {
 }
 
 /**
+ * 歌枠1件の打刻状況を判定する。
+ *
+ * プルダウンで「もう入っている枠」と「まだの枠」を見分けるために使う。
+ *
+ * @param {number} songCount - その枠のセトリ曲数
+ * @param {number} covered   - 登録済みのタイムスタンプ件数
+ * @returns {{ state: 'done'|'partial'|'none', mark: string, covered: number, songCount: number }}
+ */
+export function coverageState(songCount, covered) {
+  const total = Math.max(0, Math.floor(Number(songCount) || 0));
+  const done = Math.max(0, Math.floor(Number(covered) || 0));
+  if (done <= 0) return { state: 'none', mark: '未', covered: 0, songCount: total };
+  // 曲数が不明(0)でも、入っていれば済み扱いにする
+  if (total > 0 && done < total) {
+    return { state: 'partial', mark: `△${done}/${total}`, covered: done, songCount: total };
+  }
+  return { state: 'done', mark: '✓', covered: done, songCount: total };
+}
+
+/**
+ * 歌枠プルダウンに出す1行を組み立てる。
+ *
+ * 先頭に状態を置くのは、選択肢が191件並ぶため
+ * 「未」の枠を目で拾えるようにするのが目的。
+ *
+ * @param {{ streamed_on?: string, source_index?: number|null, title?: string, song_count?: number }} stream
+ * @param {number} covered - 登録済みのタイムスタンプ件数
+ * @returns {string}
+ */
+export function streamOptionLabel(stream, covered) {
+  const songCount = Number(stream?.song_count) || 0;
+  const { mark } = coverageState(songCount, covered);
+  const index = stream?.source_index ?? '-';
+  const title = String(stream?.title ?? '').slice(0, 40);
+  return `${mark} ${stream?.streamed_on ?? ''} #${index} ${title}（${songCount}曲）`.replace(/\s+/g, ' ').trim();
+}
+
+/**
  * 打刻したあとに自動で飛ぶ先を決める。
  *
  * チャットの山（tools/chat-spikes.mjs の出力）があればそれを優先する。

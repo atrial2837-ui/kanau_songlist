@@ -25,6 +25,8 @@ import {
   nextAnchor,
   prevAnchor,
   nextJumpTarget,
+  coverageState,
+  streamOptionLabel,
   buildCommentText,
   buildSavePayload,
   marksFromItems,
@@ -1059,6 +1061,8 @@ let _mkMarks = [];         // [{ start, end }]
 let _mkMeta = { start: null, voice: null };
 let _mkTarget = 0;         // 打刻対象の曲
 let _mkAnchors = [];       // チャットの山（秒）
+let _mkCoverage = {};      // 枠番号 → D1 に入っている曲数（プルダウンの済/未表示用）
+let _mkStreams = [];       // 読み込んだ歌枠一覧（絞り込みの切り替えで再描画するため保持）
 let _mkPlayer = null;
 let _mkTicker = null;
 let _mkCommentDirty = false; // プレビューを手直ししたら自動再生成しない
@@ -1107,6 +1111,45 @@ function _mkLoadYouTubeApi() {
     });
   }
   return _mkLoadYouTubeApi._promise;
+}
+
+/**
+ * 歌枠プルダウンを描き直す。
+ * 「未登録のみ」が入っていれば、全曲そろっている枠を隠して選びやすくする。
+ * 打ち直したいときのためにチェックを外せば全件出る。
+ */
+function _mkRenderStreamOptions() {
+  const select = $('#marker-stream');
+  const status = $('#marker-status');
+  if (!select) return;
+
+  const counts = { done: 0, partial: 0, none: 0 };
+  const rows = _mkStreams.map((s) => {
+    const covered = _mkCoverage[s.source_index] ?? 0;
+    const state = coverageState(s.song_count, covered).state;
+    counts[state]++;
+    return { stream: s, covered, state };
+  });
+
+  const onlyUnregistered = !!$('#marker-unregistered-only')?.checked;
+  const shown = onlyUnregistered ? rows.filter((r) => r.state !== 'done') : rows;
+
+  const keep = select.value;
+  select.innerHTML = shown.map((r) =>
+    `<option value="${r.stream.id}">${escapeHtml(streamOptionLabel(r.stream, r.covered))}</option>`
+  ).join('');
+  // 絞り込みを切り替えても、選んでいた枠が残っていれば選択を維持する
+  if (keep && shown.some((r) => String(r.stream.id) === keep)) select.value = keep;
+
+  if (!status) return;
+  const summary = `✓済み ${counts.done} / △一部 ${counts.partial} / 未 ${counts.none}`;
+  if (!_mkStreams.length) {
+    status.textContent = '歌枠がありません。';
+  } else if (!shown.length) {
+    status.textContent = `全${_mkStreams.length}件すべて登録済みです（${summary}）。打ち直すにはチェックを外してください。`;
+  } else {
+    status.textContent = `${shown.length}件を表示中（全${_mkStreams.length}件: ${summary}）。打刻する枠を選んで「この枠を開く」を押してください。`;
+  }
 }
 
 function _mkRowHtml(song, i) {
@@ -1270,7 +1313,7 @@ async function _mkOpenStream(streamId, channelCode) {
     const videoId = _mkVideoId(s.url);
     if (!videoId) throw new Error('この歌枠のURLから動画IDを取り出せません');
 
-    _mkStream = { id: streamId, sourceIndex: s.source_index, channelCode, videoId, title: s.title };
+    _mkStream = { id: streamId, sourceIndex: s.source_index, channelCode, videoId, title: s.title, streamedOn: s.streamed_on };
     _mkSongs = parseSetlistText(data.songsText || '').map((r) => ({ title: r.title, artist: r.artist }));
     if (!_mkSongs.length) throw new Error('セトリが空です。先にセトリを登録してください');
 
@@ -1330,16 +1373,21 @@ function initTimestampMarker() {
     const status = $('#marker-status');
     status.textContent = '読み込み中…';
     try {
-      const data = await adminApi(`streams?channelCode=${encodeURIComponent(channelSel.value)}`);
-      const streams = data.streams || [];
-      $('#marker-stream').innerHTML = streams.map((s) =>
-        `<option value="${s.id}">${escapeHtml(s.streamed_on)} #${s.source_index ?? '-'} ${escapeHtml((s.title || '').slice(0, 40))}（${s.song_count}曲）</option>`
-      ).join('');
-      status.textContent = `${streams.length}件。打刻する枠を選んで「この枠を開く」を押してください。`;
+      const channelCode = channelSel.value;
+      // 枠一覧と「どの枠が何曲入っているか」を同時に取る（1件ずつ問い合わせない）
+      const [data, cov] = await Promise.all([
+        adminApi(`streams?channelCode=${encodeURIComponent(channelCode)}`),
+        adminApi(`timestamps/coverage?channelCode=${encodeURIComponent(channelCode)}`).catch(() => ({ coverage: {} })),
+      ]);
+      _mkStreams = data.streams || [];
+      _mkCoverage = cov.coverage || {};
+      _mkRenderStreamOptions();
     } catch (err) {
       status.textContent = `エラー: ${err.message || err}`;
     }
   });
+
+  $('#marker-unregistered-only')?.addEventListener('change', _mkRenderStreamOptions);
 
   $('#marker-open-btn')?.addEventListener('click', () => {
     const id = Number($('#marker-stream')?.value);
@@ -1443,6 +1491,10 @@ function initTimestampMarker() {
         reviewerNote: '管理画面の打刻ツール',
       });
       $('#marker-save-status').textContent = `保存しました: ${res.count}曲。サイトの曲詳細から各曲の開始地点へ飛べるようになります。`;
+      // プルダウンの表示を保存結果に合わせる（読み込み直さずに済むように）。
+      // 「未登録のみ」表示中なら、埋まった枠はここで一覧から外れる。
+      _mkCoverage[_mkStream.sourceIndex] = res.count;
+      _mkRenderStreamOptions();
     } catch (err) {
       $('#marker-save-status').textContent = `エラー: ${err.message || err}`;
     }
