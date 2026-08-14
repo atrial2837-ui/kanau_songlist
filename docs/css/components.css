@@ -1179,8 +1179,9 @@ button.official-link {
   background: linear-gradient(180deg, var(--accent-soft), var(--accent));
   border-color: var(--accent);
 }
-:root[data-theme="dark"] .stat-card.accent,
-:root[data-theme="auto"] .stat-card.accent {
+/* auto は「OSがダークのときだけ」暗い配色にする。dark と同じ行に並べると
+   OSがライトでもこのカードだけ暗くなり、ライトの画面に浮いて見える。 */
+:root[data-theme="dark"] .stat-card.accent {
   background: linear-gradient(180deg, var(--accent-soft), #6a3554);
 }
 .stat-card.accent .stat-value { color: var(--accent-strong); }
@@ -1188,13 +1189,21 @@ button.official-link {
   background: linear-gradient(180deg, #fff5d8, #fde9a8);
   border-color: var(--gold);
 }
-:root[data-theme="dark"] .stat-card.gold,
-:root[data-theme="auto"] .stat-card.gold {
+:root[data-theme="dark"] .stat-card.gold {
   background: linear-gradient(180deg, #3a3018, #2a2210);
 }
 .stat-card.gold .stat-value { color: #b88d1a; }
-:root[data-theme="dark"] .stat-card.gold .stat-value,
-:root[data-theme="auto"] .stat-card.gold .stat-value { color: var(--gold); }
+:root[data-theme="dark"] .stat-card.gold .stat-value { color: var(--gold); }
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .stat-card.accent {
+    background: linear-gradient(180deg, var(--accent-soft), #6a3554);
+  }
+  :root[data-theme="auto"] .stat-card.gold {
+    background: linear-gradient(180deg, #3a3018, #2a2210);
+  }
+  :root[data-theme="auto"] .stat-card.gold .stat-value { color: var(--gold); }
+}
 
 /* === Badges === */
 
@@ -1263,9 +1272,13 @@ button.official-link {
   box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
 }
-:root[data-theme="dark"] .filter-banner,
-:root[data-theme="auto"] .filter-banner {
+:root[data-theme="dark"] .filter-banner {
   background: linear-gradient(135deg, var(--accent-soft), #6a3554);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .filter-banner {
+    background: linear-gradient(135deg, var(--accent-soft), #6a3554);
+  }
 }
 .filter-banner .filter-icon { font-size: 18px; }
 .filter-banner .filter-text {
@@ -4603,9 +4616,11 @@ body.has-sv-fullscreen .container { z-index: auto; }
   color: #cc0000;
 }
 
-[data-theme="dark"] .pl-yt-share-btn:hover,
-[data-theme="auto"] .pl-yt-share-btn:hover {
+[data-theme="dark"] .pl-yt-share-btn:hover {
   color: #ff6666;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .pl-yt-share-btn:hover { color: #ff6666; }
 }
 
 /* プレイリスト追加モーダル */

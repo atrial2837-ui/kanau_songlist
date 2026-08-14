@@ -256,20 +256,20 @@
 .heatmap-cell.l2 { background: #6cc6ec; }
 .heatmap-cell.l3 { background: #2d8fb9; }
 .heatmap-cell.l4 { background: #ff9eb5; }
-:root[data-theme="dark"] .heatmap-cell,
-:root[data-theme="auto"] .heatmap-cell { background: #1a2d44; }
-:root[data-theme="dark"] .heatmap-cell.l1,
-:root[data-theme="auto"] .heatmap-cell.l1 { background: #2d5a85; }
-:root[data-theme="dark"] .heatmap-cell.l2,
-:root[data-theme="auto"] .heatmap-cell.l2 { background: #4a8fbf; }
-:root[data-theme="dark"] .heatmap-cell.l3,
-:root[data-theme="auto"] .heatmap-cell.l3 { background: #6cc6ec; }
-:root[data-theme="dark"] .heatmap-cell.l4,
-:root[data-theme="auto"] .heatmap-cell.l4 { background: #ff9eb5; }
+/* auto は「OSがダークのときだけ」暗くする。dark と同じ行に並べると
+   OSがライトでも暗くなり、ライト配色のページにヒートマップだけ沈む。 */
+:root[data-theme="dark"] .heatmap-cell { background: #1a2d44; }
+:root[data-theme="dark"] .heatmap-cell.l1 { background: #2d5a85; }
+:root[data-theme="dark"] .heatmap-cell.l2 { background: #4a8fbf; }
+:root[data-theme="dark"] .heatmap-cell.l3 { background: #6cc6ec; }
+:root[data-theme="dark"] .heatmap-cell.l4 { background: #ff9eb5; }
 
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] .heatmap-cell { background: #1a2d44; }
   :root[data-theme="auto"] .heatmap-cell.l1 { background: #2d5a85; }
+  :root[data-theme="auto"] .heatmap-cell.l2 { background: #4a8fbf; }
+  :root[data-theme="auto"] .heatmap-cell.l3 { background: #6cc6ec; }
+  :root[data-theme="auto"] .heatmap-cell.l4 { background: #ff9eb5; }
 }
 
 .heatmap-cell:hover { transform: scale(1.5); outline: 2px solid var(--ink); }
