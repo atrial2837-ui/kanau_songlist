@@ -1448,6 +1448,12 @@ body[data-audience="listener"] [data-mobile-panel-toggle="setlist"] {
   height: 36px;
 }
 .timeline-item {
+  /* 画面外のカードは描画をスキップさせる。
+     タイムラインは194枠 × 折りたたみ済みセトリで約19,600要素あり、
+     タブを表示に切り替えた瞬間に全部のスタイル計算が走って描画が遅れていた。
+     高さは全カード73px固定なので、目安値を与えてスクロール量をずらさない。 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 73px;
   position: relative;
   margin: 0;
   background: var(--surface);
