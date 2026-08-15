@@ -1,0 +1,307 @@
+// 曲ごとの静的HTMLを生成する。
+//
+// 本体は SPA なので、曲の情報は JS が JSON を読んで初めて画面に出る。
+// 検索エンジンにとっては「曲名で見せられるページが1枚も無い」状態だったため、
+// 曲ごとに素の HTML を書き出して、JS を実行しなくても中身が読める入口を作る。
+//
+// 生成物はアプリのバンドルに依存させない（CSSインライン・JSなし）。
+// 単独で軽く、ビルドが壊れてもこの入口だけは生き残る。
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { createHash } from 'crypto';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(__dirname, '..');
+const OUT_DIR = join(ROOT, 'docs', 'song');
+const ORIGIN = 'https://kanau-songlist.pages.dev';
+const SITE_NAME = '夢川かなう 歌唱データベース';
+const MAX_SLUG_LEN = 60;
+
+export function escapeHtml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ファイル名にも URL にも使える形にする。日本語はそのまま残す（日本語URLは検索側も扱える）。
+export function songSlug(title, artist) {
+  const base = `${title || ''}-${artist || ''}`
+    .toLowerCase()
+    .replace(/[\\/:*?"<>|#%&{}$!'`+=@~^[\]();,.]/g, ' ')
+    .replace(/[\s_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return (base || 'song').slice(0, MAX_SLUG_LEN).replace(/-$/, '');
+}
+
+// 同じスラッグになった曲はキーのハッシュで区別する。
+// 連番だとデータが増減したときに既存URLがずれるので使わない。
+export function assignSlugs(songs) {
+  const taken = new Set();
+  const map = new Map();
+  for (const song of [...songs].sort((a, b) => a.key.localeCompare(b.key))) {
+    let slug = songSlug(song.title, song.artist);
+    if (taken.has(slug)) {
+      slug = `${slug}-${createHash('sha1').update(song.key).digest('hex').slice(0, 6)}`;
+    }
+    taken.add(slug);
+    map.set(song.key, slug);
+  }
+  return map;
+}
+
+// 同じ曲が新旧chの両方にあるので、歌唱回数を足して1曲にまとめる。
+export function mergeSongs(songsPayload) {
+  const merged = new Map();
+  for (const list of Object.values(songsPayload?.channels || {})) {
+    for (const song of list) {
+      if (!song?.key) continue;
+      const prev = merged.get(song.key);
+      if (prev) {
+        prev.count += Number(song.count) || 0;
+        prev.genre = prev.genre || song.genre;
+        prev.displayKey = prev.displayKey || song.displayKey;
+      } else {
+        merged.set(song.key, {
+          key: song.key,
+          title: song.title,
+          artist: song.artist,
+          genre: song.genre || '',
+          displayKey: song.displayKey || '',
+          count: Number(song.count) || 0,
+        });
+      }
+    }
+  }
+  return [...merged.values()];
+}
+
+// 曲キー → その曲を歌った歌枠の一覧（新しい順）
+export function collectPerformances(streamsPayload) {
+  const byKey = new Map();
+  for (const list of Object.values(streamsPayload?.channels || {})) {
+    for (const stream of list) {
+      for (const item of stream.songs || []) {
+        if (!item?.key) continue;
+        if (!byKey.has(item.key)) byKey.set(item.key, []);
+        byKey.get(item.key).push({
+          date: stream.date || '',
+          title: stream.title || '',
+          url: stream.url || '',
+          channel: stream.channel || '',
+          t: item.t == null ? null : Number(item.t),
+        });
+      }
+    }
+  }
+  for (const list of byKey.values()) {
+    list.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  }
+  return byKey;
+}
+
+export function formatSeconds(total) {
+  const n = Math.max(0, Math.floor(Number(total) || 0));
+  const h = Math.floor(n / 3600);
+  const m = Math.floor((n % 3600) / 60);
+  const s = n % 60;
+  const pad = (v) => String(v).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+export function youtubeUrlAt(url, seconds) {
+  const base = String(url || '').split('&')[0].split('?')[0];
+  if (!base) return '';
+  return seconds > 0 ? `${base}?t=${Math.floor(seconds)}` : base;
+}
+
+export function videoIdFromUrl(url) {
+  const m = String(url || '').match(/(?:youtu\.be\/|youtube\.com\/(?:live\/|shorts\/|embed\/|watch\?(?:[^#]*&)?v=))([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+
+const PAGE_CSS = `
+:root{color-scheme:light dark;--bg:#f0fbff;--surface:#fff;--ink:#1f4861;--mute:#4f748b;--border:#c2ecff;--link:#1f789f}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1c26;--surface:#162836;--ink:#dceff8;--mute:#9dbdcf;--border:#28455a;--link:#7fd0f0}}
+*{box-sizing:border-box}
+body{margin:0;padding:24px 16px 56px;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Yu Gothic","Meiryo",system-ui,sans-serif;line-height:1.7}
+main{max-width:760px;margin:0 auto}
+a{color:var(--link)}
+nav.crumbs{font-size:13px;color:var(--mute);margin-bottom:14px}
+h1{font-size:24px;margin:0 0 6px}
+p.byline{margin:0 0 14px;color:var(--mute);font-size:15px}
+ul.facts{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0 0 22px;list-style:none}
+ul.facts li{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:13px}
+h2{font-size:17px;margin:26px 0 10px}
+ol.plays{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+ol.plays li{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px}
+.date{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px}
+.stitle{display:block;font-size:14px;color:var(--mute);margin:2px 0 6px;word-break:break-word}
+.links{display:flex;flex-wrap:wrap;gap:12px;font-size:13px}
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--mute)}
+ul.songindex{columns:2 220px;gap:18px;padding:0;margin:0;list-style:none;font-size:14px}
+ul.songindex li{break-inside:avoid;padding:3px 0}
+`.trim();
+
+function layout({ title, description, canonical, jsonLd, body }) {
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="${escapeHtml(canonical)}">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:site_name" content="${escapeHtml(SITE_NAME)}">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${escapeHtml(canonical)}">
+<meta property="og:image" content="${ORIGIN}/assets/icons/icon-512.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/svg+xml" href="/assets/site-icon.svg">
+<script type="application/ld+json">
+${JSON.stringify(jsonLd, null, 1)}
+</script>
+<style>${PAGE_CSS}</style>
+</head>
+<body>
+<main>
+${body}
+<footer>
+<p>個人が趣味で運営しているファンサイトです。夢川かなうさん本人および所属事務所とは関係ありません。楽曲名・アーティスト名などの権利は各権利者に帰属します。</p>
+<p><a href="/">${escapeHtml(SITE_NAME)} トップへ</a></p>
+</footer>
+</main>
+</body>
+</html>
+`;
+}
+
+export function buildSongPage(song, performances, slug) {
+  const canonical = `${ORIGIN}/song/${slug}.html`;
+  const title = `${song.title} / ${song.artist} - ${SITE_NAME}`;
+  const latest = performances[0]?.date || '';
+  const description = `夢川かなうさんが「${song.title}」（${song.artist}）を歌った歌枠の一覧。歌唱回数${song.count}回${latest ? `、最新は${latest}の配信` : ''}。曲の開始時刻から再生できます。`;
+
+  const facts = [
+    song.genre && `ジャンル: ${song.genre}`,
+    song.displayKey && `キー: ${song.displayKey}`,
+    `歌唱回数: ${song.count}回`,
+  ].filter(Boolean);
+
+  const plays = performances.map((p) => {
+    const at = p.t != null && p.t > 0 ? p.t : 0;
+    const videoId = videoIdFromUrl(p.url);
+    const youtube = youtubeUrlAt(p.url, at);
+    const inSite = videoId ? `/?v=${videoId}${at ? `&amp;t=${at}` : ''}` : '/?tab=timeline';
+    return `  <li>
+    <span class="date">${escapeHtml(p.date)}</span>${at ? ` <span class="mute">${escapeHtml(formatSeconds(at))}〜</span>` : ''}
+    <span class="stitle">${escapeHtml(p.title)}</span>
+    <span class="links">
+      ${youtube ? `<a href="${escapeHtml(youtube)}" rel="noopener nofollow" target="_blank">YouTubeで${at ? 'この曲から' : ''}見る</a>` : ''}
+      <a href="${inSite}">この歌枠のセトリ</a>
+    </span>
+  </li>`;
+  }).join('\n');
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: `${song.title} / ${song.artist}`,
+    description,
+    url: canonical,
+    inLanguage: 'ja',
+    isPartOf: { '@type': 'WebSite', '@id': `${ORIGIN}/#website`, name: SITE_NAME, url: `${ORIGIN}/` },
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: SITE_NAME, item: `${ORIGIN}/` },
+        { '@type': 'ListItem', position: 2, name: '曲一覧', item: `${ORIGIN}/song/` },
+        { '@type': 'ListItem', position: 3, name: song.title },
+      ],
+    },
+  };
+
+  const body = `<nav class="crumbs"><a href="/">${escapeHtml(SITE_NAME)}</a> ＞ <a href="/song/">曲一覧</a> ＞ ${escapeHtml(song.title)}</nav>
+<h1>${escapeHtml(song.title)}</h1>
+<p class="byline">${escapeHtml(song.artist)}</p>
+<ul class="facts">${facts.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul>
+<h2>歌った歌枠（${performances.length}件）</h2>
+${performances.length ? `<ol class="plays">\n${plays}\n</ol>` : '<p>歌枠の記録がまだありません。</p>'}
+<h2>サイトで探す</h2>
+<p><a href="/?tab=songs&amp;q=${encodeURIComponent(song.title)}">「${escapeHtml(song.title)}」を全曲リストで見る</a></p>`;
+
+  return layout({ title, description, canonical, jsonLd, body });
+}
+
+export function buildSongIndexPage(entries) {
+  const canonical = `${ORIGIN}/song/`;
+  const title = `曲一覧（${entries.length}曲） - ${SITE_NAME}`;
+  const description = `夢川かなうさんの歌枠で歌われた${entries.length}曲の一覧。曲ごとに歌唱回数と、歌った歌枠・開始時刻を確認できます。`;
+  const items = [...entries]
+    .sort((a, b) => (b.song.count - a.song.count) || a.song.title.localeCompare(b.song.title, 'ja'))
+    .map(({ song, slug }) => `  <li><a href="/song/${escapeHtml(slug)}.html">${escapeHtml(song.title)}</a> <small>/ ${escapeHtml(song.artist)}（${song.count}回）</small></li>`)
+    .join('\n');
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: '曲一覧',
+    description,
+    url: canonical,
+    inLanguage: 'ja',
+    isPartOf: { '@type': 'WebSite', '@id': `${ORIGIN}/#website`, name: SITE_NAME, url: `${ORIGIN}/` },
+  };
+
+  const body = `<nav class="crumbs"><a href="/">${escapeHtml(SITE_NAME)}</a> ＞ 曲一覧</nav>
+<h1>曲一覧</h1>
+<p class="byline">歌唱回数の多い順に${entries.length}曲。</p>
+<ul class="songindex">
+${items}
+</ul>`;
+
+  return layout({ title, description, canonical, jsonLd, body });
+}
+
+// 曲キー → スラッグ。sitemap 生成からも同じ対応を使う。
+export function buildSongPageEntries() {
+  const songsPayload = JSON.parse(readFileSync(join(ROOT, 'docs', 'data', 'songs.json'), 'utf-8'));
+  const streamsPayload = JSON.parse(readFileSync(join(ROOT, 'docs', 'data', 'streams.json'), 'utf-8'));
+  const songs = mergeSongs(songsPayload);
+  const slugs = assignSlugs(songs);
+  const plays = collectPerformances(streamsPayload);
+  return songs.map((song) => ({
+    song,
+    slug: slugs.get(song.key),
+    performances: plays.get(song.key) || [],
+  }));
+}
+
+export function generateSongPages() {
+  const entries = buildSongPageEntries();
+  if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
+
+  const wanted = new Set(['index.html', ...entries.map(e => `${e.slug}.html`)]);
+  for (const name of readdirSync(OUT_DIR)) {
+    // データから消えた曲のページを残すと 404 にもならない孤児ページになる
+    if (name.endsWith('.html') && !wanted.has(name)) unlinkSync(join(OUT_DIR, name));
+  }
+
+  for (const entry of entries) {
+    writeFileSync(join(OUT_DIR, `${entry.slug}.html`), buildSongPage(entry.song, entry.performances, entry.slug));
+  }
+  writeFileSync(join(OUT_DIR, 'index.html'), buildSongIndexPage(entries));
+  return entries.length;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const count = generateSongPages();
+  console.log(`generated docs/song/ (${count} song pages + index)`);
+}

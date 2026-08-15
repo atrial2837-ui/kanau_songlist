@@ -6,6 +6,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { buildSongPageEntries } from './gen-song-pages.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -38,12 +39,25 @@ function xmlEscape(text) {
     .replace(/>/g, '&gt;');
 }
 
-export function buildSitemapEntries(streamsPayload, today) {
+export function buildSitemapEntries(streamsPayload, today, songEntries = []) {
   const entries = [
     { loc: `${ORIGIN}/`, changefreq: 'daily', priority: '1.0', lastmod: today },
   ];
   for (const tab of TABS) {
     entries.push({ loc: `${ORIGIN}/?tab=${tab}`, changefreq: 'daily', priority: '0.8', lastmod: today });
+  }
+
+  // 曲ごとの静的ページ（scripts/gen-song-pages.mjs が生成）
+  if (songEntries.length) {
+    entries.push({ loc: `${ORIGIN}/song/`, changefreq: 'daily', priority: '0.8', lastmod: today });
+    for (const { slug, performances } of songEntries) {
+      entries.push({
+        loc: `${ORIGIN}/song/${encodeURI(slug)}.html`,
+        changefreq: 'monthly',
+        priority: '0.6',
+        lastmod: /^\d{4}-\d{2}-\d{2}$/.test(performances?.[0]?.date || '') ? performances[0].date : today,
+      });
+    }
   }
 
   // 歌枠は 1 本ずつが独立した内容（セトリ＋歌唱時刻）なので個別に載せる。
@@ -82,7 +96,7 @@ export function renderSitemap(entries) {
 export function generateSitemap() {
   const streams = JSON.parse(readFileSync(join(ROOT, 'docs', 'data', 'streams.json'), 'utf-8'));
   const today = new Date().toISOString().slice(0, 10);
-  const entries = buildSitemapEntries(streams, today);
+  const entries = buildSitemapEntries(streams, today, buildSongPageEntries());
   const out = join(ROOT, 'docs', 'sitemap.xml');
   writeFileSync(out, renderSitemap(entries));
   return entries.length;
