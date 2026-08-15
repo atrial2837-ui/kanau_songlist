@@ -1027,10 +1027,15 @@ button.official-link {
 .panel.active { display: block; }
 
 /* CLS対策: 初期表示のダッシュボードは、データが届いてから中身が描かれるため
-   確保が 720px のままだと実寸(約1475px)まで一気に伸び、下の要素が押し下げられて
-   レイアウトシフトになっていた（PageSpeed で .panels に 0.203）。
-   実寸ぶんを先に確保しておく。中身の方が高い場合（狭い画面など）は伸びるだけ。 */
-#panel-dashboard { min-height: 1480px; }
+   .panels の確保が 720px のままだと実寸(約1,475px)まで一気に伸び、レイアウトシフト
+   になっていた（PageSpeed で div.panels に 0.210）。
+   ※ #panel-dashboard 側に指定しても効かない。パネルは JS が .active を付けるまで
+     display:none で、高さを持たないため。確保は .panels 側で行う必要がある。
+   ※ この指定はインラインのクリティカルCSSにも入れること。components.css は
+     非同期読み込みのため、回線が遅いと到着前に描画が始まって間に合わない。
+   body[data-active-tab] は HTML に静的に入っているので初回描画から効き、
+   別タブへ移ると自動で外れる（短いタブに余白が残らない）。 */
+body[data-active-tab="dashboard"] .panels { min-height: 1480px; }
 
 /* CLS対策: パネル初期表示時に高さを確保 */
 #panel-songs:not(.active),
