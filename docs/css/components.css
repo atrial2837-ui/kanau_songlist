@@ -1026,6 +1026,12 @@ button.official-link {
 .panel { display: none; animation: fadeIn 0.3s ease; }
 .panel.active { display: block; }
 
+/* CLS対策: 初期表示のダッシュボードは、データが届いてから中身が描かれるため
+   確保が 720px のままだと実寸(約1475px)まで一気に伸び、下の要素が押し下げられて
+   レイアウトシフトになっていた（PageSpeed で .panels に 0.203）。
+   実寸ぶんを先に確保しておく。中身の方が高い場合（狭い画面など）は伸びるだけ。 */
+#panel-dashboard { min-height: 1480px; }
+
 /* CLS対策: パネル初期表示時に高さを確保 */
 #panel-songs:not(.active),
 #panel-ranking:not(.active),
@@ -6947,9 +6953,10 @@ body.has-sv-mini #yt-player-panel:hover .yt-mini-progress-wrap { height: 4px; }
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--surface-3);
-  color: var(--ink-mute);
+  /* opacity で薄めるとコントラスト比が基準（4.5:1）を下回るため、
+     透過はやめて文字色そのものを一段濃くする */
+  color: var(--ink-soft);
   font-family: inherit;
-  opacity: 0.75;
 }
 
 /* モバイル: ブランド行の検索バーは非表示 → メニュー内で表示 */

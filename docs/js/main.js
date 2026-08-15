@@ -362,13 +362,10 @@ function initMobileMenu() {
     setOpen(false);
     toggle.focus();
   };
+  // label から button へ変えたので、チェックボックスの切り替えは自分で行う。
+  // button は Enter / Space でも click が出るため、キー処理は不要。
   toggle.addEventListener('click', (event) => {
     event.stopPropagation();
-    requestAnimationFrame(() => setOpen(checkbox.checked));
-  });
-  toggle.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
     setOpen(!checkbox.checked);
   });
   checkbox.addEventListener('change', () => {

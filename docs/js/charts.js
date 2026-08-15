@@ -48,6 +48,11 @@ export function getColors() {
 function defaults() {
   const c = getColors();
   return {
+    // 描画時のアニメーションはしない。タブを開くたびに線が伸びる演出が入って
+    // 表示完了が遅く感じるうえ、その間レイアウトが動いて見えるため。
+    animation: false,
+    animations: { colors: false, x: false, y: false },
+    transitions: { active: { animation: { duration: 0 } }, resize: { animation: { duration: 0 } } },
     color: c.ink,
     borderColor: c.border,
     font: { family: '"Noto Sans JP", "Yu Gothic", "Meiryo", system-ui, sans-serif', size: 11 },
