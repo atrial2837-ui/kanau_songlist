@@ -3,9 +3,10 @@ import { ensureSongTags, loadAll, loadInitial } from './data.js';
 import { buildIndex } from './search.js';
 import { initTheme, onThemeChange, cycleTheme } from './theme.js';
 import { onRerenderNeeded, destroyAllCharts } from './charts.js';
-import { $, $$, escapeHtml, fmtDate, fmtTs, streamKey, youtubeThumb, youtubeThumbHq, youtubeThumbTiny, youtubeUrlAt } from './utils.js';
+import { $, $$, escapeHtml, fmtDate, fmtTs, streamKey, youtubeThumb, youtubeThumbHq, youtubeThumbTiny, youtubeUrlAt, youtubeVideoId } from './utils.js';
 import { DEFAULT_CHANNEL } from './config.js';
 import { readUrlState, writeUrlState } from './url-state.js';
+import { buildPageMeta } from './seo-meta.js';
 import { initSearchPalette, openSearchPalette, closeSearchPalette, isSearchPaletteOpen } from './views/search-palette.js';
 import { icon } from './icons.js';
 import { initChannelModal, initHelpModal, initWelcomeTip } from './views/modals.js';
@@ -659,21 +660,48 @@ function updatePageTitle(mode) {
   const el = document.getElementById('page-title');
   if (!el) return;
 
-  if (mode === 'new') {
-    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32" fetchpriority="high" decoding="sync">夢川かなう 新ch 歌唱データベース';
-    document.title = '夢川かなう 新ch 歌唱データベース';
-  } else if (mode === 'old') {
-    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32" fetchpriority="high" decoding="sync">夢川かなう 旧ch 歌唱データベース';
-    document.title = '夢川かなう 旧ch 歌唱データベース';
-  } else {
-    el.innerHTML = '<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32" fetchpriority="high" decoding="sync">夢川かなう 歌唱データベース';
-    document.title = '夢川かなう 歌唱データベース';
-  }
+  const label = mode === 'new' ? '新ch ' : mode === 'old' ? '旧ch ' : '';
+  el.innerHTML = `<img class="hero-title-icon" src="assets/site-icon.svg" alt="" width="32" height="32" fetchpriority="high" decoding="sync">夢川かなう ${label}歌唱データベース`;
 
   // ヒーロー背景ウォーターマーク切替
   const bg = document.getElementById('hero-ch-bg');
   if (bg) bg.dataset.mode = mode || 'all';
+
+  applySeoMeta();
 }
+
+// 開いている歌枠を videoId から引く。チャンネルをまたいで探す。
+function findStreamByVideoId(videoId) {
+  if (!videoId || !state.channelData) return null;
+  const buckets = [state.data, ...Object.values(state.channelData.channels || {})];
+  for (const ds of buckets) {
+    const hit = (ds?.streams || []).find(s => youtubeVideoId(s.url) === videoId);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+// SPA なので URL が変わっても HTML は同じ。title/description/canonical を
+// 出し分けないと、歌枠ページも各タブも検索エンジンにはトップと同じ 1 ページに見える。
+function applySeoMeta() {
+  const url = readUrlState();
+  const meta = buildPageMeta(url, { stream: findStreamByVideoId(url.v) });
+
+  document.title = meta.title;
+  const set = (selector, attr, value) => {
+    const el = document.head.querySelector(selector);
+    if (el) el.setAttribute(attr, value);
+  };
+  set('link[rel="canonical"]', 'href', meta.canonical);
+  set('meta[name="description"]', 'content', meta.description);
+  set('meta[property="og:title"]', 'content', meta.title);
+  set('meta[property="og:description"]', 'content', meta.description);
+  set('meta[property="og:url"]', 'content', meta.canonical);
+  set('meta[name="twitter:title"]', 'content', meta.title);
+  set('meta[name="twitter:description"]', 'content', meta.description);
+}
+
+window.addEventListener('urlstatechange', applySeoMeta);
 
 async function init() {
   showLoading();
@@ -727,6 +755,7 @@ function applyUrlState() {
     switchChannel(url.channel, { resetSearch: false, updateUrl: false });
   }
   activateTab(url.tab, { updateUrl: false });
+  applySeoMeta();
 }
 
 // Tab buttons

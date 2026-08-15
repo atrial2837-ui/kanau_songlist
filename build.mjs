@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlink
 import { join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { createHash } from 'crypto';
+import { generateSitemap } from './scripts/gen-sitemap.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, 'docs', 'dist');
@@ -136,6 +137,8 @@ async function main() {
   }
   cleanStaleChunks();
   stampAssetVersions();
+  const urls = generateSitemap();
+  console.log(`generated docs/sitemap.xml (${urls} URLs)`);
 }
 
 // 直接実行時のみビルド(build-compare.mjs が設定 import しただけでは走らない)
