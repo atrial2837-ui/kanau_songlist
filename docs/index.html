@@ -35,11 +35,10 @@
      同一ホストへの dns-prefetch は preconnect に含まれるため併記しない。 -->
 <link rel="preconnect" href="https://i.ytimg.com">
 <link rel="dns-prefetch" href="https://www.youtube.com">
-<!-- Chart.js は dashboard/analytics で遅延ロードする外部CDN。preconnect で接続を温め、
-     データ取得と並行して低優先で先読みしてチャート初描画を早める。
-     charts.js は crossorigin 無しの <script> 注入なので preload も無しで一致させ二重取得を防ぐ。 -->
+<!-- Chart.js は dashboard/analytics で遅延ロードする外部CDN。接続だけ温めておく。
+     以前は preload も併用していたが、70KB が初期表示中の帯域を奪って
+     モバイルの LCP を押し下げていたため外した（グラフは折り返しより下）。 -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" as="script" fetchpriority="low">
 <link rel="preload" href="/data/meta.json" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="/data/songs.json" as="fetch" type="application/json" crossorigin fetchpriority="low">
 <link rel="preload" href="/data/streams.json" as="fetch" type="application/json" crossorigin fetchpriority="low">
