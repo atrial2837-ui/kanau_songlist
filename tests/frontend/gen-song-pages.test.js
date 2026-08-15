@@ -13,6 +13,7 @@ import {
   escapeHtml,
   formatSeconds,
   mergeSongs,
+  repairMojibake,
   songSlug,
   videoIdFromUrl,
   youtubeUrlAt,
@@ -183,8 +184,47 @@ describe('buildSongPage', () => {
   });
 });
 
+describe('repairMojibake', () => {
+  // UTF-8 バイト列を Latin-1 として読んでしまった状態を作る
+  const mangle = (s) => Buffer.from(s, 'utf-8').toString('latin1');
+
+  it('化けた日本語パスを元に戻す', () => {
+    const original = '/song/catch-you-catch-me-グミ.html';
+    assert.equal(repairMojibake(mangle(original)), original);
+  });
+
+  it('もともと正しい日本語パスは触らない', () => {
+    assert.equal(repairMojibake('/song/catch-you-catch-me-グミ.html'), '');
+  });
+
+  it('ASCIIだけのパスは触らない', () => {
+    assert.equal(repairMojibake('/song/not-here.html'), '');
+  });
+
+  it('UTF-8として解釈できないバイト列は諦める', () => {
+    assert.equal(repairMojibake('/song/\xFF\xFE.html'), '');
+  });
+
+  it('空でも落ちない', () => {
+    assert.equal(repairMojibake(''), '');
+    assert.equal(repairMojibake(null), '');
+  });
+
+  it('復元後をもう一度かけても何も起きない（ループしない）', () => {
+    const original = '/song/夜に駆ける-yoasobi.html';
+    const fixed = repairMojibake(mangle(original));
+    assert.equal(fixed, original);
+    assert.equal(repairMojibake(fixed), '');
+  });
+});
+
 describe('buildNotFoundPage', () => {
   const html = buildNotFoundPage();
+
+  it('化けたURLを復元して飛ばし直すスクリプトを持つ', () => {
+    assert.ok(html.includes('TextDecoder'));
+    assert.ok(html.includes('location.replace'));
+  });
 
   it('見つからない旨と探し直す導線を出す', () => {
     assert.ok(html.includes('<h1>ページが見つかりません</h1>'));

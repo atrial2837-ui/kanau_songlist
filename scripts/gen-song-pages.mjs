@@ -147,7 +147,7 @@ ul.songindex{columns:2 220px;gap:18px;padding:0;margin:0;list-style:none;font-si
 ul.songindex li{break-inside:avoid;padding:3px 0}
 `.trim();
 
-function layout({ title, description, canonical, jsonLd, body, noindex = false }) {
+function layout({ title, description, canonical, jsonLd, body, noindex = false, script = '' }) {
   return `<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -170,6 +170,7 @@ function layout({ title, description, canonical, jsonLd, body, noindex = false }
 ${JSON.stringify(jsonLd, null, 1)}
 </script>
 <style>${PAGE_CSS}</style>
+${script ? `<script>${script}</script>` : ''}
 </head>
 <body>
 <main>
@@ -241,6 +242,38 @@ ${performances.length ? `<ol class="plays">\n${plays}\n</ol>` : '<p>歌枠の記
   return layout({ title, description, canonical, jsonLd, body });
 }
 
+// 一部のブラウザ（Vivaldi など）は、アドレスバーに貼られた日本語URLの
+// UTF-8 バイト列を Latin-1 として解釈したまま送ることがある。
+// 「グミ」→「ã\x82°ã\x83\x9F」のような決まった化け方なので、404 ページ側で
+// バイト列に戻して UTF-8 として読み直せば元のパスを復元できる。
+//
+// 復元できないとき（もともと正しいパス、単なる打ち間違い）は空文字を返す。
+// 復元後の文字列は 0xFF を超える文字を含むため、二度目は必ず空になり無限ループしない。
+export function repairMojibake(text) {
+  const s = String(text || '');
+  if (!s || [...s].some(c => c.charCodeAt(0) > 0xFF)) return '';
+  try {
+    const bytes = Uint8Array.from([...s], c => c.charCodeAt(0));
+    const out = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    return out === s ? '' : out;
+  } catch (_) {
+    return '';
+  }
+}
+
+const REPAIR_SCRIPT = `
+(function(){
+  try{
+    var p = decodeURIComponent(location.pathname);
+    for (var i = 0; i < p.length; i++) if (p.charCodeAt(i) > 255) return;
+    var b = new Uint8Array(p.length);
+    for (var j = 0; j < p.length; j++) b[j] = p.charCodeAt(j);
+    var fixed = new TextDecoder('utf-8', { fatal: true }).decode(b);
+    if (fixed && fixed !== p) location.replace(encodeURI(fixed) + location.search + location.hash);
+  }catch(e){}
+})();
+`.trim();
+
 // Cloudflare Pages は 404.html が無いと、存在しないパスに対して 200 で
 // index.html（SPA）を返す。URL が途中で壊れても「読み込み中」の画面が出るだけで
 // 気づけないうえ、検索側にはソフト404が大量に見えるため、実体を置く。
@@ -264,7 +297,7 @@ export function buildNotFoundPage() {
   <li><a href="/?tab=songs">全曲リストで検索</a></li>
   <li><a href="/?tab=timeline">配信タイムライン</a></li>
 </ul>`;
-  return layout({ title, description, canonical, jsonLd, body, noindex: true });
+  return layout({ title, description, canonical, jsonLd, body, noindex: true, script: REPAIR_SCRIPT });
 }
 
 export function buildSongIndexPage(entries) {
