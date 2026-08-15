@@ -147,7 +147,7 @@ ul.songindex{columns:2 220px;gap:18px;padding:0;margin:0;list-style:none;font-si
 ul.songindex li{break-inside:avoid;padding:3px 0}
 `.trim();
 
-function layout({ title, description, canonical, jsonLd, body }) {
+function layout({ title, description, canonical, jsonLd, body, noindex = false }) {
   return `<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -155,7 +155,7 @@ function layout({ title, description, canonical, jsonLd, body }) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
-<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="robots" content="${noindex ? 'noindex,follow' : 'index,follow,max-image-preview:large'}">
 <link rel="canonical" href="${escapeHtml(canonical)}">
 <meta property="og:type" content="article">
 <meta property="og:locale" content="ja_JP">
@@ -241,6 +241,32 @@ ${performances.length ? `<ol class="plays">\n${plays}\n</ol>` : '<p>歌枠の記
   return layout({ title, description, canonical, jsonLd, body });
 }
 
+// Cloudflare Pages は 404.html が無いと、存在しないパスに対して 200 で
+// index.html（SPA）を返す。URL が途中で壊れても「読み込み中」の画面が出るだけで
+// 気づけないうえ、検索側にはソフト404が大量に見えるため、実体を置く。
+export function buildNotFoundPage() {
+  const canonical = `${ORIGIN}/404.html`;
+  const title = `ページが見つかりません - ${SITE_NAME}`;
+  const description = 'お探しのページは見つかりませんでした。';
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: title,
+    url: canonical,
+    inLanguage: 'ja',
+  };
+  const body = `<h1>ページが見つかりません</h1>
+<p class="byline">URL が途中で切れていたり、文字が化けている可能性があります。</p>
+<h2>ここから探せます</h2>
+<ul class="facts">
+  <li><a href="/">トップ（ダッシュボード）</a></li>
+  <li><a href="/song/">曲一覧（索引）</a></li>
+  <li><a href="/?tab=songs">全曲リストで検索</a></li>
+  <li><a href="/?tab=timeline">配信タイムライン</a></li>
+</ul>`;
+  return layout({ title, description, canonical, jsonLd, body, noindex: true });
+}
+
 export function buildSongIndexPage(entries) {
   const canonical = `${ORIGIN}/song/`;
   const title = `曲一覧（${entries.length}曲） - ${SITE_NAME}`;
@@ -298,6 +324,7 @@ export function generateSongPages() {
     writeFileSync(join(OUT_DIR, `${entry.slug}.html`), buildSongPage(entry.song, entry.performances, entry.slug));
   }
   writeFileSync(join(OUT_DIR, 'index.html'), buildSongIndexPage(entries));
+  writeFileSync(join(ROOT, 'docs', '404.html'), buildNotFoundPage());
   return entries.length;
 }
 

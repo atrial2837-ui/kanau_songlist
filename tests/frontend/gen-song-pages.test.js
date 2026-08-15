@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 
 import {
   assignSlugs,
+  buildNotFoundPage,
   buildSongIndexPage,
   buildSongPage,
   collectPerformances,
@@ -179,6 +180,25 @@ describe('buildSongPage', () => {
   it('歌枠が0件でも壊れない', () => {
     const empty = buildSongPage(song, [], 'x');
     assert.ok(empty.includes('歌枠の記録がまだありません'));
+  });
+});
+
+describe('buildNotFoundPage', () => {
+  const html = buildNotFoundPage();
+
+  it('見つからない旨と探し直す導線を出す', () => {
+    assert.ok(html.includes('<h1>ページが見つかりません</h1>'));
+    assert.ok(html.includes('href="/song/"'));
+    assert.ok(html.includes('href="/?tab=songs"'));
+  });
+
+  it('検索エンジンには載せない', () => {
+    assert.ok(html.includes('content="noindex,follow"'));
+  });
+
+  it('通常ページは noindex にしない', () => {
+    const song = { key: 'a__x', title: 'A', artist: 'X', count: 1, genre: '', displayKey: '' };
+    assert.ok(!buildSongPage(song, [], 'a-x').includes('noindex'));
   });
 });
 
