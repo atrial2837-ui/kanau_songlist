@@ -121,7 +121,9 @@ test('モバイル幅では内部プレイヤーを生成せず外部YouTubeへ'
 
   const opened = await page.evaluate(() => window.__openedUrls);
   expect(opened).toHaveLength(1);
-  expect(opened[0]).toContain('https://www.youtube.com/watch?v=_qXMjq1xWTE');
+  // 動画IDは実データ由来。ハードコードすると streams.json 更新で先頭が入れ替わった時点で腐る
+  const videoId = stream.url.match(/(?:\/live\/|[?&]v=|youtu\.be\/)([\w-]{11})/)[1];
+  expect(opened[0]).toContain(`https://www.youtube.com/watch?v=${videoId}`);
   expect(opened[0]).toContain('t=42s');
   const s = await fakeSummary(page);
   expect(s?.created ?? 0).toBe(0);
