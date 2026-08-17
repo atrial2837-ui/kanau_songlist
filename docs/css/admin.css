@@ -460,6 +460,22 @@
   font-weight: 700;
 }
 
+/* 固定コメントの照合プレビュー: 時刻が前後している行を目立たせる */
+#marker-paste-preview tr.is-warn {
+  background: color-mix(in srgb, var(--danger, #d9534f) 12%, transparent);
+}
+
+#marker-paste {
+  min-height: 180px;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+#marker-paste-preview {
+  margin-top: 10px;
+}
+
 #marker-comment {
   min-height: 260px;
   font-family: ui-monospace, "Cascadia Mono", monospace;

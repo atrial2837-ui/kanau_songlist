@@ -180,6 +180,21 @@
       </div>
 
       <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)">
+      <h3 style="margin:0 0 12px;font-size:15px">固定コメントから取り込む</h3>
+      <p class="admin-note">
+        すでにタイムスタンプ付きのセトリがある枠は、YouTube の固定コメントをそのまま貼り付けてください。
+        曲名で照合して開始時刻を割り当てます。「照合する」で結果を確かめてから打刻表へ反映できます。
+      </p>
+      <label class="admin-field-full">固定コメントを貼り付け<textarea id="marker-paste" rows="10" spellcheck="false"
+        placeholder="0:00 start&#10;15:04 夜に駆ける / YOASOBI 19:20&#10;19:20 花に亡霊 / ヨルシカ 23:41"></textarea></label>
+      <div class="admin-actions">
+        <button class="btn ghost" id="marker-paste-match-btn" type="button">照合する</button>
+        <button class="btn primary" id="marker-paste-apply-btn" type="button" disabled>打刻表に反映</button>
+      </div>
+      <p class="admin-note" id="marker-paste-status"></p>
+      <div id="marker-paste-preview"></div>
+
+      <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)">
       <h3 style="margin:0 0 12px;font-size:15px">コメント用テキスト</h3>
       <div class="admin-form-grid">
         <label>行の形式<select id="marker-template"></select></label>

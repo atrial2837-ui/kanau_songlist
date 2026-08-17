@@ -31,6 +31,7 @@ import {
   buildSavePayload,
   marksFromItems,
 } from './admin/timestamp-marker.js';
+import { matchSetlist, findInversions } from './admin/timestamp-matcher.js';
 
 initTheme();
 
@@ -1304,6 +1305,84 @@ function _mkKeydown(event) {
   handler();
 }
 
+/* ─── 固定コメントの貼り付け取り込み ───────────────────────────────────────── */
+
+/** 直近の照合結果。反映ボタンで打刻表へ書き込むまで持っておく */
+let _mkPasteMatched = null;
+
+function _mkPasteReset() {
+  _mkPasteMatched = null;
+  const apply = $('#marker-paste-apply-btn');
+  if (apply) apply.disabled = true;
+  const preview = $('#marker-paste-preview');
+  if (preview) preview.innerHTML = '';
+  const status = $('#marker-paste-status');
+  if (status) status.textContent = '';
+}
+
+/** 貼り付けた固定コメントをセトリと照合し、結果を表で見せる（まだ反映はしない）。 */
+function _mkPasteMatch() {
+  const status = $('#marker-paste-status');
+  const apply = $('#marker-paste-apply-btn');
+  const preview = $('#marker-paste-preview');
+  if (apply) apply.disabled = true;
+
+  if (!_mkSongs.length) { status.textContent = '先に歌枠を開いてください。'; return; }
+  const comment = $('#marker-paste')?.value || '';
+  if (!comment.trim()) { status.textContent = '固定コメントを貼り付けてください。'; return; }
+
+  _mkPasteMatched = matchSetlist(_mkSongs, comment);
+  const inversions = new Set(findInversions(_mkPasteMatched).map((v) => v.index));
+  const matched = _mkPasteMatched.filter((m) => m.seconds != null).length;
+
+  preview.innerHTML = `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>#</th><th>曲名</th><th>アーティスト</th><th>現在</th><th>照合結果</th><th>方法</th></tr></thead>
+        <tbody>${_mkSongs.map((song, i) => {
+          const m = _mkPasteMatched[i];
+          const now = _mkMarks[i]?.start;
+          const warn = inversions.has(i);
+          const changed = m.seconds != null && now != null && m.seconds !== now;
+          return `
+          <tr${warn ? ' class="is-warn"' : ''}>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(song.title)}</td>
+            <td>${escapeHtml(song.artist || '')}</td>
+            <td>${now != null ? escapeHtml(formatSeconds(now)) : '—'}</td>
+            <td><strong>${m.seconds != null ? escapeHtml(formatSeconds(m.seconds)) : '—'}</strong>${changed ? ' <small>(変更)</small>' : ''}</td>
+            <td>${warn ? '⚠️ 時刻が前後している' : escapeHtml(m.how || '未割当')}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+
+  const warnText = inversions.size
+    ? `　⚠️ 時刻の逆転が${inversions.size}件あります（コメントの誤記か、セトリの並びが実際の歌唱順とずれている可能性）。`
+    : '';
+  status.textContent = `${matched} / ${_mkSongs.length}曲に割り当てました。${warnText}`;
+  if (apply) apply.disabled = matched === 0;
+}
+
+/**
+ * 照合結果を打刻表へ書き込む。
+ * ここでは D1 に保存しない。表で直してから既存の「サイトに開始時刻を保存」で確定させる。
+ */
+function _mkPasteApply() {
+  if (!_mkPasteMatched) return;
+  let applied = 0;
+  _mkPasteMatched.forEach((m, i) => {
+    if (m.seconds == null) return;
+    _mkMarks = setMark(_mkMarks, i, 'start', m.seconds);
+    applied++;
+  });
+  _mkTarget = Math.max(0, nextUnmarkedIndex(_mkMarks, 0));
+  _mkCommentDirty = false;
+  _mkRenderRows();
+  $('#marker-paste-status').textContent =
+    `${applied}曲を打刻表に反映しました。内容を確認して「サイトに開始時刻を保存」を押すと D1 に保存されます。`;
+}
+
 async function _mkOpenStream(streamId, channelCode) {
   const status = $('#marker-status');
   status.textContent = '読み込み中…';
@@ -1328,6 +1407,10 @@ async function _mkOpenStream(streamId, channelCode) {
     _mkMeta = { start: null, voice: null };
     _mkTarget = Math.max(0, nextUnmarkedIndex(_mkMarks, 0));
     _mkCommentDirty = false;
+    // 別の枠を開いたら、前の枠の貼り付け内容と照合結果は捨てる
+    const pasteBox = $('#marker-paste');
+    if (pasteBox) pasteBox.value = '';
+    _mkPasteReset();
 
     $('#marker-workspace').hidden = false;
     $('#marker-badge').textContent = `${channelCode === 'new' ? '新' : '旧'}ch #${s.source_index}`;
@@ -1388,6 +1471,9 @@ function initTimestampMarker() {
   });
 
   $('#marker-unregistered-only')?.addEventListener('change', _mkRenderStreamOptions);
+
+  $('#marker-paste-match-btn')?.addEventListener('click', _mkPasteMatch);
+  $('#marker-paste-apply-btn')?.addEventListener('click', _mkPasteApply);
 
   $('#marker-open-btn')?.addEventListener('click', () => {
     const id = Number($('#marker-stream')?.value);
