@@ -460,6 +460,22 @@
   font-weight: 700;
 }
 
+/* ─── 確認が必要な項目: 確認済みの付け外し ───────────────────────────────── */
+
+.issue-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.issue-tools .btn { padding: 4px 10px; font-size: 12px; }
+.issue-ack { padding: 3px 9px; font-size: 11.5px; white-space: nowrap; }
+
+/* 確認済みは残っていることが分かる程度に落とす（見えなくはしない） */
+#quality-rows tr.is-ignored td { opacity: 0.5; }
+
 /* ─── 歌みた・オリ曲: 1行ずつのコンパクトな一覧 ─────────────────────────── */
 
 .mv-list-tools {

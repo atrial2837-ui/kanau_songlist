@@ -6,10 +6,10 @@
 <title>歌枠管理｜夢川かなう 歌唱データベース</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="assets/site-icon.svg">
-<link rel="stylesheet" href="css/theme.css?v=9e4dd93b2f">
-<link rel="stylesheet" href="css/components.css?v=9e4dd93b2f">
-<link rel="stylesheet" href="css/views.css?v=9e4dd93b2f">
-<link rel="stylesheet" href="css/admin.css?v=9e4dd93b2f">
+<link rel="stylesheet" href="css/theme.css?v=1bb2312fe4">
+<link rel="stylesheet" href="css/components.css?v=1bb2312fe4">
+<link rel="stylesheet" href="css/views.css?v=1bb2312fe4">
+<link rel="stylesheet" href="css/admin.css?v=1bb2312fe4">
 </head>
 <body>
 <header class="topbar">
@@ -310,6 +310,15 @@
       <h2>確認が必要な項目</h2>
       <span class="badge" id="issue-count">—</span>
     </div>
+    <p class="admin-note">
+      直さなくてよい指摘（同じ曲を2回歌った枠など）は「確認済み」にすると一覧から隠せます。
+      指摘の内容が変わったり、直って消えたりすると確認済みも解除されます。
+    </p>
+    <div class="issue-tools">
+      <label class="mv-toggle"><input id="issue-show-ignored" type="checkbox"> 確認済みも表示する</label>
+      <span class="admin-note" id="issue-ignored-count"></span>
+      <button class="btn ghost" id="issue-reset-btn" type="button">確認済みをすべて戻す</button>
+    </div>
     <div class="admin-table-wrap">
       <table class="admin-table">
         <thead>
@@ -317,10 +326,11 @@
             <th>種別</th>
             <th>場所</th>
             <th>内容</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="quality-rows">
-          <tr><td colspan="3">読み込み中</td></tr>
+          <tr><td colspan="4">読み込み中</td></tr>
         </tbody>
       </table>
     </div>
@@ -398,6 +408,6 @@
   </section>
 </main>
 
-<script type="module" src="dist/admin.js?v=9e4dd93b2f"></script>
+<script type="module" src="dist/admin.js?v=1bb2312fe4"></script>
 </body>
 </html>

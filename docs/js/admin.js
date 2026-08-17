@@ -38,6 +38,13 @@ import {
   nextAvailableId,
   validateMusicVideo,
 } from './admin/music-video-form.js';
+import {
+  issueKey,
+  partitionIssues,
+  pruneIgnored,
+  summarizeIssues,
+  toggleIgnored,
+} from './admin/issue-review.js';
 
 initTheme();
 
@@ -195,27 +202,87 @@ function renderSync(data, elapsed) {
   $('#sync-badge').classList.toggle('accent', ok);
 }
 
+/* ─── 確認が必要な項目 ────────────────────────────────────────────────────── */
+
+const IGNORED_ISSUES_KEY = 'adminIgnoredIssues';
+
+/** 直近の指摘。確認済みを付け外ししたときに再描画するため持っておく */
+let _qualityIssues = [];
+
+function _loadIgnoredIssues() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(IGNORED_ISSUES_KEY) || '[]');
+    return Array.isArray(raw) ? raw.filter((k) => typeof k === 'string') : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function _saveIgnoredIssues(keys) {
+  try { localStorage.setItem(IGNORED_ISSUES_KEY, JSON.stringify(keys)); } catch (_) { /* 保存できなくても表示は続ける */ }
+}
+
+function _issueRowHtml(issue, isIgnored) {
+  const key = issueKey(issue);
+  return `
+    <tr${isIgnored ? ' class="is-ignored"' : ''}>
+      <td>${escapeHtml(issue.type)}</td>
+      <td>${escapeHtml(issue.place)}</td>
+      <td>${escapeHtml(issue.detail)}</td>
+      <td><button class="btn ghost issue-ack" type="button" data-issue-key="${escapeHtml(key)}">${isIgnored ? '戻す' : '確認済み'}</button></td>
+    </tr>`;
+}
+
 function renderQuality(data) {
-  const issues = collectDatasetIssues(data);
-  const severe = issues.filter(issue => ['履歴未確認', '曲数不一致'].includes(issue.type)).length;
-  const summary = new Map();
-  for (const issue of issues) summary.set(issue.type, (summary.get(issue.type) || 0) + 1);
+  if (data) _qualityIssues = collectDatasetIssues(data);
+  const issues = _qualityIssues;
+
+  // 直った指摘の鍵は捨てる。残すと、同じ内容が再発したときに黙って隠れてしまう
+  const ignoredKeys = pruneIgnored(_loadIgnoredIssues(), issues);
+  _saveIgnoredIssues(ignoredKeys);
+
+  const { active, ignored } = partitionIssues(issues, ignoredKeys);
+  const summary = summarizeIssues(active);
+  const severe = active.filter(issue => ['履歴未確認', '曲数不一致'].includes(issue.type)).length;
+
   $('#quality-summary').innerHTML = [
-    statusRow('履歴未確認', formatNumber(summary.get('履歴未確認') || 0), (summary.get('履歴未確認') || 0) ? 'warn' : 'ok'),
-    statusRow('曲数不一致', formatNumber(summary.get('曲数不一致') || 0), (summary.get('曲数不一致') || 0) ? 'warn' : 'ok'),
-    statusRow('ジャンル未分類', formatNumber(summary.get('ジャンル未分類') || 0), (summary.get('ジャンル未分類') || 0) ? 'warn' : 'ok'),
-    statusRow('同一枠内重複', formatNumber(summary.get('同一枠内重複') || 0), 'ok'),
+    statusRow('履歴未確認', formatNumber(summary['履歴未確認'] || 0), (summary['履歴未確認'] || 0) ? 'warn' : 'ok'),
+    statusRow('曲数不一致', formatNumber(summary['曲数不一致'] || 0), (summary['曲数不一致'] || 0) ? 'warn' : 'ok'),
+    statusRow('ジャンル未分類', formatNumber(summary['ジャンル未分類'] || 0), (summary['ジャンル未分類'] || 0) ? 'warn' : 'ok'),
+    statusRow('同一枠内重複', formatNumber(summary['同一枠内重複'] || 0), 'ok'),
   ].join('');
   $('#quality-badge').textContent = severe ? '要確認' : '良好';
   $('#quality-badge').classList.toggle('accent', !severe);
-  $('#issue-count').textContent = `${issues.length}件`;
-  $('#quality-rows').innerHTML = issues.slice(0, 100).map(issue => `
-    <tr>
-      <td>${issue.type}</td>
-      <td>${issue.place}</td>
-      <td>${issue.detail}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="3">大きな問題は見つかりませんでした</td></tr>';
+  $('#issue-count').textContent = `${active.length}件`;
+
+  const countEl = $('#issue-ignored-count');
+  if (countEl) countEl.textContent = ignored.length ? `確認済み ${ignored.length}件` : '';
+
+  const showIgnored = !!$('#issue-show-ignored')?.checked;
+  const rows = [
+    ...active.slice(0, 100).map((issue) => _issueRowHtml(issue, false)),
+    ...(showIgnored ? ignored.map((issue) => _issueRowHtml(issue, true)) : []),
+  ];
+  $('#quality-rows').innerHTML = rows.join('')
+    || `<tr><td colspan="4">${ignored.length ? 'すべて確認済みです' : '大きな問題は見つかりませんでした'}</td></tr>`;
+}
+
+function initQualityReview() {
+  $('#quality-rows')?.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-issue-key]');
+    if (!btn) return;
+    _saveIgnoredIssues(toggleIgnored(_loadIgnoredIssues(), btn.dataset.issueKey));
+    renderQuality(null);
+  });
+
+  $('#issue-show-ignored')?.addEventListener('change', () => renderQuality(null));
+
+  $('#issue-reset-btn')?.addEventListener('click', () => {
+    if (!_loadIgnoredIssues().length) return;
+    if (!confirm('確認済みをすべて戻します。よろしいですか？')) return;
+    _saveIgnoredIssues([]);
+    renderQuality(null);
+  });
 }
 
 function loadChannels() {
@@ -1673,6 +1740,7 @@ function initTimestampMarker() {
 
 $('#refresh-status').addEventListener('click', loadStatus);
 initManagement();
+initQualityReview();
 loadStatus();
 initTimestamps();
 initMusicVideos();
