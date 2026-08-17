@@ -6,10 +6,10 @@
 <title>歌枠管理｜夢川かなう 歌唱データベース</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="assets/site-icon.svg">
-<link rel="stylesheet" href="css/theme.css?v=1fc57e5d5b">
-<link rel="stylesheet" href="css/components.css?v=1fc57e5d5b">
-<link rel="stylesheet" href="css/views.css?v=1fc57e5d5b">
-<link rel="stylesheet" href="css/admin.css?v=1fc57e5d5b">
+<link rel="stylesheet" href="css/theme.css?v=9e4dd93b2f">
+<link rel="stylesheet" href="css/components.css?v=9e4dd93b2f">
+<link rel="stylesheet" href="css/views.css?v=9e4dd93b2f">
+<link rel="stylesheet" href="css/admin.css?v=9e4dd93b2f">
 </head>
 <body>
 <header class="topbar">
@@ -351,6 +351,19 @@
       <button class="btn ghost" id="mv-download-btn" type="button">music.json をダウンロード</button>
     </div>
     <p class="admin-note" id="mv-status"></p>
+    <div id="mv-issues" hidden></div>
+
+    <div class="mv-list-tools">
+      <input id="mv-search" type="search" placeholder="タイトル・アーティスト・IDで絞り込み">
+      <select id="mv-filter-type">
+        <option value="">すべての種別</option>
+        <option value="original">オリジナル曲（個人）</option>
+        <option value="office">Re:AcT オリ曲</option>
+        <option value="character">キャラソン / 声優オリ曲</option>
+        <option value="cover">カバー曲（歌みた）</option>
+      </select>
+      <label class="mv-toggle"><input id="mv-show-thumbs" type="checkbox"> サムネを出す</label>
+    </div>
     <div id="mv-list-wrap"></div>
   </section>
 
@@ -385,6 +398,6 @@
   </section>
 </main>
 
-<script type="module" src="dist/admin.js?v=1fc57e5d5b"></script>
+<script type="module" src="dist/admin.js?v=9e4dd93b2f"></script>
 </body>
 </html>

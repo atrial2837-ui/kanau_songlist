@@ -460,6 +460,96 @@
   font-weight: 700;
 }
 
+/* ─── 歌みた・オリ曲: 1行ずつのコンパクトな一覧 ─────────────────────────── */
+
+.mv-list-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+
+.mv-list-tools input[type="search"] { flex: 1 1 220px; min-width: 0; }
+.mv-list-tools select { flex: 0 1 200px; }
+
+.mv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+  white-space: nowrap;
+}
+
+/* 件数が増えてもパネルが伸び続けないよう、一覧側だけをスクロールさせる */
+.mv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.mv-row {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content max-content;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+}
+
+.mv-list.has-thumbs .mv-row { grid-template-columns: 64px max-content minmax(0, 1fr) max-content max-content; }
+.mv-row:last-child { border-bottom: 0; }
+.mv-row:nth-child(even) { background: var(--surface-2); }
+
+.mv-thumb { border-radius: 4px; object-fit: cover; }
+
+.mv-type {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-mute);
+  white-space: nowrap;
+}
+
+.mv-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mv-title small { color: var(--ink-mute); }
+
+.mv-date {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mv-del { padding: 3px 9px; font-size: 11.5px; }
+
+/* 重複などの指摘。errors があるうちは「このまま追加」を出さない */
+.mv-issue-box {
+  margin: 10px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.mv-issue-box.is-error { border-color: var(--danger, #d9534f); }
+.mv-issue-box ul { margin: 0; padding-left: 18px; font-size: 13px; }
+.mv-issue-box li.is-error { color: var(--danger, #d9534f); font-weight: 700; }
+.mv-issue-box .admin-actions { margin-top: 10px; }
+
 /* 固定コメントの照合プレビュー: 時刻が前後している行を目立たせる */
 #marker-paste-preview tr.is-warn {
   background: color-mix(in srgb, var(--danger, #d9534f) 12%, transparent);

@@ -32,6 +32,12 @@ import {
   marksFromItems,
 } from './admin/timestamp-marker.js';
 import { matchSetlist, findInversions } from './admin/timestamp-matcher.js';
+import {
+  defaultMusicVideoId,
+  filterMusicVideos,
+  nextAvailableId,
+  validateMusicVideo,
+} from './admin/music-video-form.js';
 
 initTheme();
 
@@ -611,37 +617,53 @@ function _youtubeThumb(url) {
   } catch (_) { return ''; }
 }
 
+const MV_TYPE_LABEL = { original: 'オリ曲', office: 'Re:AcT', character: 'キャラ', cover: 'カバー' };
+
+/**
+ * 一覧を1行ずつのコンパクトな表示にする。
+ *
+ * 48件を80pxサムネ付きの表で出すとパネルが縦に伸びて、
+ * 上の入力欄に戻るだけでも延々スクロールすることになっていた。
+ * 既定はサムネ無しの1行表示にして、高さも頭打ちにする。
+ */
 function _renderMvList() {
   const wrap = $('#mv-list-wrap');
   const badge = $('#mv-count');
   if (!wrap) return;
   if (badge) badge.textContent = _mvVideos.length;
+
   if (!_mvVideos.length) {
     wrap.innerHTML = '<p class="admin-note">動画が登録されていません</p>';
     return;
   }
+
+  const showThumbs = !!$('#mv-show-thumbs')?.checked;
+  const shown = filterMusicVideos(_mvVideos, {
+    query: $('#mv-search')?.value || '',
+    type: $('#mv-filter-type')?.value || '',
+  });
+
+  if (!shown.length) {
+    wrap.innerHTML = `<p class="admin-note">条件に合う動画がありません（全${_mvVideos.length}件）。</p>`;
+    return;
+  }
+
   wrap.innerHTML = `
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead><tr><th>ID</th><th>サムネ</th><th>タイトル</th><th>種別</th><th>追加情報</th><th>公開日</th><th></th></tr></thead>
-        <tbody>
-          ${_mvVideos.map((v, i) => {
-            const typeLabel = { original: 'オリ曲', office: 'Re:AcT', character: 'キャラ', cover: 'カバー' }[v.type] || v.type;
-            const extra = v.type === 'cover' ? (v.originalArtist || '—') : v.type === 'character' ? (v.character || '—') : '—';
-            return `
-            <tr>
-              <td style="font-size:11px;color:var(--ink-mute)">${v.id}</td>
-              <td>${v.url ? `<img src="${_youtubeThumb(v.url)}" width="80" alt="" referrerpolicy="no-referrer" style="border-radius:4px">` : '—'}</td>
-              <td>${v.title || '—'}</td>
-              <td>${typeLabel}</td>
-              <td style="font-size:12px">${extra}</td>
-              <td>${v.publishedAt || '—'}</td>
-              <td><button class="btn ghost" data-mv-del="${i}" type="button" style="padding:4px 10px;font-size:12px">削除</button></td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>`;
+    <ul class="mv-list${showThumbs ? ' has-thumbs' : ''}">
+      ${shown.map((v) => {
+        const i = _mvVideos.indexOf(v);
+        const extra = v.type === 'cover' ? v.originalArtist : v.type === 'character' ? v.character : '';
+        return `
+        <li class="mv-row">
+          ${showThumbs && v.url ? `<img class="mv-thumb" src="${_youtubeThumb(v.url)}" width="64" height="36" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}
+          <span class="mv-type" data-mv-type="${escapeHtml(v.type || '')}">${escapeHtml(MV_TYPE_LABEL[v.type] || v.type || '—')}</span>
+          <span class="mv-title" title="${escapeHtml(v.id || '')}">${escapeHtml(v.title || '—')}${extra ? ` <small>／ ${escapeHtml(extra)}</small>` : ''}</span>
+          <span class="mv-date">${escapeHtml(v.publishedAt || '')}</span>
+          <button class="btn ghost mv-del" data-mv-del="${i}" type="button">削除</button>
+        </li>`;
+      }).join('')}
+    </ul>
+    <p class="admin-note">${shown.length === _mvVideos.length ? `${_mvVideos.length}件` : `${shown.length} / ${_mvVideos.length}件を表示中`}</p>`;
 
   wrap.querySelectorAll('[data-mv-del]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -666,6 +688,74 @@ function _saveMvData() {
   _renderMvList();
 }
 
+/** 入力欄の現在値を1件ぶんの形にまとめる */
+function _mvFormEntry() {
+  const type = $('#mv-type')?.value || 'original';
+  return {
+    url: $('#mv-url')?.value.trim() || '',
+    title: $('#mv-title')?.value.trim() || '',
+    type,
+    originalArtist: $('#mv-artist')?.value.trim() || null,
+    character: $('#mv-character')?.value.trim() || null,
+    publishedAt: $('#mv-date')?.value || null,
+    id: $('#mv-id')?.value.trim() || '',
+  };
+}
+
+function _mvClearIssues() {
+  const box = $('#mv-issues');
+  if (!box) return;
+  box.hidden = true;
+  box.innerHTML = '';
+}
+
+/**
+ * 検査結果を出す。errors は直さないと進めない。
+ * warnings は中身を見せたうえで「このまま追加」で押し切れるようにする。
+ */
+function _mvShowIssues({ errors, warnings }, onForce) {
+  const box = $('#mv-issues');
+  if (!box) return;
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="mv-issue-box${errors.length ? ' is-error' : ' is-warn'}">
+      <ul>
+        ${errors.map((m) => `<li class="is-error">${escapeHtml(m)}</li>`).join('')}
+        ${warnings.map((m) => `<li>${escapeHtml(m)}</li>`).join('')}
+      </ul>
+      ${errors.length ? '' : '<div class="admin-actions"><button class="btn primary" id="mv-force-add" type="button">このまま追加する</button><button class="btn ghost" id="mv-cancel-add" type="button">やめる</button></div>'}
+    </div>`;
+  if (!errors.length) {
+    $('#mv-force-add')?.addEventListener('click', () => { _mvClearIssues(); onForce(); });
+    $('#mv-cancel-add')?.addEventListener('click', _mvClearIssues);
+  }
+}
+
+function _mvAppend(entry) {
+  const id = nextAvailableId(entry.id || defaultMusicVideoId(entry.url), _mvVideos);
+  _mvVideos.push({
+    id,
+    title: entry.title,
+    type: entry.type,
+    ...(entry.type === 'cover' ? { originalArtist: entry.originalArtist } : {}),
+    ...(entry.type === 'character' ? { character: entry.character } : {}),
+    url: entry.url,
+    publishedAt: entry.publishedAt,
+  });
+
+  ['mv-url', 'mv-title', 'mv-artist', 'mv-character', 'mv-date', 'mv-id'].forEach((field) => {
+    const el = $(`#${field}`);
+    if (el) el.value = '';
+  });
+
+  _renderMvList();
+  const status = $('#mv-status');
+  if (status) {
+    const renamed = entry.id && entry.id !== id ? `（IDは "${id}" に振り直しました）` : '';
+    status.textContent = `「${entry.title}」を追加しました${renamed}。準備ができたら「music.json をダウンロード」してください。`;
+  }
+}
+
 function initMusicVideos() {
   const addBtn = $('#mv-add-btn');
   if (!addBtn) return;
@@ -678,47 +768,22 @@ function initMusicVideos() {
 
   $('#mv-download-btn')?.addEventListener('click', _saveMvData);
 
+  $('#mv-search')?.addEventListener('input', _renderMvList);
+  $('#mv-filter-type')?.addEventListener('change', _renderMvList);
+  $('#mv-show-thumbs')?.addEventListener('change', _renderMvList);
+
   addBtn.addEventListener('click', () => {
-    const url       = $('#mv-url')?.value.trim();
-    const title     = $('#mv-title')?.value.trim();
-    const type      = $('#mv-type')?.value || 'original';
-    const artist    = $('#mv-artist')?.value.trim() || null;
-    const character = $('#mv-character')?.value.trim() || null;
-    const date      = $('#mv-date')?.value || '';
-    const manualId  = $('#mv-id')?.value.trim();
-
-    if (!url || !title) {
-      const s = $('#mv-status');
-      if (s) s.textContent = 'URL とタイトルは必須です';
-      return;
-    }
-
-    const id = manualId || `mv${String(Date.now()).slice(-6)}`;
-    if (_mvVideos.find(v => v.id === id)) {
-      const s = $('#mv-status');
-      if (s) s.textContent = `ID "${id}" はすでに存在します`;
-      return;
-    }
-
-    _mvVideos.push({
-      id,
-      title,
-      type,
-      ...(type === 'cover'     ? { originalArtist: artist || null } : {}),
-      ...(type === 'character' ? { character: character || null }   : {}),
-      url,
-      publishedAt: date || null,
-    });
-
-    // フォームリセット
-    ['mv-url','mv-title','mv-artist','mv-character','mv-date','mv-id'].forEach(id => {
-      const el = $(`#${id}`);
-      if (el) el.value = '';
-    });
-
-    _renderMvList();
+    _mvClearIssues();
+    const entry = _mvFormEntry();
+    const result = validateMusicVideo(entry, _mvVideos);
     const status = $('#mv-status');
-    if (status) status.textContent = `「${title}」を追加しました。準備ができたら「music.json をダウンロード」してください。`;
+
+    if (result.errors.length || result.warnings.length) {
+      if (status) status.textContent = '';
+      _mvShowIssues(result, () => _mvAppend(entry));
+      return;
+    }
+    _mvAppend(entry);
   });
 }
 
