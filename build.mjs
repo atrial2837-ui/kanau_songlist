@@ -103,28 +103,42 @@ function cleanStaleChunks() {
  * 上げ忘れるとデプロイ後も全ユーザーに古い JS/CSS が配られ続ける。
  * 手動バンプは事故るので、ビルドのたびに内容ハッシュでスタンプする。
  */
-function stampAssetVersions() {
-  const hashed = [
-    join(__dirname, 'docs', 'dist', 'main.js'),
-    join(__dirname, 'docs', 'dist', 'theme.css'),
-    join(__dirname, 'docs', 'dist', 'components.css'),
-    join(__dirname, 'docs', 'dist', 'views.css'),
-  ];
+/** ローカルアセット(href/src)の ?v= を付け替える。無ければ付ける */
+const ASSET_REF_RE = /(\b(?:href|src)=")((?:dist|css)\/[^"?]+\.(?:js|css))(?:\?v=[A-Za-z0-9_-]+)?(")/g;
+
+function stampPage(pageName, assets) {
   const h = createHash('sha1');
-  for (const f of hashed) {
+  for (const f of assets) {
     // Windows チェックアウト(CRLF)と CI(Linux, LF)でバイト列が変わっても
     // 同じバージョン文字列になるよう、改行を LF に正規化してからハッシュする
     if (existsSync(f)) h.update(readFileSync(f, 'utf-8').replace(/\r\n/g, '\n'));
   }
   const ver = h.digest('hex').slice(0, 10);
-  const page = join(__dirname, 'docs', 'index.html');
+  const page = join(__dirname, 'docs', pageName);
   const src = readFileSync(page, 'utf-8');
-  // ローカルアセットの .css?v= / .js?v= のみ置換（YouTube 等の ?v= は触らない）
-  const out = src.replace(/(\.(?:css|js)\?v=)[A-Za-z0-9_-]+/g, `$1${ver}`);
+  // YouTube 等の ?v= を巻き込まないよう、href/src のローカルアセットだけを対象にする
+  const out = src.replace(ASSET_REF_RE, `$1$2?v=${ver}$3`);
   if (out !== src) {
     writeFileSync(page, out);
-    console.log(`stamped index.html assets ?v=${ver}`);
+    console.log(`stamped ${pageName} assets ?v=${ver}`);
   }
+}
+
+/**
+ * アセット内容のハッシュを各ページの ?v= に自動反映する。
+ *
+ * sw.js が /dist/ /css/ を cache-first で配信するため、これが無いと
+ * デプロイ後も古い JS/CSS が配られ続ける。手動バンプは事故るので毎回スタンプする。
+ * ページごとに別のハッシュにしているのは、管理画面だけ直したときに
+ * 公開ページ側のキャッシュまで無効化しないため。
+ */
+function stampAssetVersions() {
+  const dist = (name) => join(__dirname, 'docs', 'dist', name);
+  const css = (name) => join(__dirname, 'docs', 'css', name);
+
+  stampPage('index.html', [dist('main.js'), dist('theme.css'), dist('components.css'), dist('views.css')]);
+  // 管理画面は dist/admin.js と、minify 前の css/ をそのまま読んでいる
+  stampPage('admin.html', [dist('admin.js'), css('theme.css'), css('components.css'), css('views.css'), css('admin.css')]);
 }
 
 async function main() {

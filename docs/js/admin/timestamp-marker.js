@@ -236,16 +236,17 @@ export function coverageState(songCount, covered) {
 /**
  * 歌枠プルダウンに出す1行を組み立てる。
  *
- * 先頭に状態を置くのは、選択肢が191件並ぶため
+ * 打刻ツールでは先頭に状態（✓ / △ / 未）を置く。選択肢が191件並ぶため、
  * 「未」の枠を目で拾えるようにするのが目的。
+ * セトリ編集のように打刻状態が関係ない場面では covered に null を渡すと状態を省く。
  *
  * @param {{ streamed_on?: string, source_index?: number|null, title?: string, song_count?: number }} stream
- * @param {number} covered - 登録済みのタイムスタンプ件数
+ * @param {number|null} covered - 登録済みのタイムスタンプ件数。null なら状態を出さない
  * @returns {string}
  */
 export function streamOptionLabel(stream, covered) {
   const songCount = Number(stream?.song_count) || 0;
-  const { mark } = coverageState(songCount, covered);
+  const mark = covered == null ? '' : coverageState(songCount, covered).mark;
   const index = stream?.source_index ?? '-';
   const title = String(stream?.title ?? '').slice(0, 40);
   return `${mark} ${stream?.streamed_on ?? ''} #${index} ${title}（${songCount}曲）`.replace(/\s+/g, ' ').trim();

@@ -280,6 +280,10 @@ describe('streamOptionLabel', () => {
     assert.equal(streamOptionLabel(stream, 10), '△10/24 2026-04-29 #160 ch登録8000人耐久（24曲）');
   });
 
+  it('covered が null なら状態を出さない（セトリ編集の選択肢）', () => {
+    assert.equal(streamOptionLabel(stream, null), '2026-04-29 #160 ch登録8000人耐久（24曲）');
+  });
+
   it('長いタイトルは40文字までに切る', () => {
     const long = { ...stream, title: 'あ'.repeat(60) };
     assert.ok(streamOptionLabel(long, 0).includes('あ'.repeat(40)));

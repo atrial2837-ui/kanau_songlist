@@ -872,34 +872,21 @@ function _initSetlistRowEvents() {
   });
 }
 
-function _streamListRow(stream) {
-  const label = stream.title || `第${stream.source_index ?? stream.id}枠`;
-  return `
-    <tr data-stream-id="${stream.id}" style="cursor:pointer" class="stream-list-row">
-      <td>${escapeHtml(stream.streamed_on)}</td>
-      <td>${escapeHtml(label)}</td>
-      <td>${stream.song_count}</td>
-      <td><button class="btn ghost" data-edit-stream="${stream.id}" type="button" style="padding:4px 10px;font-size:12px">編集</button></td>
-    </tr>`;
-}
-
-function _renderStreamList(streams) {
-  const wrap = $('#stream-list-wrap');
+/**
+ * 歌枠の選択肢を描く。
+ * 枠は200件以上あり、表で全件並べるとパネルが縦に伸びて
+ * 下の編集フォームまで遠くなるため、打刻ツールと同じプルダウンに揃えている。
+ */
+function _renderStreamOptions(streams) {
+  const select = $('#edit-stream');
+  if (!select) return;
   if (!streams.length) {
-    wrap.innerHTML = '<p class="admin-note">歌枠がありません</p>';
+    select.innerHTML = '<option value="">歌枠がありません</option>';
     return;
   }
-  wrap.innerHTML = `
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead><tr><th>配信日</th><th>タイトル</th><th>曲数</th><th></th></tr></thead>
-        <tbody>${streams.map(_streamListRow).join('')}</tbody>
-      </table>
-    </div>`;
-
-  wrap.querySelectorAll('[data-edit-stream]').forEach((btn) => {
-    btn.addEventListener('click', () => _loadStreamForEdit(Number(btn.dataset.editStream)));
-  });
+  select.innerHTML = streams.map((stream) =>
+    `<option value="${stream.id}">${escapeHtml(streamOptionLabel(stream, null))}</option>`
+  ).join('');
 }
 
 async function _loadStreamForEdit(streamId) {
@@ -939,17 +926,36 @@ function initStreamEdit() {
 
   $('#load-streams-btn')?.addEventListener('click', async () => {
     $('#stream-edit-status').textContent = '読み込み中…';
-    $('#stream-list-wrap').innerHTML = '';
+    $('#edit-stream').innerHTML = '<option value="">読み込み中…</option>';
     $('#stream-edit-form').style.display = 'none';
     _editStreamId = null;
     $('#stream-edit-badge').textContent = '選択中なし';
     try {
       const data = await adminApi(`streams?channelCode=${encodeURIComponent(editChannel.value)}`);
-      _renderStreamList(data.streams || []);
-      $('#stream-edit-status').textContent = `${(data.streams || []).length}件`;
+      const streams = data.streams || [];
+      _renderStreamOptions(streams);
+      $('#stream-edit-status').textContent = streams.length
+        ? `${streams.length}件。編集する枠を選んで「この枠を編集」を押してください。`
+        : '歌枠がありません。';
     } catch (err) {
+      $('#edit-stream').innerHTML = '<option value="">取得に失敗しました</option>';
       $('#stream-edit-status').textContent = `エラー: ${err.message || err}`;
     }
+  });
+
+  $('#edit-open-btn')?.addEventListener('click', () => {
+    const id = Number($('#edit-stream')?.value);
+    if (!id) { $('#stream-edit-status').textContent = '先に歌枠を読み込んで選択してください。'; return; }
+    _loadStreamForEdit(id);
+  });
+
+  // チャンネルを変えたら前の一覧は当てにならないので選び直させる
+  editChannel.addEventListener('change', () => {
+    $('#edit-stream').innerHTML = '<option value="">先に読み込んでください</option>';
+    $('#stream-edit-form').style.display = 'none';
+    _editStreamId = null;
+    $('#stream-edit-badge').textContent = '選択中なし';
+    $('#stream-edit-status').textContent = '';
   });
 
   $('#save-stream-info-btn')?.addEventListener('click', async () => {
