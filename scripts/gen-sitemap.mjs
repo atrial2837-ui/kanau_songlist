@@ -13,7 +13,8 @@ const ROOT = join(__dirname, '..');
 const ORIGIN = 'https://kanau-songlist.pages.dev';
 
 // seo-meta.js の TAB_META と揃える（dashboard はトップなので個別には出さない）
-const TABS = ['ranking', 'songs', 'timeline', 'analytics', 'requests', 'playlists'];
+// 分析はダッシュボード内のセクションになったため単独URLは載せない
+const TABS = ['ranking', 'songs', 'timeline', 'requests', 'playlists'];
 
 const VIDEO_ID_PATTERNS = [
   /youtu\.be\/([A-Za-z0-9_-]{11})/,

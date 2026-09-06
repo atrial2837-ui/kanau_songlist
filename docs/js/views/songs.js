@@ -61,6 +61,7 @@ export function renderSongs() {
     <div class="section-header">
       <h2>${state.singerMode ? `${icon('mic')} 選曲ボード` : `${icon('music')} 全曲リスト`}</h2>
       <span class="count-pill" id="songs-count">—</span>
+      <button class="btn ${state.singerMode ? 'ghost' : 'primary'} songs-mode-toggle" type="button" data-audience-toggle data-tooltip-pos="top" data-tooltip="キー確認・セトリ作成向けの表示に切り替える">${state.singerMode ? 'リスナー表示に戻す' : `${icon('mic')} 配信者モードで選曲`}</button>
     </div>
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="songs-search-shell">
@@ -234,7 +235,11 @@ export function renderSongs() {
   });
   for (const btn of panel.querySelectorAll('[data-singer-preset]')) {
     btn.addEventListener('click', () => {
+      // プリセット経由でも配信者モード入りを3箇所に同期する。
+      // singerMode だけ立てると body[data-audience] 参照のCSSが適用されない。
+      state.audience = 'singer';
       state.singerMode = true;
+      document.body.dataset.audience = 'singer';
       state.singerPreset = state.singerPreset === btn.dataset.singerPreset ? 'all' : btn.dataset.singerPreset;
       state.songsLimit = 100;
       refresh();
@@ -656,6 +661,6 @@ function keyHtml(song) {
   if (!keys.length) {
     return `<div class="song-key-line song-key-actions"><span class="song-key-empty">キー未登録</span>${addButton}</div>`;
   }
-  const badges = keys.map(k => `<button type="button" class="song-key-badge" data-tooltip="配信で使われた参考キー"><span>キー</span><strong>${escapeHtml(k)}</strong></button>`).join('');
+  const badges = keys.map(k => `<button type="button" class="song-key-badge"><span>キー</span><strong>${escapeHtml(k)}</strong></button>`).join('');
   return `<div class="song-key-line song-key-actions">${badges}${addButton}</div>`;
 }

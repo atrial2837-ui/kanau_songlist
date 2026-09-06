@@ -21,7 +21,6 @@ const VIEW_LOADERS = {
   ranking:   () => import('./views/ranking.js').then(m => m.renderRanking),
   songs:     () => import('./views/songs.js').then(m => m.renderSongs),
   timeline:  () => import('./views/timeline.js').then(m => m.renderTimeline),
-  analytics: () => import('./views/analytics.js').then(m => m.renderAnalytics),
   requests:  () => import('./views/requests.js').then(m => m.renderRequests),
   playlists: () => import('./views/playlists.js').then(m => m.renderPlaylists),
 };
@@ -43,10 +42,10 @@ async function getRenderer(tab) {
   }
 }
 
-// ストリームデータが必要なタブ（dashboard/timeline/analytics）
-// ranking/songs は songs.json だけで描画できる
+// ストリームデータが必要なタブ（dashboard/timeline）
+// ranking/songs は songs.json だけで描画できる（分析は dashboard 内のセクション）
 function needsStreams(tab) {
-  return ['dashboard', 'timeline', 'analytics'].includes(tab);
+  return ['dashboard', 'timeline'].includes(tab);
 }
 
 function renderDeferredPanel(tab, options = {}) {
@@ -57,7 +56,6 @@ function renderDeferredPanel(tab, options = {}) {
     ranking: 'ランキング',
     songs: '曲リスト',
     timeline: '配信タイムライン',
-    analytics: 'アナリティクス',
   };
   panel.innerHTML = `
     <div class="state-card">
@@ -325,9 +323,6 @@ function switchAudience(audience, options = {}) {
   state.audience = audience === 'singer' ? 'singer' : 'listener';
   state.singerMode = state.audience === 'singer';
   if (!state.singerMode) state.singerPreset = 'all';
-  $$('.audience-switch [data-audience]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.audience === state.audience);
-  });
   document.body.dataset.audience = state.audience;
   updateMobileMenuLabel();
   if (state.audience === 'singer') {
@@ -345,7 +340,7 @@ function updateMobileMenuLabel() {
   const label = $('#mobile-menu-label');
   if (!label) return;
   const channel = $('#channel-switch [data-channel].active')?.textContent?.trim() || '新ch';
-  const audience = $('#audience-switch [data-audience].active')?.textContent?.trim() || 'リスナー';
+  const audience = state.audience === 'singer' ? '配信者' : 'リスナー';
   label.textContent = `${channel} / ${audience}`;
 }
 
@@ -785,13 +780,39 @@ $$('.ch-btn').forEach(btn => {
 
 window.addEventListener('popstate', applyUrlState);
 
-// Audience switch
-$$('[data-audience]').forEach(btn => {
-  btn.addEventListener('click', () => switchAudience(btn.dataset.audience));
-});
+// Audience switch（旧ヘッダー直結。現在は [data-audience-toggle] 委譲で受ける）
 
-// Global click → 曲名で詳細、アーティスト名で絞り込み（全ビュー共通）
+// 利用モード切替は全曲リスト内のボタン(data-audience-toggle)から委譲で受ける
 document.body.addEventListener('click', (e) => {
+  const audToggle = e.target.closest('[data-audience-toggle]');
+  if (audToggle) {
+    switchAudience(state.audience === 'singer' ? 'listener' : 'singer');
+    return;
+  }
+  // ダッシュボード内セクションへの誘導（data-dashboard-section="dashboard-analytics"）。
+  // プレイリスト/ビューワー内の導線ボタンから bubble で届く。分析は常時描画の
+  // ため、タブ遷移後にスクロールするだけ（描画待ちはポーリング）。
+  const dbSection = e.target.closest('[data-dashboard-section]');
+  if (dbSection) {
+    const sectionId = dbSection.dataset.dashboardSection;
+    if (['embedded', 'fullscreen'].includes(getPlayerMode())) {
+      _epSetPrevTab('dashboard');
+      closeStreamViewer();
+    } else if (state.activeTab !== 'dashboard') {
+      activateTab('dashboard');
+    }
+    const started = Date.now();
+    const tick = () => {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (Date.now() - started < 2500) setTimeout(tick, 100);
+    };
+    setTimeout(tick, 50);
+    return;
+  }
   const artist = e.target.closest('[data-artist-search]');
   if (artist) {
     e.preventDefault();
@@ -967,7 +988,7 @@ document.addEventListener('keydown', (e) => {
 onRerenderNeeded(() => {
   if (!state.data) return;
   destroyAllCharts();
-  if (state.activeTab === 'dashboard' || state.activeTab === 'analytics') renderTab();
+  if (state.activeTab === 'dashboard') renderTab();
 });
 
 function startApp() {

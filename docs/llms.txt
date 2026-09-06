@@ -14,11 +14,10 @@ VTuber 夢川かなうさんの歌枠で歌われた楽曲をまとめた、フ�
 
 ## 主なページ
 
-- [トップ（ダッシュボード）](https://kanau-songlist.pages.dev/): 総歌唱数・持ち曲数などの概要と、直近の活動
+- [トップ（ダッシュボード）](https://kanau-songlist.pages.dev/): 総歌唱数・持ち曲数などの概要と、直近の活動。傾向グラフもこのページ内にある
 - [全曲リスト](https://kanau-songlist.pages.dev/?tab=songs): 収録している全楽曲の検索と絞り込み
 - [ランキング](https://kanau-songlist.pages.dev/?tab=ranking): 歌唱回数の多い順
 - [配信タイムライン](https://kanau-songlist.pages.dev/?tab=timeline): 歌枠を日付順に並べ、各枠のセットリストを表示
-- [アナリティクス](https://kanau-songlist.pages.dev/?tab=analytics): 月別の歌唱数やジャンル分布などの傾向
 - [楽曲リクエスト](https://kanau-songlist.pages.dev/?tab=requests): リクエストの投稿と投票
 - [プレイリスト](https://kanau-songlist.pages.dev/?tab=playlists): 歌みた・オリジナル曲のMV一覧と、自分で作るマイリスト
 

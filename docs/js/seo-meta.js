@@ -14,12 +14,17 @@ const TAB_META = {
   ranking: { label: 'ランキング', desc: '歌唱回数の多い順に並べた楽曲ランキング。よく歌う曲や十八番がひと目でわかります。' },
   songs: { label: '全曲リスト', desc: '収録している全楽曲を、曲名・アーティスト・ジャンル・キーで検索・絞り込みできます。' },
   timeline: { label: '配信タイムライン', desc: '歌枠を日付順に並べ、各配信のセットリストと曲ごとの歌唱時刻を確認できます。' },
-  analytics: { label: 'アナリティクス', desc: '月別の歌唱数やジャンル分布など、歌枠の傾向をグラフで確認できます。' },
   requests: { label: '楽曲リクエスト', desc: '歌ってほしい曲のリクエスト投稿と投票。歌える曲・練習中の状況も確認できます。' },
   playlists: { label: 'プレイリスト', desc: '歌ってみた・オリジナル曲のMV一覧と、自分で作るマイリスト。' },
 };
+// 分析はダッシュボード内のセクション。旧URL(?tab=analytics)は
+// readUrlState で dashboard に読み替えるため、ここに残さなくても canonical が崩れない。
 
 const CHANNEL_LABEL = { new: '新ch', old: '旧ch', all: '新旧ch' };
+
+// 分析はダッシュボード内のセクション。旧URLが直接来ても正規URLはトップに寄せる。
+const LEGACY_TABS = new Set(['analytics']);
+const normalizeTab = (tab) => (LEGACY_TABS.has(tab) ? 'dashboard' : tab);
 
 // 歌枠タイトルは装飾記号やハッシュタグが多く、そのままだと検索結果で切れる。
 // ただし「#69」のような回数は情報なので、先頭のタグだけを落として本文は残す。
@@ -56,7 +61,8 @@ export function buildCanonical(state = {}) {
   if (state.v) {
     params.set('v', state.v);
   } else {
-    if (state.tab && state.tab !== 'dashboard') params.set('tab', state.tab);
+    const tab = normalizeTab(state.tab);
+    if (tab && tab !== 'dashboard') params.set('tab', tab);
   }
   // ch は内容が変わるので残す。q(検索語)と t(再生位置)は無限に増えるので canonical には含めない。
   if (state.channel && state.channel !== 'new') params.set('ch', state.channel);
@@ -79,7 +85,8 @@ export function buildPageMeta(state = {}, context = {}) {
     };
   }
 
-  const tab = TAB_META[state.tab] ? state.tab : 'dashboard';
+  const rawTab = normalizeTab(state.tab);
+  const tab = TAB_META[rawTab] ? rawTab : 'dashboard';
   const meta = TAB_META[tab];
   const ch = CHANNEL_LABEL[state.channel] || CHANNEL_LABEL.new;
   const chSuffix = state.channel && state.channel !== 'new' ? `（${ch}）` : '';

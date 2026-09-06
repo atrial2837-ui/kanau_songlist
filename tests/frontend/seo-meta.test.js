@@ -20,7 +20,7 @@ describe('buildCanonical', () => {
   });
 
   it('タブを付ける', () => {
-    assert.equal(buildCanonical({ tab: 'ranking', channel: 'new' }), `${SITE_ORIGIN}/?tab=ranking`);
+    assert.equal(buildCanonical({ tab: 'songs', channel: 'new' }), `${SITE_ORIGIN}/?tab=songs`);
   });
 
   it('既定でないチャンネルは残す', () => {
@@ -104,6 +104,17 @@ describe('buildPageMeta', () => {
     assert.match(a.title, /ランキング/);
   });
 
+  it('旧タブはトップ扱いに落ちる', () => {
+    const meta = buildPageMeta({ tab: 'analytics', channel: 'new' });
+    assert.match(meta.title, /歌唱データベース/);
+    assert.equal(meta.canonical, `${SITE_ORIGIN}/`);
+  });
+
+  it('旧タブの canonical もトップに寄る', () => {
+    assert.equal(buildCanonical({ tab: 'analytics', channel: 'new' }), `${SITE_ORIGIN}/`);
+    assert.equal(buildCanonical({ tab: 'ranking', channel: 'old' }), `${SITE_ORIGIN}/?tab=ranking&ch=old`);
+  });
+
   it('旧chはタイトルに出す', () => {
     const meta = buildPageMeta({ tab: 'songs', channel: 'old' });
     assert.match(meta.title, /旧ch/);
@@ -134,10 +145,12 @@ describe('buildPageMeta', () => {
 });
 
 describe('sitemapTabs', () => {
-  it('7タブすべてを返す', () => {
+  it('6タブすべてを返す（分析はダッシュボード内のセクション）', () => {
     const tabs = sitemapTabs();
-    assert.equal(tabs.length, 7);
+    assert.equal(tabs.length, 6);
     assert.ok(tabs.includes('dashboard'));
+    assert.ok(tabs.includes('ranking'));
     assert.ok(tabs.includes('playlists'));
+    assert.ok(!tabs.includes('analytics'));
   });
 });

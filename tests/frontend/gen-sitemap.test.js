@@ -35,12 +35,13 @@ describe('videoIdFromUrl', () => {
 });
 
 describe('buildSitemapEntries', () => {
-  it('トップと6タブを含む', () => {
+  it('トップと5タブを含む（分析はダッシュボード内のセクション）', () => {
     const locs = buildSitemapEntries(payload, TODAY).map(e => e.loc);
     assert.ok(locs.includes('https://kanau-songlist.pages.dev/'));
-    for (const tab of ['ranking', 'songs', 'timeline', 'analytics', 'requests', 'playlists']) {
+    for (const tab of ['ranking', 'songs', 'timeline', 'requests', 'playlists']) {
       assert.ok(locs.includes(`https://kanau-songlist.pages.dev/?tab=${tab}`), tab);
     }
+    assert.ok(!locs.includes('https://kanau-songlist.pages.dev/?tab=analytics'), 'analytics');
   });
 
   it('同じ動画は1件に畳む', () => {
@@ -62,7 +63,7 @@ describe('buildSitemapEntries', () => {
   });
 
   it('データが空でもトップとタブは出る', () => {
-    assert.equal(buildSitemapEntries({}, TODAY).length, 7);
+    assert.equal(buildSitemapEntries({}, TODAY).length, 6);
   });
 });
 
