@@ -280,7 +280,7 @@ function _svMoveToMusicBar() {
     document.body.style.overflow = '';
     _svLastStream = null;
     _setPlayerMode('idle');
-    _shellDeps.setSidebarHidden(document.body.dataset.activeTab === 'playlists');
+    _shellDeps.setSidebarHidden(false); // サイドバーは常時表示
     hidePlayerPanel();
     _svUpdateUrl();
     // ビューワーを閉じた後に再生要求が消えないよう、bridge の登録完了を待ってから移譲する
@@ -342,7 +342,7 @@ function _svDiscardMini() {
   if (panel) panel.hidden = true;
   _svLastStream = null;
   _setPlayerMode('idle');
-  _shellDeps.setSidebarHidden(document.body.dataset.activeTab === 'playlists');
+  _shellDeps.setSidebarHidden(false); // サイドバーは常時表示
   _svUpdateUrl();
   return true;
 }
@@ -1942,14 +1942,6 @@ export function initStreamViewer() {
   el.hidden = true;
   el.setAttribute('aria-label', '配信プレイヤー');
   el.innerHTML = `
-    <nav class="sv-topnav" aria-label="ページナビゲーション">
-      <button class="sv-topnav-btn" type="button" data-bc-tab="dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h5v7H4z"/><path d="M10 4h5v16h-5z"/><path d="M16 9h4v11h-4z"/></svg>ダッシュボード</button>
-      <button class="sv-topnav-btn" type="button" data-bc-tab="ranking"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3a4 4 0 0 1-8 0z"/><path d="M6 5H3v2a4 4 0 0 0 4 4"/><path d="M18 5h3v2a4 4 0 0 1-4 4"/><path d="M12 11v5"/><path d="M8 20h8"/><path d="M9 16h6v4H9z"/></svg>ランキング</button>
-      <button class="sv-topnav-btn" type="button" data-bc-tab="songs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>全曲リスト</button>
-      <button class="sv-topnav-btn" type="button" data-bc-tab="timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4"/><path d="M17 3v4"/><path d="M4 8h16"/><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 13h3"/><path d="M13 13h3"/><path d="M8 17h3"/></svg>タイムライン</button>
-      <button class="sv-topnav-btn" type="button" data-bc-tab="dashboard" data-dashboard-section="dashboard-analytics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l3-4 4 2 5-7"/><circle cx="7" cy="15" r="1"/><circle cx="10" cy="11" r="1"/><circle cx="14" cy="13" r="1"/><circle cx="19" cy="6" r="1"/></svg>アナリティクス</button>
-      <button class="sv-topnav-btn" type="button" data-bc-tab="playlists"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h10"/><path d="M5 11h10"/><path d="M5 16h7"/><path d="M18 8v10l3-2 3 2V8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1z"/></svg>プレイリスト</button>
-    </nav>
     <div class="sv-container">
       <div class="sv-header">
         <button class="sv-close-btn" id="sv-close" type="button" data-tooltip="ミニプレイヤーで再生を続けながら戻ります（Esc）">
@@ -2250,7 +2242,7 @@ export function openStreamViewer(stream, resumeAt = 0) {
   }
 
   viewer.hidden = false;
-  _shellDeps.setSidebarHidden(true); // ビューワー表示中はサイドバーを隠して全幅使用
+  // 標準サイドバーは常時表示（ビューワー表示中も隠さない。全画面時は overlay が覆う）
   document.body.style.overflow = ''; // 埋め込みモードではスクロールロックしない
   _svUpdateUrl();
   // 集中表示: ヒーロー/タブは CSS で隠れるので、プレイヤーを画面上部に出す
@@ -2369,7 +2361,7 @@ export function closeStreamViewer() {
   document.body.style.overflow = '';
   // ビューワーを閉じたらサイドバーを復元（プレイリストタブ中は引き続き非表示）
   _setPlayerMode('idle');
-  _shellDeps.setSidebarHidden(document.body.dataset.activeTab === 'playlists');
+  _shellDeps.setSidebarHidden(false); // サイドバーは常時表示
   hidePlayerPanel();
   _svUpdateUrl();
 }

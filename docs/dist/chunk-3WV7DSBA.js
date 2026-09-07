@@ -88,7 +88,7 @@ import{a as ot,e as rt,f as K,g as lt,h as dt,j as ct}from"./chunk-RZKHFVD6.js";
     <div class="section-header">
       <h2>${e.singerMode?`${f("mic")} \u9078\u66F2\u30DC\u30FC\u30C9`:`${f("music")} \u5168\u66F2\u30EA\u30B9\u30C8`}</h2>
       <span class="count-pill" id="songs-count">\u2014</span>
-      <button class="btn ${e.singerMode?"ghost":"primary"} songs-mode-toggle" type="button" data-audience-toggle data-tooltip-pos="top" data-tooltip="\u30AD\u30FC\u78BA\u8A8D\u30FB\u30BB\u30C8\u30EA\u4F5C\u6210\u5411\u3051\u306E\u8868\u793A\u306B\u5207\u308A\u66FF\u3048\u308B">${e.singerMode?"\u30EA\u30B9\u30CA\u30FC\u8868\u793A\u306B\u623B\u3059":`${f("mic")} \u914D\u4FE1\u8005\u30E2\u30FC\u30C9\u3067\u9078\u66F2`}</button>
+      <button class="btn ${e.singerMode?"ghost":"primary"} songs-mode-toggle" type="button" data-audience-toggle data-tooltip="\u30AD\u30FC\u78BA\u8A8D\u30FB\u30BB\u30C8\u30EA\u4F5C\u6210\u5411\u3051\u306E\u8868\u793A\u306B\u5207\u308A\u66FF\u3048\u308B">${e.singerMode?"\u30EA\u30B9\u30CA\u30FC\u8868\u793A\u306B\u623B\u3059":`${f("mic")} \u914D\u4FE1\u8005\u30E2\u30FC\u30C9\u3067\u9078\u66F2`}</button>
     </div>
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="songs-search-shell">

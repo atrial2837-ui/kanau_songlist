@@ -61,7 +61,7 @@ export function renderSongs() {
     <div class="section-header">
       <h2>${state.singerMode ? `${icon('mic')} 選曲ボード` : `${icon('music')} 全曲リスト`}</h2>
       <span class="count-pill" id="songs-count">—</span>
-      <button class="btn ${state.singerMode ? 'ghost' : 'primary'} songs-mode-toggle" type="button" data-audience-toggle data-tooltip-pos="top" data-tooltip="キー確認・セトリ作成向けの表示に切り替える">${state.singerMode ? 'リスナー表示に戻す' : `${icon('mic')} 配信者モードで選曲`}</button>
+      <button class="btn ${state.singerMode ? 'ghost' : 'primary'} songs-mode-toggle" type="button" data-audience-toggle data-tooltip="キー確認・セトリ作成向けの表示に切り替える">${state.singerMode ? 'リスナー表示に戻す' : `${icon('mic')} 配信者モードで選曲`}</button>
     </div>
     <div id="songs-filter-panel" class="mobile-panel mobile-panel-filters is-open">
       <div class="songs-search-shell">

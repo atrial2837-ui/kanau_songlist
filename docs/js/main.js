@@ -10,11 +10,13 @@ import { buildPageMeta } from './seo-meta.js';
 import { initSearchPalette, openSearchPalette, closeSearchPalette, isSearchPaletteOpen } from './views/search-palette.js';
 import { icon } from './icons.js';
 import { initChannelModal, initHelpModal, initWelcomeTip } from './views/modals.js';
+import { initTooltip } from './tooltip.js';
 import { renderHero } from './views/hero.js';
 import { _epSetPendingTabOptions, _epSetPrevTab, _maybeImportSharedPlaylist, _maybeOpenSharedVideo, closeStreamViewer, getPlayerMode, handleViewerKeyboard, initPlayerShell, initStreamViewer, initYouTubePlayer, openStreamViewer } from './player/stream-player.js';
 
 initTheme();
 initStore();
+initTooltip();
 
 const VIEW_LOADERS = {
   dashboard: () => import('./views/dashboard.js').then(m => m.renderDashboard),
@@ -208,8 +210,8 @@ function syncActiveTabUi(tab) {
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === (playerVisible ? 'panel-player' : `panel-${tab}`)));
   document.body.dataset.activeTab = playerVisible ? 'player' : tab; // ヒーロー圧縮・ビューワー集中表示の CSS フック
 
-  // ビューワー表示中とプレイリストタブはサイドバーを非表示にして全幅使用
-  _setSidebarHidden(playerVisible || tab === 'playlists');
+  // サイドバーは常時表示（ビューワー全画面時は overlay が覆うため意識しない）
+  _setSidebarHidden(false);
 }
 
 /** サイドバーの表示・非表示を切り替え、body padding と topbar left を同期する */
@@ -240,10 +242,19 @@ function initSidebarNav() {
     try { localStorage.setItem(storageKey, collapsed ? '1' : '0'); } catch (_) {}
   };
 
+  // 折りたたみを標準状態にする。初回表示だけでなく、以前に展開を
+  // 選んだ記録が残っている場合も今回は折りたたみで始め、以後の選択を保存する。
+  // 移行済みマーカーで初回だけ強制し、2回目以降は保存値を尊重する。
+  const migratedKey = 'kanau-sidebar-collapsed-v2';
   try {
-    setCollapsed(localStorage.getItem(storageKey) === '1');
+    if (localStorage.getItem(migratedKey) === null) {
+      setCollapsed(true);
+      localStorage.setItem(migratedKey, '1');
+    } else {
+      setCollapsed(localStorage.getItem(storageKey) === '1');
+    }
   } catch (_) {
-    setCollapsed(false);
+    setCollapsed(true);
   }
 
   // 初期状態を描画してから transition を有効化（起動時のアニメーション/シフト防止）
@@ -780,37 +791,11 @@ $$('.ch-btn').forEach(btn => {
 
 window.addEventListener('popstate', applyUrlState);
 
-// Audience switch（旧ヘッダー直結。現在は [data-audience-toggle] 委譲で受ける）
-
 // 利用モード切替は全曲リスト内のボタン(data-audience-toggle)から委譲で受ける
 document.body.addEventListener('click', (e) => {
   const audToggle = e.target.closest('[data-audience-toggle]');
   if (audToggle) {
     switchAudience(state.audience === 'singer' ? 'listener' : 'singer');
-    return;
-  }
-  // ダッシュボード内セクションへの誘導（data-dashboard-section="dashboard-analytics"）。
-  // プレイリスト/ビューワー内の導線ボタンから bubble で届く。分析は常時描画の
-  // ため、タブ遷移後にスクロールするだけ（描画待ちはポーリング）。
-  const dbSection = e.target.closest('[data-dashboard-section]');
-  if (dbSection) {
-    const sectionId = dbSection.dataset.dashboardSection;
-    if (['embedded', 'fullscreen'].includes(getPlayerMode())) {
-      _epSetPrevTab('dashboard');
-      closeStreamViewer();
-    } else if (state.activeTab !== 'dashboard') {
-      activateTab('dashboard');
-    }
-    const started = Date.now();
-    const tick = () => {
-      const el = document.getElementById(sectionId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return;
-      }
-      if (Date.now() - started < 2500) setTimeout(tick, 100);
-    };
-    setTimeout(tick, 50);
     return;
   }
   const artist = e.target.closest('[data-artist-search]');
