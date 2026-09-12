@@ -9,8 +9,9 @@
  *   - insert             : admin-server/server.js:320-323 (upsertSong 内の INSERT INTO songs)
  *   - updateMetadata     : admin-server/server.js:300-306 (updateSongMetadata: UPDATE songs SET display_key, genre)
  *                          ※ saveSongMetadata:418 は引数違い (直接 SET); Port は updateSongMetadata の形を採用
- *   - search             : admin-server/server.js:402-412 (searchSongs: title/artist/display_key/genre LIKE, LIMIT 80)
- *   - findById           : admin-server/server.js:415-416 (saveSongMetadata で songId 確認)
+  *   - search             : admin-server/server.js:402-412 (searchSongs: title/artist/display_key/genre LIKE, LIMIT 80)
+  *   - findById           : admin-server/server.js:415-416 (saveSongMetadata で songId 確認)
+  *   - findIncomplete     : 管理画面の未設定曲一覧 (GET /songs/incomplete)。genre ''/'未分類' または display_key '' を抽出
  *
  * @typedef {import('../../domain/port/repositories/song-repository.js').Song} Song
  * @typedef {import('../../domain/port/repositories/song-repository.js').NewSong} NewSong
@@ -151,6 +152,31 @@ export class D1RestSongRepository {
          ORDER BY s.title ASC
          LIMIT ?`,
         q, q, q, q, limit,
+      )
+    );
+  }
+
+  /**
+   * キー / ジャンルが未設定の曲を取得。タイトル昇順、件数制限あり。
+   * missing: 'all' (両方のいずれか) | 'genre' (ジャンルのみ) | 'key' (キーのみ)。
+   * ジャンル未設定 = '' または '未分類' (data-quality.js の定義と同義)。
+   *
+   * @param {string} missing
+   * @param {number} limit
+   * @returns {Promise<Song[]>}
+   */
+  async findIncomplete(missing, limit) {
+    const genreMissing = `(s.genre IS NULL OR s.genre = '' OR s.genre = '未分類')`;
+    const keyMissing = `(s.display_key IS NULL OR s.display_key = '')`;
+    const where = missing === 'genre'
+      ? genreMissing
+      : missing === 'key'
+        ? keyMissing
+        : `(${genreMissing} OR ${keyMissing})`;
+    return /** @type {Song[]} */ (
+      await this.client.query(
+        `${SONG_SELECT} WHERE ${where} ORDER BY s.title ASC LIMIT ?`,
+        limit,
       )
     );
   }

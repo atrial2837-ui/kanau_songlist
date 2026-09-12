@@ -6,11 +6,13 @@
  * - song_key の UNIQUE 制約を守る
  * - findAll は artist_id をもとに artists テーブル相当の JOIN を再現する
  * - search は title / artist / song_key / genre に対して大文字小文字無視の部分一致
+ * - findIncomplete は genre ''/'未分類' または display_key '' の曲を返す
  *
  * @副作用 なし (インスタンス内 Map への書き込みのみ)
  */
 
 import { normalizedKey } from '../../domain/shared/text.js';
+import { UNCATEGORIZED } from '../../domain/song/genre.js';
 
 /**
  * @typedef {import('../../domain/port/repositories/song-repository.js').Song} Song
@@ -203,5 +205,30 @@ export class InMemorySongRepository {
     if (!row) return null;
     const artistMap = await this._buildArtistMap();
     return this._toSong(row, artistMap);
+  }
+
+  /**
+   * キー / ジャンルが未設定の曲を返す (タイトル昇順、上限あり)。
+   * ジャンル未設定 = '' または '未分類' (data-quality.js の定義と同義)。
+   *
+   * @param {string} missing - 'all' | 'genre' | 'key' (それ以外は 'all' 扱い)
+   * @param {number} limit
+   * @returns {Promise<Song[]>}
+   */
+  async findIncomplete(missing, limit) {
+    const artistMap = await this._buildArtistMap();
+    const results = [];
+    for (const row of this._store.values()) {
+      const genreMissing = row.genre === '' || row.genre === UNCATEGORIZED;
+      const keyMissing = (row.display_key ?? '') === '';
+      const hit = missing === 'genre'
+        ? genreMissing
+        : missing === 'key'
+          ? keyMissing
+          : (genreMissing || keyMissing);
+      if (hit) results.push(this._toSong(row, artistMap));
+    }
+    results.sort((a, b) => (a.title < b.title ? -1 : a.title > b.title ? 1 : 0));
+    return results.slice(0, limit);
   }
 }

@@ -82,6 +82,10 @@
  * @property {(query: string, limit: number) => Promise<Song[]>} search
  *   - 根拠: admin:329-339 searchSongs — title/artist/song_key/genre で LIKE 検索, 最大 80 件
  *   - SoT 20 §4 にも明記 (SoT 02 §5-1 案には未記載のため追加)
+ * @property {(missing: string, limit: number) => Promise<Song[]>} findIncomplete
+ *   - キー / ジャンル未設定の曲を返す。missing: 'all' | 'genre' | 'key'
+ *   - 未設定の定義は data-quality.js と同義 (genre ''/'未分類', display_key '')
+ *   - 管理画面の未設定曲プルダウン (GET /songs/incomplete) が使用
  * @property {(id: number) => Promise<Song|null>} [findById]
  *   - 根拠: admin:343 `if (!songId) throw` — saveSongMetadata で id 検証に使用
  *   - optional: UseCase 実装によっては findByKey に統一できる可能性あり

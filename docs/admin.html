@@ -6,10 +6,10 @@
 <title>歌枠管理｜夢川かなう 歌唱データベース</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="assets/site-icon.svg">
-<link rel="stylesheet" href="css/theme.css?v=12695547e6">
-<link rel="stylesheet" href="css/components.css?v=12695547e6">
-<link rel="stylesheet" href="css/views.css?v=12695547e6">
-<link rel="stylesheet" href="css/admin.css?v=12695547e6">
+<link rel="stylesheet" href="css/theme.css?v=f0a229a85a">
+<link rel="stylesheet" href="css/components.css?v=f0a229a85a">
+<link rel="stylesheet" href="css/views.css?v=f0a229a85a">
+<link rel="stylesheet" href="css/admin.css?v=f0a229a85a">
 </head>
 <body>
 <header class="topbar">
@@ -232,6 +232,24 @@
     </div>
     <p class="admin-note" id="meta-status"></p>
     <div id="song-meta-box"></div>
+
+    <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)">
+    <h3 style="margin:0 0 12px;font-size:15px">未設定のキー・ジャンル</h3>
+    <div class="admin-form-grid">
+      <label>対象<select id="incomplete-filter">
+        <option value="all">キー・ジャンル未設定</option>
+        <option value="genre">ジャンル未設定のみ</option>
+        <option value="key">キー未設定のみ</option>
+      </select></label>
+      <label>曲<select id="incomplete-song-select">
+        <option value="">― 先に読み込んでください ―</option>
+      </select></label>
+    </div>
+    <div class="admin-actions">
+      <button class="btn ghost" id="load-incomplete" type="button">未設定の曲を読み込む</button>
+    </div>
+    <p class="admin-note" id="incomplete-status"></p>
+    <div id="incomplete-song-box"></div>
   </section>
 
   <section class="admin-panel">
@@ -408,6 +426,6 @@
   </section>
 </main>
 
-<script type="module" src="dist/admin.js?v=12695547e6"></script>
+<script type="module" src="dist/admin.js?v=f0a229a85a"></script>
 </body>
 </html>

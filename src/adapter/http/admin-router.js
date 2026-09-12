@@ -16,6 +16,7 @@ import { addStream } from '../../usecase/add-stream.js';
 import { updateStreamInfo } from '../../usecase/update-stream-info.js';
 import { replaceSetlist } from '../../usecase/replace-setlist.js';
 import { searchSongs } from '../../usecase/search-songs.js';
+import { listIncompleteSongs } from '../../usecase/list-incomplete-songs.js';
 import { saveSongMetadata } from '../../usecase/save-song-metadata.js';
 import { syncKeyReferenceCsv } from '../../usecase/sync-key-reference-csv.js';
 import { syncKeyReferenceUrl } from '../../usecase/sync-key-reference-url.js';
@@ -87,6 +88,17 @@ export function buildAdminRouter(options) {
     const result = await searchSongs(deps, {
       query: ctx.query.get('q') || '',
       limit: 80,
+    });
+    return jsonResponse(result);
+  }));
+
+  /** キー / ジャンル未設定の曲一覧 (管理画面の未設定プルダウン用) */
+  router.get(p('/songs/incomplete'), auth(async (ctx) => {
+    const deps = getDeps(ctx);
+    const limitParam = ctx.query.get('limit');
+    const result = await listIncompleteSongs(deps, {
+      missing: ctx.query.get('missing') || 'all',
+      limit: limitParam == null || limitParam === '' ? undefined : Number(limitParam),
     });
     return jsonResponse(result);
   }));

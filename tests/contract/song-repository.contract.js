@@ -198,4 +198,55 @@ export function runSongRepositoryContract(label, factory) {
       await cleanup?.();
     }
   });
+
+  test(`${label}: findIncomplete - キーまたはジャンル未設定の曲を返す`, async () => {
+    const { repo, cleanup } = await factory();
+    try {
+      await repo.insert(makeSong({ title: '完璧', songKey: '完璧__x', displayKey: '原キー', genre: 'J-POP' }));
+      await repo.insert(makeSong({ title: 'キーなし', songKey: 'キーなし__x', displayKey: '', genre: 'J-POP' }));
+      await repo.insert(makeSong({ title: 'ジャンルなし', songKey: 'ジャンルなし__x', displayKey: '-1', genre: '' }));
+      const results = await repo.findIncomplete('all', 100);
+      assert.deepEqual(results.map((s) => s.title).sort(), ['キーなし', 'ジャンルなし']);
+    } finally {
+      await cleanup?.();
+    }
+  });
+
+  test(`${label}: findIncomplete - genre は空と未分類を未設定扱いする`, async () => {
+    const { repo, cleanup } = await factory();
+    try {
+      await repo.insert(makeSong({ title: '空', songKey: '空__x', displayKey: '原キー', genre: '' }));
+      await repo.insert(makeSong({ title: '未分類', songKey: '未分類__x', displayKey: '原キー', genre: '未分類' }));
+      await repo.insert(makeSong({ title: '済', songKey: '済__x', displayKey: '原キー', genre: 'J-POP' }));
+      const results = await repo.findIncomplete('genre', 100);
+      assert.deepEqual(results.map((s) => s.title).sort(), ['未分類', '空']);
+    } finally {
+      await cleanup?.();
+    }
+  });
+
+  test(`${label}: findIncomplete - key は display_key 空のみ返す`, async () => {
+    const { repo, cleanup } = await factory();
+    try {
+      await repo.insert(makeSong({ title: 'キーなし', songKey: 'キーなし__x', displayKey: '', genre: 'J-POP' }));
+      await repo.insert(makeSong({ title: 'キーあり', songKey: 'キーあり__x', displayKey: '+2', genre: '' }));
+      const results = await repo.findIncomplete('key', 100);
+      assert.deepEqual(results.map((s) => s.title), ['キーなし']);
+    } finally {
+      await cleanup?.();
+    }
+  });
+
+  test(`${label}: findIncomplete - limit で件数が制限される`, async () => {
+    const { repo, cleanup } = await factory();
+    try {
+      for (let i = 0; i < 5; i++) {
+        await repo.insert(makeSong({ title: `未設定${i}`, songKey: `未設定${i}__x`, displayKey: '', genre: '' }));
+      }
+      const results = await repo.findIncomplete('all', 3);
+      assert.equal(results.length, 3);
+    } finally {
+      await cleanup?.();
+    }
+  });
 }

@@ -184,6 +184,131 @@ function renderSongMeta(rows) {
   `;
 }
 
+async function saveMetaRow(row) {
+  await adminApi('songs/metadata', {
+    songId: row.dataset.songId,
+    title: row.querySelector('[data-field="title"]').value,
+    artist: row.querySelector('[data-field="artist"]').value,
+    displayKey: row.querySelector('[data-field="displayKey"]').value,
+    genre: row.querySelector('[data-field="genre"]').value,
+  });
+}
+
+/**
+ * 曲メタ編集行のクリック操作 (キーピッカー + 保存) を処理する。
+ * 保存した場合は行要素を返し、それ以外は undefined を返す。
+ */
+async function handleSongMetaClick(event, statusEl) {
+  // ── キーピッカー: ＋キーボタン → ドロップダウン開閉 ──────────────────
+  const addBtn = event.target.closest('[data-key-add-btn]');
+  if (addBtn) {
+    const menu = addBtn.nextElementSibling;
+    const isOpen = menu.classList.contains('is-open');
+    document.querySelectorAll('.key-add-menu').forEach(m => m.classList.remove('is-open'));
+    if (!isOpen) {
+      const rect = addBtn.getBoundingClientRect();
+      menu.style.top = (rect.bottom + 4) + 'px';
+      menu.style.left = rect.left + 'px';
+      menu.classList.add('is-open');
+    }
+    return;
+  }
+
+  // ── キーピッカー: プリセットキーをトグル ────────────────────────────
+  const addKeyBtn = event.target.closest('[data-add-key]');
+  if (addKeyBtn) {
+    const picker = addKeyBtn.closest('.key-picker');
+    const hiddenInput = picker.querySelector('[data-field="displayKey"]');
+    const key = addKeyBtn.dataset.addKey;
+    let keys = hiddenInput.value.split(',').map(k => k.trim()).filter(Boolean);
+    if (keys.includes(key)) {
+      keys = keys.filter(k => k !== key);
+      addKeyBtn.classList.remove('is-selected');
+    } else {
+      keys.push(key);
+      addKeyBtn.classList.add('is-selected');
+    }
+    hiddenInput.value = keys.join(',');
+    // チップを再描画
+    picker.querySelectorAll('.key-chip').forEach(c => c.remove());
+    keys.forEach(k => {
+      const chip = document.createElement('span');
+      chip.className = 'key-chip';
+      chip.innerHTML = `${escapeHtml(k)}<button type="button" class="key-chip-remove" data-remove-key="${escapeHtml(k)}" aria-label="${escapeHtml(k)}を削除">×</button>`;
+      picker.insertBefore(chip, picker.querySelector('[data-key-add-btn]'));
+    });
+    return;
+  }
+
+  // ── キーピッカー: チップのxで削除 ───────────────────────────────────
+  const removeBtn = event.target.closest('[data-remove-key]');
+  if (removeBtn) {
+    const picker = removeBtn.closest('.key-picker');
+    const hiddenInput = picker.querySelector('[data-field="displayKey"]');
+    const key = removeBtn.dataset.removeKey;
+    let keys = hiddenInput.value.split(',').map(k => k.trim()).filter(Boolean);
+    keys = keys.filter(k => k !== key);
+    hiddenInput.value = keys.join(',');
+    removeBtn.closest('.key-chip').remove();
+    // メニューの selected 状態を更新
+    picker.querySelectorAll(`[data-add-key="${CSS.escape(key)}"]`).forEach(b => b.classList.remove('is-selected'));
+    return;
+  }
+
+  // ── 保存ボタン ────────────────────────────────────────────────────────
+  const button = event.target.closest('[data-save-meta]');
+  if (!button) return;
+  const row = button.closest('[data-song-id]');
+  statusEl.textContent = '保存中...';
+  try {
+    await saveMetaRow(row);
+    statusEl.textContent = '保存しました。必要なら静的データ生成を開始してください。';
+  } catch (error) {
+    statusEl.textContent = error.message || String(error);
+  }
+  return row;
+}
+
+/** 未設定曲プルダウン用に読み込んだ曲 (GET /songs/incomplete の結果) */
+let _incompleteSongs = [];
+
+function _missingLabel(song) {
+  const missings = [];
+  if (!song.display_key) missings.push('キー未設定');
+  if (!song.genre || song.genre === '未分類') missings.push('ジャンル未設定');
+  return missings.join('・') || '設定済み';
+}
+
+function _renderIncompleteOptions() {
+  const select = $('#incomplete-song-select');
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = _incompleteSongs.length
+    ? `<option value="">― 編集する曲を選んでください ―</option>` + _incompleteSongs.map((song) => `
+      <option value="${song.id}">${escapeHtml(song.title)} / ${escapeHtml(song.artist || '')}（${_missingLabel(song)}）</option>`).join('')
+    : `<option value="">― 未設定の曲はありません ―</option>`;
+  if (current && _incompleteSongs.some((s) => String(s.id) === current)) select.value = current;
+}
+
+/** 未設定プルダウンで保存した行をキャッシュに反映し、選択肢を更新する */
+function _afterIncompleteSave(row) {
+  const song = _incompleteSongs.find((s) => String(s.id) === String(row.dataset.songId));
+  if (!song) return;
+  song.title = row.querySelector('[data-field="title"]').value;
+  song.artist = row.querySelector('[data-field="artist"]').value;
+  song.display_key = row.querySelector('[data-field="displayKey"]').value;
+  song.genre = row.querySelector('[data-field="genre"]').value;
+  if (_missingLabel(song) === '設定済み') {
+    _incompleteSongs = _incompleteSongs.filter((s) => s !== song);
+    _renderIncompleteOptions();
+    $('#incomplete-song-box').innerHTML = '';
+  } else {
+    _renderIncompleteOptions();
+    $('#incomplete-song-select').value = String(song.id);
+  }
+  $('#incomplete-status').textContent = `保存しました。残り${_incompleteSongs.length}件`;
+}
+
 function renderSync(data, elapsed) {
   const stats = data.combined?.stats || {};
   const update = parseDate(stats.updateDate);
@@ -387,80 +512,8 @@ function initManagement() {
     }
   });
 
-  $('#song-meta-box')?.addEventListener('click', async (event) => {
-    // ── キーピッカー: ＋キーボタン → ドロップダウン開閉 ──────────────────
-    const addBtn = event.target.closest('[data-key-add-btn]');
-    if (addBtn) {
-      const menu = addBtn.nextElementSibling;
-      const isOpen = menu.classList.contains('is-open');
-      document.querySelectorAll('.key-add-menu').forEach(m => m.classList.remove('is-open'));
-      if (!isOpen) {
-        const rect = addBtn.getBoundingClientRect();
-        menu.style.top = (rect.bottom + 4) + 'px';
-        menu.style.left = rect.left + 'px';
-        menu.classList.add('is-open');
-      }
-      return;
-    }
-
-    // ── キーピッカー: プリセットキーをトグル ────────────────────────────
-    const addKeyBtn = event.target.closest('[data-add-key]');
-    if (addKeyBtn) {
-      const picker = addKeyBtn.closest('.key-picker');
-      const hiddenInput = picker.querySelector('[data-field="displayKey"]');
-      const key = addKeyBtn.dataset.addKey;
-      let keys = hiddenInput.value.split(',').map(k => k.trim()).filter(Boolean);
-      if (keys.includes(key)) {
-        keys = keys.filter(k => k !== key);
-        addKeyBtn.classList.remove('is-selected');
-      } else {
-        keys.push(key);
-        addKeyBtn.classList.add('is-selected');
-      }
-      hiddenInput.value = keys.join(',');
-      // チップを再描画
-      picker.querySelectorAll('.key-chip').forEach(c => c.remove());
-      keys.forEach(k => {
-        const chip = document.createElement('span');
-        chip.className = 'key-chip';
-        chip.innerHTML = `${escapeHtml(k)}<button type="button" class="key-chip-remove" data-remove-key="${escapeHtml(k)}" aria-label="${escapeHtml(k)}を削除">×</button>`;
-        picker.insertBefore(chip, picker.querySelector('[data-key-add-btn]'));
-      });
-      return;
-    }
-
-    // ── キーピッカー: チップのxで削除 ───────────────────────────────────
-    const removeBtn = event.target.closest('[data-remove-key]');
-    if (removeBtn) {
-      const picker = removeBtn.closest('.key-picker');
-      const hiddenInput = picker.querySelector('[data-field="displayKey"]');
-      const key = removeBtn.dataset.removeKey;
-      let keys = hiddenInput.value.split(',').map(k => k.trim()).filter(Boolean);
-      keys = keys.filter(k => k !== key);
-      hiddenInput.value = keys.join(',');
-      removeBtn.closest('.key-chip').remove();
-      // メニューの selected 状態を更新
-      picker.querySelectorAll(`[data-add-key="${CSS.escape(key)}"]`).forEach(b => b.classList.remove('is-selected'));
-      return;
-    }
-
-    // ── 保存ボタン ────────────────────────────────────────────────────────
-    const button = event.target.closest('[data-save-meta]');
-    if (!button) return;
-    const row = button.closest('[data-song-id]');
-    $('#meta-status').textContent = '保存中...';
-    try {
-      await adminApi('songs/metadata', {
-        songId: row.dataset.songId,
-        title: row.querySelector('[data-field="title"]').value,
-        artist: row.querySelector('[data-field="artist"]').value,
-        displayKey: row.querySelector('[data-field="displayKey"]').value,
-        genre: row.querySelector('[data-field="genre"]').value,
-      });
-      $('#meta-status').textContent = '保存しました。必要なら静的データ生成を開始してください。';
-    } catch (error) {
-      $('#meta-status').textContent = error.message || String(error);
-    }
+  $('#song-meta-box')?.addEventListener('click', (event) => {
+    handleSongMetaClick(event, $('#meta-status'));
   });
 
   // ドロップダウン外クリックで閉じる
@@ -495,6 +548,36 @@ function initManagement() {
     } catch (error) {
       $('#meta-status').textContent = error.message || String(error);
     }
+  });
+
+  $('#load-incomplete')?.addEventListener('click', async () => {
+    const filter = $('#incomplete-filter').value;
+    $('#incomplete-status').textContent = '読み込み中...';
+    $('#incomplete-song-box').innerHTML = '';
+    try {
+      const data = await adminApi(`songs/incomplete?missing=${encodeURIComponent(filter)}&limit=200`);
+      _incompleteSongs = data.songs;
+      _renderIncompleteOptions();
+      const note = data.songs.length >= 200 ? '（上限200件に達した可能性があります）' : '';
+      $('#incomplete-status').textContent = `${data.songs.length}件${note}`;
+    } catch (error) {
+      $('#incomplete-status').textContent = error.message || String(error);
+    }
+  });
+
+  $('#incomplete-song-select')?.addEventListener('change', () => {
+    const id = $('#incomplete-song-select').value;
+    const song = _incompleteSongs.find((s) => String(s.id) === id);
+    if (!song) {
+      $('#incomplete-song-box').innerHTML = '';
+      return;
+    }
+    renderSongMeta([song]);
+  });
+
+  $('#incomplete-song-box')?.addEventListener('click', async (event) => {
+    const row = await handleSongMetaClick(event, $('#incomplete-status'));
+    if (row) _afterIncompleteSave(row);
   });
 
   $('#generate-static-data')?.addEventListener('click', async () => {

@@ -10,6 +10,7 @@
  *   - updateMetadata   ← admin metadata editor. 空文字も明示更新として扱う
  *   - search           ← admin:329-339 LIKE 検索 title/artist/display_key/genre, 最大 80 件
  *   - findById         ← admin:343 saveSongMetadata が id で引くため
+ *   - findIncomplete   ← 管理画面の未設定曲一覧。genre ''/'未分類' または display_key '' を抽出
  *
  * @typedef {import('../../../src/domain/port/repositories/song-repository.js').Song} Song
  * @typedef {import('../../../src/domain/port/repositories/song-repository.js').NewSong} NewSong
@@ -150,6 +151,36 @@ export class D1SongRepository {
       q,
       q,
       q,
+      limit,
+    );
+  }
+
+  /**
+   * キー / ジャンルが未設定の曲を取得。タイトル昇順、件数制限あり。
+   * missing: 'all' (両方のいずれか) | 'genre' (ジャンルのみ) | 'key' (キーのみ)。
+   * ジャンル未設定 = '' または '未分類' (data-quality.js の定義と同義)。
+   *
+   * @param {string} missing
+   * @param {number} limit
+   * @returns {Promise<Song[]>}
+   */
+  async findIncomplete(missing, limit) {
+    const genreMissing = `(s.genre IS NULL OR s.genre = '' OR s.genre = '未分類')`;
+    const keyMissing = `(s.display_key IS NULL OR s.display_key = '')`;
+    const where = missing === 'genre'
+      ? genreMissing
+      : missing === 'key'
+        ? keyMissing
+        : `(${genreMissing} OR ${keyMissing})`;
+    return this.client.query(
+      `SELECT s.id, s.title, s.normalized_title, s.artist_id, s.song_key,
+              s.display_key, s.genre, s.created_at,
+              a.name AS artist
+       FROM songs s
+       LEFT JOIN artists a ON a.id = s.artist_id
+       WHERE ${where}
+       ORDER BY s.title ASC
+       LIMIT ?`,
       limit,
     );
   }

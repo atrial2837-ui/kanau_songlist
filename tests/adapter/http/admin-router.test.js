@@ -34,6 +34,49 @@ describe('buildAdminRouter', () => {
     assert.ok(body.checkedAt);
   });
 
+  it('GET /songs/incomplete でキー・ジャンル未設定の曲を返す', async () => {
+    const songs = new InMemorySongRepository();
+    const base = {
+      normalizedTitle: 'x',
+      artistId: 1,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    await songs.insert({ ...base, title: 'キーなし', songKey: 'キーなし__x', displayKey: '', genre: 'J-POP' });
+    await songs.insert({ ...base, title: '完璧', songKey: '完璧__x', displayKey: '原キー', genre: 'J-POP' });
+    const router = buildAdminRouter({
+      pathPrefix: '/api',
+      getDeps: () => ({ songs }),
+      getAdminToken: () => null,
+      authStrict: false,
+      staticDataHandler: async () => jsonResponse({ ok: true }),
+    });
+
+    const response = await router.dispatch(
+      new Request('http://localhost/api/songs/incomplete?missing=key'),
+      {},
+    );
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.songs.length, 1);
+    assert.equal(body.songs[0].title, 'キーなし');
+  });
+
+  it('GET /songs/incomplete は不正な missing で 400', async () => {
+    const router = buildAdminRouter({
+      pathPrefix: '/api',
+      getDeps: () => ({ songs: new InMemorySongRepository() }),
+      getAdminToken: () => null,
+      authStrict: false,
+      staticDataHandler: async () => jsonResponse({ ok: true }),
+    });
+
+    const response = await router.dispatch(
+      new Request('http://localhost/api/songs/incomplete?missing=xxx'),
+      {},
+    );
+    assert.equal(response.status, 400);
+  });
+
   it('pathPrefix なしで /health', async () => {
     const router = buildAdminRouter({
       pathPrefix: '',
