@@ -128,6 +128,14 @@ export function destroyAllCharts() {
   charts.clear();
 }
 
+/**
+ * 全チャートのサイズを取り直す。
+ * 折り畳みから開いた直後など、canvas が 0 幅で作られた場合の復帰用。
+ */
+export function resizeAllCharts() {
+  for (const c of charts.values()) c.resize();
+}
+
 let rerenderHandler = null;
 export function onRerenderNeeded(fn) { rerenderHandler = fn; }
 

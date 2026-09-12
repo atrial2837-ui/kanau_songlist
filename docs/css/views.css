@@ -95,6 +95,37 @@
 }
 /* 直近の歌枠は全幅 */
 .dashboard-recent-card { grid-column: 1 / -1; }
+
+/* ── ダッシュボード折り畳み (レスポンシブのみ) ─────────────────── */
+.collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.collapse-toggle .ui-icon {
+  width: 16px;
+  height: 16px;
+}
+@media (min-width: 981px) {
+  .collapse-toggle { display: none; }
+}
+@media (max-width: 980px) {
+  /* トグルを右端に寄せるため pill の auto マージンを打ち消す */
+  #panel-dashboard .card-title:has(> .collapse-toggle) > .pill { margin-left: 0; }
+  #panel-dashboard .is-collapsed > :not(.card-title) { display: none; }
+  #panel-dashboard .is-collapsed > .card-title { margin-bottom: 0; }
+}
+
 /* ダッシュボード内のアナリティクス統合セクション */
 .dashboard-analytics-section {
   grid-column: 1 / -1;

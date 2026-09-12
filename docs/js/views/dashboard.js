@@ -5,7 +5,7 @@ import { getToday } from '../store.js';
 import { icon } from '../icons.js';
 import { openStreamViewer, playMyListInViewer } from '../player/stream-player.js';
 import { getWatchHistory, clearWatchHistory } from '../player/watch-history.js';
-import { chartCanvas, createChart, getColors } from '../charts.js';
+import { chartCanvas, createChart, getColors, resizeAllCharts } from '../charts.js';
 import { doughnutOutsideAnchor } from '../doughnut-anchor.js';
 import { analyticsSectionHtml, bindAnalytics } from '../sections/analytics.js';
 
@@ -62,6 +62,7 @@ export function renderDashboard() {
   drawGenreChart(genreRows);
   drawMonthlyChart(monthly);
   bindAnalytics(songs, streams, artists);
+  initDashboardCollapse(panel);
 
   // ヒートマップは直近1年を横に並べるため、初期表示で最新（右端）へ
   const heatmapWrap = panel.querySelector('.heatmap-wrap');
@@ -91,6 +92,93 @@ function bindHitsToggle() {
     setPeriod(btn.dataset.hitsPeriod);
   });
   setPeriod('month');
+}
+
+/* ── レスポンシブ折り畳み (モバイルのみ。表示切替はCSSのMQが制御) ─────── */
+
+const COLLAPSE_MEDIA = '(max-width: 980px)';
+const COLLAPSE_STORE_KEY = 'dashboardCollapsed';
+
+function _collapseTargets(panel) {
+  return Array.from(panel.querySelectorAll(
+    '.dashboard-trio-grid > .card, .dashboard-overview-grid > .card,'
+    + ' .dashboard-resume-card, .dashboard-recent-card,'
+    + ' .dashboard-analytics-section .analytics-grid > .card',
+  ));
+}
+
+function _loadCollapsedIds() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(COLLAPSE_STORE_KEY) || 'null');
+    return Array.isArray(raw) ? raw.filter((k) => typeof k === 'string') : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function _saveCollapsedIds(ids) {
+  try {
+    localStorage.setItem(COLLAPSE_STORE_KEY, JSON.stringify(ids));
+  } catch (_) { /* 保存できなくても表示は続ける */ }
+}
+
+function _setCardCollapsed(card, collapsed) {
+  card.classList.toggle('is-collapsed', collapsed);
+  const btn = card.querySelector(':scope > .card-title .collapse-toggle');
+  if (!btn) return;
+  btn.setAttribute('aria-expanded', String(!collapsed));
+  btn.setAttribute('aria-label', collapsed ? '展開する' : '折りたたむ');
+  btn.innerHTML = icon(collapsed ? 'chevronDown' : 'chevronUp');
+}
+
+function _collectCollapsedIds(panel) {
+  return _collapseTargets(panel)
+    .filter((card) => card.classList.contains('is-collapsed'))
+    .map((card) => card.dataset.collapseId);
+}
+
+function initDashboardCollapse(panel) {
+  const cards = _collapseTargets(panel);
+  const mobile = window.matchMedia(COLLAPSE_MEDIA).matches;
+  let stored = _loadCollapsedIds();
+  if (!stored && mobile) {
+    // 初回モバイル表示は先頭カード以外を畳む
+    stored = cards.slice(1).map((_, i) => `dash-${i + 1}`);
+    _saveCollapsedIds(stored);
+  }
+  const collapsed = new Set(stored || []);
+  cards.forEach((card, i) => {
+    const id = `dash-${i}`;
+    card.dataset.collapseId = id;
+    const title = card.querySelector(':scope > .card-title');
+    if (title && !title.querySelector('.collapse-toggle')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'collapse-toggle';
+      btn.dataset.collapseToggle = id;
+      title.appendChild(btn);
+    }
+    _setCardCollapsed(card, collapsed.has(id));
+  });
+  if (panel.dataset.collapseBound) return;
+  panel.dataset.collapseBound = '1';
+  panel.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-collapse-toggle]');
+    if (!btn) return;
+    const card = btn.closest('[data-collapse-id]');
+    if (!card) return;
+    const next = !card.classList.contains('is-collapsed');
+    _setCardCollapsed(card, next);
+    _saveCollapsedIds(_collectCollapsedIds(panel));
+    if (!next) {
+      // 開いた直後にサイズを取り直す (畳み中はcanvasが0幅のため)
+      resizeAllCharts();
+      const heat = card.querySelector('.heatmap-wrap');
+      if (heat) heat.scrollLeft = heat.scrollWidth;
+    }
+  });
+  const mq = window.matchMedia(COLLAPSE_MEDIA);
+  mq.addEventListener?.('change', () => initDashboardCollapse(panel));
 }
 
 /* ── よく歌われた曲カード ──────────────────────────────────────────────── */
