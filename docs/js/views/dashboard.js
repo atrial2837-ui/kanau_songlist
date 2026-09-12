@@ -6,6 +6,7 @@ import { icon } from '../icons.js';
 import { openStreamViewer, playMyListInViewer } from '../player/stream-player.js';
 import { getWatchHistory, clearWatchHistory } from '../player/watch-history.js';
 import { chartCanvas, createChart, getColors } from '../charts.js';
+import { doughnutOutsideAnchor } from '../doughnut-anchor.js';
 import { analyticsSectionHtml, bindAnalytics } from '../sections/analytics.js';
 
 export function renderDashboard() {
@@ -322,11 +323,14 @@ function genrePctPlugin(colors) {
   };
 }
 
-/** 中央に合計曲数を表示 */
+/** 中央に合計曲数を表示 (ツールチップ表示中は重なり回避のため隠す) */
 function genreCenterPlugin(total) {
   return {
     id: 'genre-center',
     afterDraw(chart) {
+      const tip = chart.tooltip;
+      // ホバー中は中央表示を一時的に隠し、閉じると再描画で復活する
+      if (tip && tip.opacity !== 0 && tip.getActiveElements?.().length) return;
       const arc = chart.getDatasetMeta(0)?.data?.[0];
       if (!arc) return;
       const c = getColors();
@@ -343,6 +347,75 @@ function genreCenterPlugin(total) {
       ctx.restore();
     },
   };
+}
+
+/** 外部ツールチップのスクロール・リサイズ時の取り残し防止 (初回のみ束縛) */
+let _genreTipAutoHideBound = false;
+
+function _ensureGenreTipAutoHide() {
+  if (_genreTipAutoHideBound) return;
+  _genreTipAutoHideBound = true;
+  const hide = () => {
+    const el = document.getElementById('chart-genre-tip');
+    if (el) el.hidden = true;
+  };
+  document.addEventListener('scroll', hide, { capture: true, passive: true });
+  window.addEventListener('resize', hide);
+}
+
+/**
+ * ジャンル分布ドーナツ用の外部ツールチップ。
+ * Chart.js 内蔵配置は弧の中点が支点になりボックスが中央の合計表示に
+ * 被るため、中心から見てカーソル方向の外側へ出す。
+ */
+function genreExternalTip(context) {
+  const { chart, tooltip } = context;
+  let el = document.getElementById('chart-genre-tip');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'chart-genre-tip';
+    el.className = 'global-tip';
+    el.setAttribute('role', 'tooltip');
+    el.hidden = true;
+    document.body.appendChild(el);
+    _ensureGenreTipAutoHide();
+  }
+  const arc = tooltip.dataPoints?.[0]?.element;
+  if (tooltip.opacity === 0 || !arc || arc.outerRadius == null) {
+    el.hidden = true;
+    return;
+  }
+  const lines = [...(tooltip.title || [])];
+  for (const body of tooltip.body || []) lines.push(...(body.lines || []));
+  el.innerHTML = lines
+    .map((text, i) => (i === 0 ? `<strong>${escapeHtml(text)}</strong>` : `<span>${escapeHtml(text)}</span>`))
+    .join('<br>');
+  el.hidden = false;
+  el.style.visibility = 'hidden';
+
+  const rect = chart.canvas.getBoundingClientRect();
+  const { ax, ay, dx, dy } = doughnutOutsideAnchor(
+    rect.left + arc.x,
+    rect.top + arc.y,
+    rect.left + tooltip.caretX,
+    rect.top + tooltip.caretY,
+    arc.outerRadius,
+    12,
+  );
+  const bw = el.offsetWidth;
+  const bh = el.offsetHeight;
+  const MARGIN = 8;
+  const left = Math.max(MARGIN, Math.min(
+    ax - bw / 2 + (dx * bw) / 2,
+    window.innerWidth - bw - MARGIN,
+  ));
+  const top = Math.max(MARGIN, Math.min(
+    ay - bh / 2 + (dy * bh) / 2,
+    window.innerHeight - bh - MARGIN,
+  ));
+  el.style.left = `${Math.round(left)}px`;
+  el.style.top = `${Math.round(top)}px`;
+  el.style.visibility = '';
 }
 
 function drawGenreChart(rows) {
@@ -369,6 +442,9 @@ function drawGenreChart(rows) {
     plugins: {
       legend: { display: false },
       tooltip: {
+        // 内蔵配置は中央の合計表示に被るため外部ツールチップで外側へ出す
+        enabled: false,
+        external: genreExternalTip,
         callbacks: {
           label: (item) => {
             const t = item.dataset.data.reduce((sum, v) => sum + v, 0);
