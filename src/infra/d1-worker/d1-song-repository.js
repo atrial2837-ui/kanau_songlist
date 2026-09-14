@@ -202,4 +202,15 @@ export class D1SongRepository {
       id,
     );
   }
+
+  /**
+   * 曲を id で削除。
+   * 曲の統合 (mergeSongs) で参照付け替え後の誤登録曲を削除するために使用。
+   *
+   * @param {number} id
+   * @returns {Promise<void>}
+   */
+  async deleteById(id) {
+    await this.client.run(`DELETE FROM songs WHERE id = ?`, id);
+  }
 }

@@ -89,6 +89,8 @@
  * @property {(id: number) => Promise<Song|null>} [findById]
  *   - 根拠: admin:343 `if (!songId) throw` — saveSongMetadata で id 検証に使用
  *   - optional: UseCase 実装によっては findByKey に統一できる可能性あり
+ * @property {(id: number) => Promise<void>} deleteById
+ *   - 曲の統合 (mergeSongs) で参照付け替え後の誤登録曲を削除するために使用
  */
 
 export {};

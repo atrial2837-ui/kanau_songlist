@@ -145,4 +145,16 @@ export function runArtistRepositoryContract(label, factory) {
       await cleanup?.();
     }
   });
+
+  test(`${label}: deleteById - 指定 id の行を削除する`, async () => {
+    const { repo, cleanup } = await factory();
+    try {
+      const { id } = await repo.insert(makeArtist());
+      await repo.deleteById(id);
+      const all = await repo.findAll();
+      assert.equal(all.length, 0);
+    } finally {
+      await cleanup?.();
+    }
+  });
 }

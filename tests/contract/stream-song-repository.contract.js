@@ -162,4 +162,24 @@ export function runStreamSongRepositoryContract(label, factory) {
       await cleanup?.();
     }
   });
+
+  test(`${label}: updateSongId - song_id と song_key_snapshot を付け替えて件数を返す`, async () => {
+    const { repo, cleanup } = await factory();
+    try {
+      await repo.insertBatch([
+        makeStreamSong({ streamId: 1, position: 1, songId: 10, songKeySnapshot: '旧__x' }),
+        makeStreamSong({ streamId: 1, position: 2, songId: 10, songKeySnapshot: '旧__x' }),
+        makeStreamSong({ streamId: 2, position: 1, songId: 20, songKeySnapshot: '他__y' }),
+      ]);
+      const count = await repo.updateSongId(10, 99, '新__z');
+      assert.equal(count, 2);
+      const rows = await repo.findByStreamId(1);
+      assert.ok(rows.every((r) => r.song_id === 99));
+      assert.ok(rows.every((r) => r.song_key_snapshot === '新__z'));
+      const other = await repo.findByStreamId(2);
+      assert.equal(other[0].song_id, 20);
+    } finally {
+      await cleanup?.();
+    }
+  });
 }

@@ -69,4 +69,14 @@ export class InMemoryArtistRepository {
   async findAll() {
     return Array.from(this._store.values()).map((a) => ({ ...a }));
   }
+
+  /**
+   * アーティストを id で削除。
+   *
+   * @param {number} id
+   * @returns {Promise<void>}
+   */
+  async deleteById(id) {
+    this._store.delete(id);
+  }
 }

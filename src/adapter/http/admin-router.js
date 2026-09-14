@@ -17,6 +17,7 @@ import { updateStreamInfo } from '../../usecase/update-stream-info.js';
 import { replaceSetlist } from '../../usecase/replace-setlist.js';
 import { searchSongs } from '../../usecase/search-songs.js';
 import { listIncompleteSongs } from '../../usecase/list-incomplete-songs.js';
+import { mergeSongs } from '../../usecase/merge-songs.js';
 import { saveSongMetadata } from '../../usecase/save-song-metadata.js';
 import { syncKeyReferenceCsv } from '../../usecase/sync-key-reference-csv.js';
 import { syncKeyReferenceUrl } from '../../usecase/sync-key-reference-url.js';
@@ -164,6 +165,16 @@ export function buildAdminRouter(options) {
     const body = (await readJsonBody(ctx.request)) || {};
     await saveSongMetadata(getDeps(ctx), body);
     return jsonResponse({ ok: true });
+  }));
+
+  /** 曲の統合 (誤登録曲 → 正規曲へ参照付け替え後に誤登録曲を削除) */
+  router.post(p('/songs/merge'), auth(async (ctx) => {
+    const body = (await readJsonBody(ctx.request)) || {};
+    const result = await mergeSongs(getDeps(ctx), {
+      sourceSongId: body.sourceSongId,
+      targetSongId: body.targetSongId,
+    });
+    return jsonResponse(result);
   }));
 
   router.post(p('/key-reference/import-csv'), auth(async (ctx) => {

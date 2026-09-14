@@ -66,4 +66,15 @@ export class D1ArtistRepository {
        ORDER BY id ASC`,
     );
   }
+
+  /**
+   * アーティストを id で削除。
+   * 曲の統合 (mergeSongs) で参照されなくなった誤登録アーティストを削除するために使用。
+   *
+   * @param {number} id
+   * @returns {Promise<void>}
+   */
+  async deleteById(id) {
+    await this.client.run(`DELETE FROM artists WHERE id = ?`, id);
+  }
 }

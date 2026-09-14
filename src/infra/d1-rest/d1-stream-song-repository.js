@@ -97,4 +97,25 @@ export class D1RestStreamSongRepository {
       )
     );
   }
+
+  /**
+   * song_id の付け替え + song_key_snapshot を付け替え先キーに更新し、移動行数を返す。
+   * 曲の統合 (mergeSongs) が誤登録曲の参照を正規曲へ付け替えるために使用。
+   *
+   * @param {number} fromSongId
+   * @param {number} toSongId
+   * @param {string} toSongKey
+   * @returns {Promise<number>}
+   */
+  async updateSongId(fromSongId, toSongId, toSongKey) {
+    const meta = await this.client.run(
+      `UPDATE stream_songs
+       SET song_id = ?, song_key_snapshot = ?
+       WHERE song_id = ?`,
+      toSongId,
+      toSongKey,
+      fromSongId,
+    );
+    return Number(meta?.changes ?? 0);
+  }
 }

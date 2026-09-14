@@ -6,10 +6,10 @@
 <title>歌枠管理｜夢川かなう 歌唱データベース</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="assets/site-icon.svg">
-<link rel="stylesheet" href="css/theme.css?v=bcee4ae9a8">
-<link rel="stylesheet" href="css/components.css?v=bcee4ae9a8">
-<link rel="stylesheet" href="css/views.css?v=bcee4ae9a8">
-<link rel="stylesheet" href="css/admin.css?v=bcee4ae9a8">
+<link rel="stylesheet" href="css/theme.css?v=265a595a67">
+<link rel="stylesheet" href="css/components.css?v=265a595a67">
+<link rel="stylesheet" href="css/views.css?v=265a595a67">
+<link rel="stylesheet" href="css/admin.css?v=265a595a67">
 </head>
 <body>
 <header class="topbar">
@@ -250,6 +250,28 @@
     </div>
     <p class="admin-note" id="incomplete-status"></p>
     <div id="incomplete-song-box"></div>
+
+    <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)">
+    <h3 style="margin:0 0 12px;font-size:15px">曲の統合（誤登録の修正）</h3>
+    <div class="admin-form-grid">
+      <label>候補検索<input id="merge-query" type="search" placeholder="曲名 / 歌手"></label>
+    </div>
+    <div class="admin-actions">
+      <button class="btn ghost" id="merge-search-btn" type="button">候補を検索</button>
+    </div>
+    <div class="admin-form-grid">
+      <label>統合元（誤登録・削除される）<select id="merge-source-select">
+        <option value="">― 先に検索してください ―</option>
+      </select></label>
+      <label>統合先（正規・残る）<select id="merge-target-select">
+        <option value="">― 先に検索してください ―</option>
+      </select></label>
+    </div>
+    <p class="admin-note" id="merge-detail"></p>
+    <div class="admin-actions">
+      <button class="btn primary" id="merge-run" type="button">統合を実行</button>
+    </div>
+    <p class="admin-note" id="merge-status"></p>
   </section>
 
   <section class="admin-panel">
@@ -426,6 +448,6 @@
   </section>
 </main>
 
-<script type="module" src="dist/admin.js?v=bcee4ae9a8"></script>
+<script type="module" src="dist/admin.js?v=265a595a67"></script>
 </body>
 </html>

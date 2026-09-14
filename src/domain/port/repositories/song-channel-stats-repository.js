@@ -49,6 +49,8 @@
  * @property {() => Promise<SongChannelStat[]>} findAll
  *   - 根拠: data.js:225 `Promise.all([..., db.prepare('SELECT * FROM song_channel_stats').all()])`
  *   - 全チャンネルまとめて一括取得 (mergeChannels 用)
+ * @property {(songId: number) => Promise<void>} deleteBySongId
+ *   - 曲の統合 (mergeSongs) で付け替え元の統計行を削除するために使用
  */
 
 export {};

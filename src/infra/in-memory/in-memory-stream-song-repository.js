@@ -85,4 +85,24 @@ export class InMemoryStreamSongRepository {
   async findAll() {
     return Array.from(this._store.values()).map((r) => ({ ...r }));
   }
+
+  /**
+   * song_id の付け替え + song_key_snapshot を付け替え先キーに更新し、移動行数を返す。
+   *
+   * @param {number} fromSongId
+   * @param {number} toSongId
+   * @param {string} toSongKey
+   * @returns {Promise<number>}
+   */
+  async updateSongId(fromSongId, toSongId, toSongKey) {
+    let count = 0;
+    for (const row of this._store.values()) {
+      if (row.song_id === fromSongId) {
+        row.song_id = toSongId;
+        row.song_key_snapshot = toSongKey;
+        count += 1;
+      }
+    }
+    return count;
+  }
 }

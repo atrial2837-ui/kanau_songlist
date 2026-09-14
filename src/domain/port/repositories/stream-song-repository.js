@@ -57,6 +57,9 @@
  *   - 複数行を 1 トランザクション相当で挿入する
  * @property {(streamId: number) => Promise<void>} deleteByStreamId
  *   - 根拠: admin:292 上書き時に旧 stream_songs を DELETE してから再挿入
+ * @property {(fromSongId: number, toSongId: number, toSongKey: string) => Promise<number>} updateSongId
+ *   - song_id の付け替え + song_key_snapshot を付け替え先キーに更新。移動行数を返す
+ *   - 曲の統合 (mergeSongs) が誤登録曲の参照を正規曲へ付け替えるために使用
  * @property {() => Promise<StreamSong[]>} findAll
  *   - 根拠: data.js:225 `Promise.all([..., db.prepare('SELECT * FROM stream_songs').all()])`
  *   - BuildDatasetUseCase が dates / streamRefs を埋めるために全行取得する

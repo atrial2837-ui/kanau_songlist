@@ -100,4 +100,16 @@ export class InMemorySongChannelStatsRepository {
   async findAll() {
     return Array.from(this._store.values()).map((r) => ({ ...r }));
   }
+
+  /**
+   * 指定曲の統計行を全チャンネル分削除。
+   *
+   * @param {number} songId
+   * @returns {Promise<void>}
+   */
+  async deleteBySongId(songId) {
+    for (const [key, row] of this._store.entries()) {
+      if (row.song_id === songId) this._store.delete(key);
+    }
+  }
 }

@@ -45,6 +45,8 @@
  * @property {() => Promise<Artist[]>} findAll
  *   - 根拠: data.js:225 `Promise.all([..., db.prepare('SELECT ...').all()])`
  *   - BuildDatasetUseCase が全アーティストを一括取得する際に使用
+ * @property {(id: number) => Promise<void>} deleteById
+ *   - 曲の統合 (mergeSongs) で参照されなくなった誤登録アーティストを削除するために使用
  */
 
 export {};

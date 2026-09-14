@@ -208,6 +208,16 @@ export class InMemorySongRepository {
   }
 
   /**
+   * 曲を id で削除。
+   *
+   * @param {number} id
+   * @returns {Promise<void>}
+   */
+  async deleteById(id) {
+    this._store.delete(id);
+  }
+
+  /**
    * キー / ジャンルが未設定の曲を返す (タイトル昇順、上限あり)。
    * ジャンル未設定 = '' または '未分類' (data-quality.js の定義と同義)。
    *

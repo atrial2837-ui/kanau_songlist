@@ -249,4 +249,16 @@ export function runSongRepositoryContract(label, factory) {
       await cleanup?.();
     }
   });
+
+  test(`${label}: deleteById - 指定 id の曲を削除する`, async () => {
+    const { repo, cleanup } = await factory();
+    try {
+      const { id } = await repo.insert(makeSong());
+      await repo.deleteById(id);
+      const all = await repo.findAll();
+      assert.equal(all.length, 0);
+    } finally {
+      await cleanup?.();
+    }
+  });
 }

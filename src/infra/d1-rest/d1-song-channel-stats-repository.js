@@ -103,4 +103,18 @@ export class D1RestSongChannelStatsRepository {
       )
     );
   }
+
+  /**
+   * 指定曲の統計行を全チャンネル分削除。
+   * 曲の統合 (mergeSongs) で付け替え元の統計行を削除するために使用。
+   *
+   * @param {number} songId
+   * @returns {Promise<void>}
+   */
+  async deleteBySongId(songId) {
+    await this.client.run(
+      'DELETE FROM song_channel_stats WHERE song_id = ?',
+      songId,
+    );
+  }
 }

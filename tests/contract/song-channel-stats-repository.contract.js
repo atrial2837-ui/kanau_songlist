@@ -172,4 +172,19 @@ export function runSongChannelStatsRepositoryContract(label, factory) {
       await cleanup?.();
     }
   });
+
+  test(`${label}: deleteBySongId - 指定曲の統計行を全チャンネル分削除する`, async () => {
+    const { repo, cleanup } = await factory();
+    try {
+      await repo.upsertIncrement(1, 1, NOW);
+      await repo.upsertIncrement(1, 2, NOW);
+      await repo.upsertIncrement(2, 1, NOW);
+      await repo.deleteBySongId(1);
+      const all = await repo.findAll();
+      assert.equal(all.length, 1);
+      assert.equal(all[0].song_id, 2);
+    } finally {
+      await cleanup?.();
+    }
+  });
 }

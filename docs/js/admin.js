@@ -580,6 +580,81 @@ function initManagement() {
     if (row) _afterIncompleteSave(row);
   });
 
+  /** 曲の統合 (誤登録の修正) 用の候補 */
+  let _mergeCandidates = [];
+
+  function _mergeCandidateLabel(id) {
+    const song = _mergeCandidates.find((s) => String(s.id) === String(id));
+    if (!song) return '―';
+    return `${song.title} / ${song.artist || ''}`
+      + `（キー: ${song.display_key || '未設定'}・ジャンル: ${song.genre || '未設定'}）[id=${song.id}]`;
+  }
+
+  function _renderMergeOptions() {
+    for (const selId of ['#merge-source-select', '#merge-target-select']) {
+      const select = $(selId);
+      if (!select) continue;
+      const current = select.value;
+      select.innerHTML = _mergeCandidates.length
+        ? `<option value="">― 選んでください ―</option>` + _mergeCandidates.map((song) => `
+          <option value="${song.id}">${escapeHtml(song.title)} / ${escapeHtml(song.artist || '')}</option>`).join('')
+        : `<option value="">― 候補がありません ―</option>`;
+      if (current && _mergeCandidates.some((s) => String(s.id) === current)) select.value = current;
+    }
+    const src = $('#merge-source-select')?.value;
+    const dst = $('#merge-target-select')?.value;
+    if ($('#merge-detail')) {
+      $('#merge-detail').textContent = (src || dst)
+        ? `統合元: ${_mergeCandidateLabel(src)} → 統合先: ${_mergeCandidateLabel(dst)}`
+        : '';
+    }
+  }
+
+  $('#merge-search-btn')?.addEventListener('click', async () => {
+    $('#merge-status').textContent = '検索中...';
+    try {
+      const data = await adminApi(`songs/search?q=${encodeURIComponent($('#merge-query').value)}`);
+      _mergeCandidates = data.songs;
+      _renderMergeOptions();
+      $('#merge-status').textContent = `${data.songs.length}件`;
+    } catch (error) {
+      $('#merge-status').textContent = error.message || String(error);
+    }
+  });
+
+  $('#merge-source-select')?.addEventListener('change', _renderMergeOptions);
+  $('#merge-target-select')?.addEventListener('change', _renderMergeOptions);
+
+  $('#merge-run')?.addEventListener('click', async () => {
+    const src = $('#merge-source-select').value;
+    const dst = $('#merge-target-select').value;
+    if (!src || !dst) {
+      $('#merge-status').textContent = '統合元と統合先を選んでください';
+      return;
+    }
+    if (src === dst) {
+      $('#merge-status').textContent = '同じ曲同士は統合できません';
+      return;
+    }
+    const s = _mergeCandidates.find((x) => String(x.id) === src);
+    const t = _mergeCandidates.find((x) => String(x.id) === dst);
+    if (!confirm(`「${s.title} / ${s.artist}」(id=${src}) を「${t.title} / ${t.artist}」(id=${dst}) へ統合します。統合元は削除されます。よろしいですか？`)) return;
+    $('#merge-status').textContent = '統合中...';
+    try {
+      const data = await adminApi('songs/merge', {
+        sourceSongId: Number(src),
+        targetSongId: Number(dst),
+      });
+      $('#merge-status').textContent = `統合しました: セトリ${data.movedStreamSongs}行・統計${data.movedStats}件を移動。`
+        + (data.deletedArtistId ? `アーティスト(id=${data.deletedArtistId})も削除しました。` : '')
+        + '必要なら静的データ生成を開始してください。';
+      _mergeCandidates = _mergeCandidates.filter((x) => String(x.id) !== String(src));
+      _renderMergeOptions();
+    } catch (error) {
+      $('#merge-status').textContent = error.message || String(error);
+    }
+  });
+
   $('#generate-static-data')?.addEventListener('click', async () => {
     if (!confirm('GitHub Actionsで静的データ生成を開始します。よろしいですか？')) return;
     $('#static-status').textContent = 'GitHub Actionsを起動中...';
