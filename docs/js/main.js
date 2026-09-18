@@ -336,6 +336,7 @@ function switchAudience(audience, options = {}) {
   if (!state.singerMode) state.singerPreset = 'all';
   document.body.dataset.audience = state.audience;
   updateMobileMenuLabel();
+  updateAudienceToggle();
   if (state.audience === 'singer') {
     state.songsLimit = 100;
     activateTab('songs', { autoLoad: options.autoLoad !== false });
@@ -353,6 +354,18 @@ function updateMobileMenuLabel() {
   const channel = $('#channel-switch [data-channel].active')?.textContent?.trim() || '新ch';
   const audience = state.audience === 'singer' ? '配信者' : 'リスナー';
   label.textContent = `${channel} / ${audience}`;
+}
+
+/** ヘッダーの配信者モードボタンを現在のモードに同期 (ぱっと見で分かる表示) */
+function updateAudienceToggle() {
+  const btn = $('#audience-toggle');
+  if (!btn) return;
+  const singer = state.audience === 'singer';
+  btn.classList.toggle('is-active', singer);
+  btn.setAttribute('aria-pressed', String(singer));
+  const label = btn.querySelector('span');
+  if (label) label.textContent = singer ? '配信者モード中' : '配信者モード';
+  btn.setAttribute('data-tooltip', singer ? 'リスナー表示に戻す' : '配信者モードに切り替える');
 }
 
 function initMobileMenu() {
@@ -787,6 +800,12 @@ $$('.ch-btn').forEach(btn => {
     if (btn.disabled) return;
     switchChannel(btn.dataset.channel);
   });
+});
+
+// ヘッダーの配信者モードボタン (メニュー内の stopPropagation で body 委譲に
+// 届かないため直接束縛する。全曲リスト内のボタンは下の body 委譲で受ける)
+$('#audience-toggle')?.addEventListener('click', () => {
+  switchAudience(state.audience === 'singer' ? 'listener' : 'singer');
 });
 
 window.addEventListener('popstate', applyUrlState);

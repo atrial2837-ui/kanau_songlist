@@ -1,4 +1,4 @@
-import{c as b,d as $,f as q,h as x}from"./chunk-I3TJAJ5T.js";import{a as T,b as B,l as j,o as N}from"./chunk-CTNXXBWF.js";import"./chunk-H3AHRYSK.js";import"./chunk-LXYT6HRB.js";import{e as R}from"./chunk-MKJIXTK4.js";import{d as C,e as k}from"./chunk-G6X6HETF.js";import{D as w,E as A,H as O,P as p,a as g,c as d,e as H,i as E,o as P,p as L,q as I,r as W,s as _}from"./chunk-ZX7BDGHH.js";function G(t,a,e,s,n,r=10){let i=e-t,l=s-a,o=Math.hypot(i,l);return o>0?(i/=o,l/=o):(i=0,l=-1),{ax:t+i*(n+r),ay:a+l*(n+r),dx:i,dy:l}}function Y(t,a){return`
+import{c as b,d as $,f as q,h as x}from"./chunk-I3TJAJ5T.js";import{a as T,b as B,l as j,o as N}from"./chunk-CTNXXBWF.js";import"./chunk-H3AHRYSK.js";import"./chunk-LXYT6HRB.js";import{e as R}from"./chunk-VSBFO2XM.js";import{d as C,e as k}from"./chunk-G6X6HETF.js";import{D as w,E as A,H as O,P as p,a as g,c as d,e as H,i as E,o as P,p as L,q as I,r as W,s as _}from"./chunk-ZX7BDGHH.js";function G(t,a,e,s,n,r=10){let i=e-t,l=s-a,o=Math.hypot(i,l);return o>0?(i/=o,l/=o):(i=0,l=-1),{ax:t+i*(n+r),ay:a+l*(n+r),dx:i,dy:l}}function Y(t,a){return`
     <div class="analytics-grid">
 
       <div class="card col-6">

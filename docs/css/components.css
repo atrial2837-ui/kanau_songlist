@@ -454,6 +454,37 @@ button.official-link {
 .theme-toggle:hover {
   border-color: var(--primary);
 }
+/* ヘッダーの配信者モード切替。ON時は primary 塗り＋文言変化で一目で分かる */
+.audience-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.audience-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+.audience-toggle.is-active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  border-color: var(--primary-strong);
+  color: #fff;
+}
+.audience-toggle.is-active:hover {
+  color: #fff;
+  box-shadow: var(--shadow);
+  filter: brightness(1.05);
+}
 /* 汎用ツールチップ: data-tooltip 属性を持つ要素にホバー/フォーカスで表示。
    表示位置は docs/js/tooltip.js が決める(下優先・入らなければ上・横は画面内)。
    旧方式の ::after は二重表示防止のため無効化してある。 */
