@@ -2,43 +2,43 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://kanau-songlist.pages.dev/</loc>
-    <lastmod>2026-10-06</lastmod>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://kanau-songlist.pages.dev/?tab=ranking</loc>
-    <lastmod>2026-10-06</lastmod>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://kanau-songlist.pages.dev/?tab=songs</loc>
-    <lastmod>2026-10-06</lastmod>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://kanau-songlist.pages.dev/?tab=timeline</loc>
-    <lastmod>2026-10-06</lastmod>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://kanau-songlist.pages.dev/?tab=requests</loc>
-    <lastmod>2026-10-06</lastmod>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://kanau-songlist.pages.dev/?tab=playlists</loc>
-    <lastmod>2026-10-06</lastmod>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://kanau-songlist.pages.dev/song/</loc>
-    <lastmod>2026-10-06</lastmod>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
@@ -61,6 +61,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E3%83%8E%E3%83%BC%E3%83%81%E3%83%A9%E3%82%B9-%E3%83%A8%E3%83%AB%E3%82%B7%E3%82%AB</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://kanau-songlist.pages.dev/song/jane-doe-%E7%B1%B3%E6%B4%A5%E7%8E%84%E5%B8%AB-%E5%AE%87%E5%A4%9A%E7%94%B0%E3%83%92%E3%82%AB%E3%83%AB</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
@@ -79,14 +85,14 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E3%83%8E%E3%83%BC%E3%83%81%E3%83%A9%E3%82%B9-%E3%83%A8%E3%83%AB%E3%82%B7%E3%82%AB</loc>
-    <lastmod>2026-09-01</lastmod>
+    <loc>https://kanau-songlist.pages.dev/song/%E7%9B%B8%E6%80%9D%E7%9B%B8%E6%84%9B-aiko</loc>
+    <lastmod>2026-09-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E7%9B%B8%E6%80%9D%E7%9B%B8%E6%84%9B-aiko</loc>
-    <lastmod>2026-09-09</lastmod>
+    <loc>https://kanau-songlist.pages.dev/song/%E3%82%B9%E3%83%94%E3%83%A9%E3%83%BC%E3%83%AC-%E7%89%A7%E9%87%8E%E7%94%B1%E4%BE%9D</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -109,8 +115,8 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E3%82%B9%E3%83%94%E3%83%A9%E3%83%BC%E3%83%AC-%E7%89%A7%E9%87%8E%E7%94%B1%E4%BE%9D</loc>
-    <lastmod>2026-07-09</lastmod>
+    <loc>https://kanau-songlist.pages.dev/song/%E8%8A%B1%E3%81%AB%E4%BA%A1%E9%9C%8A-%E3%83%A8%E3%83%AB%E3%82%B7%E3%82%AB</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -123,12 +129,6 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%82%A2%E3%82%A4%E3%83%AA%E3%82%B9-%E5%A4%A2%E5%B7%9D%E3%81%8B%E3%81%AA%E3%81%86</loc>
     <lastmod>2026-09-12</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E8%8A%B1%E3%81%AB%E4%BA%A1%E9%9C%8A-%E3%83%A8%E3%83%AB%E3%82%B7%E3%82%AB</loc>
-    <lastmod>2026-08-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -169,6 +169,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E3%82%A6%E3%83%B3%E3%83%87%E3%82%A3%E3%83%BC%E3%83%8D-%E7%89%A7%E9%87%8E%E7%94%B1%E4%BE%9D</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://kanau-songlist.pages.dev/song/%E5%90%9B%E3%81%A8%E5%A4%8F%E3%83%95%E3%82%A7%E3%82%B9-shishamo</loc>
     <lastmod>2026-08-24</lastmod>
     <changefreq>monthly</changefreq>
@@ -177,12 +183,6 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%83%A1%E3%83%AB%E3%83%88-cpk-remix-ryo-supercell</loc>
     <lastmod>2026-09-19</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E3%82%A6%E3%83%B3%E3%83%87%E3%82%A3%E3%83%BC%E3%83%8D-%E7%89%A7%E9%87%8E%E7%94%B1%E4%BE%9D</loc>
-    <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -319,6 +319,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E5%B0%91%E5%A5%B3%E3%83%AC%E3%82%A4-%E3%81%BF%E3%81%8D%E3%81%A8p</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://kanau-songlist.pages.dev/song/%E6%B8%9A%E3%81%AE%E3%83%90%E3%83%AB%E3%82%B3%E3%83%8B%E3%83%BC-%E6%9D%BE%E7%94%B0%E8%81%96%E5%AD%90</loc>
     <lastmod>2026-07-31</lastmod>
     <changefreq>monthly</changefreq>
@@ -387,12 +393,6 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%82%AC%E3%83%BC%E3%83%87%E3%83%B3-%E8%97%A4%E4%BA%95%E9%A2%A8</loc>
     <lastmod>2026-07-14</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E5%B0%91%E5%A5%B3%E3%83%AC%E3%82%A4-%E3%81%BF%E3%81%8D%E3%81%A8p</loc>
-    <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -559,6 +559,18 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E3%82%A8%E3%82%A4%E3%83%97%E3%83%AA%E3%83%AB-mol-74</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E3%83%80%E3%82%A4%E3%82%A2%E3%83%A2%E3%83%B3%E3%83%89%E3%82%AF%E3%83%AC%E3%83%90%E3%82%B9-%E3%82%B7%E3%82%A7%E3%83%AA%E3%83%AB%E3%83%BB%E3%83%8E%E3%83%BC%E3%83%A0-starring-may-n</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://kanau-songlist.pages.dev/song/%E9%AD%94%E6%B3%95%E3%81%AE%E7%B5%A8%E6%AF%AF-%E5%B7%9D%E5%B4%8E%E9%B7%B9%E4%B9%9F</loc>
     <lastmod>2026-09-01</lastmod>
     <changefreq>monthly</changefreq>
@@ -645,18 +657,6 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E5%A4%8F%E5%BE%85%E3%81%A1-round-table</loc>
     <lastmod>2026-09-05</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E3%82%A8%E3%82%A4%E3%83%97%E3%83%AA%E3%83%AB-mol-74</loc>
-    <lastmod>2026-05-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E3%83%80%E3%82%A4%E3%82%A2%E3%83%A2%E3%83%B3%E3%83%89%E3%82%AF%E3%83%AC%E3%83%90%E3%82%B9-%E3%82%B7%E3%82%A7%E3%83%AA%E3%83%AB%E3%83%BB%E3%83%8E%E3%83%BC%E3%83%A0-starring-may-n</loc>
-    <lastmod>2026-09-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -925,6 +925,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E3%83%A6%E3%83%BC%E3%83%95%E3%82%A9%E3%83%AA%E3%82%A2-%E7%89%A7%E9%87%8E%E7%94%B1%E4%BE%9D</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%83%8F%E3%83%8A%E3%83%9F%E3%82%BA%E3%82%AD-%E4%B8%80%E9%9D%92%E7%AA%88</loc>
     <lastmod>2026-04-19</lastmod>
     <changefreq>monthly</changefreq>
@@ -1039,20 +1045,26 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E3%83%A6%E3%83%BC%E3%83%95%E3%82%A9%E3%83%AA%E3%82%A2-%E7%89%A7%E9%87%8E%E7%94%B1%E4%BE%9D</loc>
-    <lastmod>2026-07-09</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://kanau-songlist.pages.dev/song/kawaii-kaiwai-piki</loc>
     <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E5%9B%9E%E3%82%8B%E7%A9%BA%E3%81%86%E3%81%95%E3%81%8E-orangestar</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%82%A2%E3%82%A4%E3%83%9E%E3%82%A4%E3%83%A2%E3%82%B3-%E6%B0%B4%E7%80%AC%E3%81%84%E3%81%AE%E3%82%8A</loc>
     <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E3%82%AB%E3%82%B6%E3%82%AD%E3%83%AA-%E3%82%84%E3%81%AA%E3%81%8E%E3%81%AA%E3%81%8E</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1165,12 +1177,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E5%9B%9E%E3%82%8B%E7%A9%BA%E3%81%86%E3%81%95%E3%81%8E-orangestar</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%81%95%E3%82%88%E3%81%AA%E3%82%89%E3%83%97%E3%83%AA%E3%83%B3%E3%82%BB%E3%82%B9-kai</loc>
     <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
@@ -1203,12 +1209,6 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/love%E3%81%9A%E3%81%A3%E3%81%8D%E3%82%85%E3%82%93-%E7%9B%B8%E5%AF%BE%E6%80%A7%E7%90%86%E8%AB%96</loc>
     <lastmod>2026-04-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E3%82%AB%E3%82%B6%E3%82%AD%E3%83%AA-%E3%82%84%E3%81%AA%E3%81%8E%E3%81%AA%E3%81%8E</loc>
-    <lastmod>2026-09-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1269,6 +1269,12 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E5%8F%AF%E6%84%9B%E3%81%84%E3%81%82%E3%81%AE%E5%AD%90%E3%81%8C%E6%B0%97%E3%81%AB%E3%82%90%E3%82%89%E3%81%AA%E3%81%84-%E3%81%AA%E3%82%8B%E3%81%BF%E3%82%84</loc>
     <lastmod>2026-04-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E7%A0%82%E7%B3%96%E7%8E%89%E3%81%AE%E6%9C%88-%E3%82%84%E3%81%AA%E3%81%8E%E3%81%AA%E3%81%8E</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1375,6 +1381,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://kanau-songlist.pages.dev/song/melee-%E3%82%84%E3%81%AA%E3%81%8E%E3%81%AA%E3%81%8E</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://kanau-songlist.pages.dev/song/god-knows-%E6%B6%BC%E5%AE%AE%E3%83%8F%E3%83%AB%E3%83%92-%E5%B9%B3%E9%87%8E%E7%B6%BE</loc>
     <lastmod>2026-08-07</lastmod>
     <changefreq>monthly</changefreq>
@@ -1425,12 +1437,6 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%81%A0%E3%81%84%E3%81%97%E3%81%8D%E3%82%85%E3%83%BC%E3%81%A0%E3%81%84%E3%81%97%E3%82%85%E3%81%8D-femme-fatale</loc>
     <lastmod>2026-07-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E7%A0%82%E7%B3%96%E7%8E%89%E3%81%AE%E6%9C%88-%E3%82%84%E3%81%AA%E3%81%8E%E3%81%AA%E3%81%8E</loc>
-    <lastmod>2026-03-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1543,12 +1549,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://kanau-songlist.pages.dev/song/melee-%E3%82%84%E3%81%AA%E3%81%8E%E3%81%AA%E3%81%8E</loc>
-    <lastmod>2026-04-19</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%83%9E%E3%83%AA%E3%83%BC%E3%82%B4%E3%83%BC%E3%83%AB%E3%83%89-%E3%81%82%E3%81%84%E3%81%BF%E3%82%87%E3%82%93</loc>
     <lastmod>2026-05-04</lastmod>
     <changefreq>monthly</changefreq>
@@ -1581,6 +1581,12 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/loveit-biz%C3%97zera</loc>
     <lastmod>2026-01-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E3%82%A6%E3%82%A3%E3%82%A2%E3%83%BC%E3%83%88%E3%83%AB-rionos</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1683,6 +1689,12 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%83%94%E3%83%81%E3%82%AB%E3%83%BC%E3%83%88%E3%83%89%E3%83%AD%E3%83%83%E3%83%97%E3%82%B9-%E3%81%A8%E3%81%82</loc>
     <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://kanau-songlist.pages.dev/song/%E5%85%AD%E5%85%86%E5%B9%B4%E3%81%A8%E4%B8%80%E5%A4%9C%E7%89%A9%E8%AA%9E-kemu</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1795,6 +1807,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://kanau-songlist.pages.dev/song/rain-stops-good-bye-%E3%81%AB%E3%81%8Ap</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%83%AF%E3%83%BC%E3%83%AB%E3%83%89%E3%82%A4%E3%82%BA%E3%83%9E%E3%82%A4%E3%83%B3-ryo-supercell</loc>
     <lastmod>2025-03-09</lastmod>
     <changefreq>monthly</changefreq>
@@ -1832,12 +1850,6 @@
   </url>
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%82%84%E3%81%95%E3%81%97%E3%81%84%E3%82%AD%E3%82%B9%E3%82%92%E3%81%97%E3%81%A6-dreams-come-true</loc>
-    <lastmod>2026-01-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E3%82%A6%E3%82%A3%E3%82%A2%E3%83%BC%E3%83%88%E3%83%AB-rionos</loc>
     <lastmod>2026-01-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -1993,12 +2005,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://kanau-songlist.pages.dev/song/%E5%85%AD%E5%85%86%E5%B9%B4%E3%81%A8%E4%B8%80%E5%A4%9C%E7%89%A9%E8%AA%9E-kemu</loc>
-    <lastmod>2026-06-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://kanau-songlist.pages.dev/song/%E3%82%B8%E3%82%A7%E3%83%AA%E3%83%BC%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%A5-yunomi</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
@@ -2091,12 +2097,6 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E7%99%BD%E3%81%84%E9%9B%AA%E3%81%AE%E3%83%97%E3%83%AA%E3%83%B3%E3%82%BB%E3%82%B9%E3%81%AF-%E3%81%AE%E3%81%BC%E3%82%8B%E2%86%91p</loc>
     <lastmod>2025-12-19</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://kanau-songlist.pages.dev/song/rain-stops-good-bye-%E3%81%AB%E3%81%8Ap</loc>
-    <lastmod>2026-04-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -4767,6 +4767,12 @@
   <url>
     <loc>https://kanau-songlist.pages.dev/song/%E5%A4%A9%E6%A8%82-%E3%82%86%E3%81%86%E3%82%86</loc>
     <lastmod>2022-09-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://kanau-songlist.pages.dev/?v=eHj587HjJ78</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
